@@ -1,5 +1,7 @@
 # OpenDCL
 
+[![CI](https://github.com/decentraland/opendcl/actions/workflows/ci.yaml/badge.svg)](https://github.com/decentraland/opendcl/actions/workflows/ci.yaml)
+
 AI coding assistant for Decentraland SDK7 scene development.
 
 OpenDCL is a terminal-based AI agent that understands Decentraland's SDK, components, and patterns out of the box. It helps creators — from beginners to experienced developers — build interactive 3D scenes faster using natural language.
