@@ -7,6 +7,7 @@
  */
 
 import { main, InteractiveMode } from "@mariozechner/pi-coding-agent";
+import { getCompactToolDefinition } from "./compact-tool-renderers.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -66,8 +67,11 @@ args.push("--skill", join(packageDir, "skills"));
 args.push("--prompt-template", join(packageDir, "prompts/review.md"));
 args.push("--prompt-template", join(packageDir, "prompts/explain.md"));
 
-// Suppress pi's built-in update notification (it tells users to install pi directly)
-process.env.PI_SKIP_VERSION_CHECK = "1";
+// Suppress pi's built-in update notification in npm installs (it tells users to
+// install pi directly). In local dev (.git exists) we keep it visible.
+if (!existsSync(join(packageDir, ".git"))) {
+  process.env.PI_SKIP_VERSION_CHECK = "1";
+}
 
 // Suppress pi's generic "No models available" warning — our dcl-setup-ollama
 // extension shows a more helpful message that mentions /setup-ollama.
@@ -75,6 +79,17 @@ const _showWarning = InteractiveMode.prototype.showWarning;
 InteractiveMode.prototype.showWarning = function (msg: string) {
   if (msg.startsWith("No models available")) return;
   _showWarning.call(this, msg);
+};
+
+// Compact tool output — override built-in write/read renderers to reduce terminal noise.
+// When a built-in tool has no custom renderCall/renderResult, pi shows verbose output.
+// By returning compact renderers from getRegisteredToolDefinition, the ToolExecutionComponent
+// uses them instead (see shouldUseBuiltInRenderer() in tool-execution.js).
+const _getToolDef = (InteractiveMode.prototype as any).getRegisteredToolDefinition;
+(InteractiveMode.prototype as any).getRegisteredToolDefinition = function (toolName: string) {
+  const original = _getToolDef.call(this, toolName);
+  if (original) return original;
+  return getCompactToolDefinition(toolName);
 };
 
 main(args).catch((err) => {
