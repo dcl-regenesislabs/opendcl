@@ -1,6 +1,6 @@
 # OpenDCL
 
-[![CI](https://github.com/decentraland/opendcl/actions/workflows/ci.yaml/badge.svg)](https://github.com/decentraland/opendcl/actions/workflows/ci.yaml)
+[![CI](https://github.com/dcl-regenesislabs/opendcl/actions/workflows/ci.yaml/badge.svg)](https://github.com/dcl-regenesislabs/opendcl/actions/workflows/ci.yaml)
 
 AI coding assistant for Decentraland SDK7 scene development.
 
