@@ -52,7 +52,7 @@ OpenDCL reads your scene context and modifies existing code without overwriting 
 | Command | Description |
 |---------|-------------|
 | `/init` | Scaffold a new Decentraland scene in the current directory |
-| `/preview` | Start the development server and preview the scene in browser |
+| `/preview` | Start the Bevy-web preview server and open the scene in browser |
 | `/deploy` | Deploy the scene to Genesis City or a World (auto-detects from scene.json) |
 | `/tasks` | Interactively manage running background processes (preview server, etc.) |
 | `/review` | Review scene code for quality, performance, and SDK7 best practices |
@@ -128,6 +128,15 @@ npm test
 # Watch mode (rebuild on changes)
 npm run dev
 ```
+
+### Testing
+
+Tests are organized into two tiers:
+
+- **Unit tests** (`tests/unit/`) — static analysis of file contents, frontmatter, and patterns
+- **Integration tests** (`tests/integration/`) — dynamic imports, mock registration, cross-extension wiring, and process lifecycle verification
+
+Integration tests catch wiring bugs (e.g., referencing a nonexistent extension file in `index.ts`) that static analysis alone would miss.
 
 ### Adding a Skill
 

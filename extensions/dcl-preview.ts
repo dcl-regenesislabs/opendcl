@@ -13,6 +13,21 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { processes } from "./process-registry.js";
 import { updateStatus } from "./dcl-tasks.js";
 
+export function selectPreviewUrl(
+  output: string,
+  bevyUrlAlreadyFound: boolean
+): { url: string; shouldNotify: boolean } | null {
+  const urls = [...output.matchAll(/https?:\/\/[^\s]+/g)].map((m) => m[0]);
+  if (urls.length === 0) return null;
+
+  const bevyUrl = urls.find((u) => u.includes("decentraland.zone/bevy-web"));
+  if (bevyUrl) return { url: bevyUrl, shouldNotify: true };
+
+  if (!bevyUrlAlreadyFound) return { url: urls[0], shouldNotify: false };
+
+  return null;
+}
+
 async function fileExists(path: string): Promise<boolean> {
   try {
     await access(path);
@@ -84,27 +99,31 @@ const extension: ExtensionFactory = (pi) => {
         });
         updateStatus(ctx);
 
-        previewProcess.stdout?.on("data", (data: Buffer) => {
-          const output = data.toString().trim();
-          if (output.includes("http://")) {
-            const url = output.match(/https?:\/\/[^\s]+/)?.[0] ?? "http://localhost:8000";
-            // Update registry entry with URL info
-            processes.set("preview", {
-              name: "Preview server",
-              info: url,
-              kill: () => cleanupPreview(),
-            });
-            ctx.ui.notify(`Preview server running at ${url}`, "info");
-            updateStatus(ctx);
-          }
-        });
+        let bevyUrlFound = false;
 
-        previewProcess.stderr?.on("data", (data: Buffer) => {
+        function handleOutput(data: Buffer): void {
           const output = data.toString().trim();
           if (output.includes("EADDRINUSE") || output.includes("address already in use")) {
             ctx.ui.notify("Port already in use. Try /tasks to stop existing servers.", "error");
+            return;
           }
-        });
+          const result = selectPreviewUrl(output, bevyUrlFound);
+          if (result) {
+            if (result.shouldNotify) bevyUrlFound = true;
+            processes.set("preview", {
+              name: "Preview server",
+              info: result.url,
+              kill: () => cleanupPreview(),
+            });
+            if (result.shouldNotify) {
+              ctx.ui.notify(`Preview server running at ${result.url}`, "info");
+            }
+            updateStatus(ctx);
+          }
+        }
+
+        previewProcess.stdout?.on("data", handleOutput);
+        previewProcess.stderr?.on("data", handleOutput);
 
         previewProcess.on("error", (err) => {
           ctx.ui.notify(`Failed to start preview: ${err.message}`, "error");
