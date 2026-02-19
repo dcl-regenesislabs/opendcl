@@ -94,7 +94,8 @@ GltfContainer.create(child, { src: 'models/hat.glb' })
 ## Free 3D Models
 
 For free CC0-licensed 3D models suitable for Decentraland, read the catalog at:
-`{baseDir}/../../context/open-source-3d-assets.md`
+`context/open-source-3d-assets.md` (in the opendcl repo root). If unavailable locally, fetch from:
+https://raw.githubusercontent.com/dcl-regenesislabs/opendcl/main/context/open-source-3d-assets.md
 
 This catalog contains 991+ models organized by themed collections (Cyberpunk, Medieval, MomusPark, etc.) with direct download URLs.
 

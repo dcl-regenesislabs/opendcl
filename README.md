@@ -48,6 +48,28 @@ $ opendcl
 
 OpenDCL reads your scene context and modifies existing code without overwriting it.
 
+## Use with Any AI Agent
+
+Install just the skills into your preferred AI coding agent — no opendcl installation required:
+
+```bash
+# Install all Decentraland skills (Claude Code, Cursor, Codex, Windsurf, and 35+ more)
+npx skills add dcl-regenesislabs/opendcl
+
+# List available skills first
+npx skills add dcl-regenesislabs/opendcl --list
+
+# Install specific skills only
+npx skills add dcl-regenesislabs/opendcl --skill create-scene --skill multiplayer-sync
+
+# Install globally (available in all projects)
+npx skills add dcl-regenesislabs/opendcl -g
+```
+
+This uses the open [skills](https://github.com/vercel-labs/skills) CLI to copy SKILL.md files into your agent's skills directory.
+
+> **Note:** The full OpenDCL agent adds auto TypeScript validation, scene context detection, and slash commands (`/preview`, `/init`, `/deploy`) on top of these skills.
+
 ## Commands
 
 | Command | Description |
