@@ -1,0 +1,187 @@
+# OpenDCL
+
+AI coding assistant for Decentraland SDK7 scene development.
+
+OpenDCL is a terminal-based AI agent that understands Decentraland's SDK, components, and patterns out of the box. It helps creators — from beginners to experienced developers — build interactive 3D scenes faster using natural language.
+
+## Features
+
+- **Multi-provider LLM support** — works with Claude, OpenAI, Google, Ollama (free/local), OpenRouter, and more
+- **Scene-aware** — automatically detects your project's `scene.json`, SDK version, and entry points
+- **11 built-in skills** — scaffolding, 3D models, interactivity, UI, animations, multiplayer, audio/video, deployment (Genesis City & Worlds), optimization, smart items
+- **Integrated commands** — `/init` to scaffold, `/preview` to launch the dev server, `/tasks` to manage running processes, `/review` to audit code
+- **TypeScript validation** — catches type errors immediately after writing code
+- **Free 3D asset catalog** — 900+ CC0-licensed models the agent can suggest and help you use
+- **Session persistence** — pick up where you left off across sessions
+
+## Quick Start
+
+```bash
+# Install
+npm install -g opendcl
+
+# Run in any directory
+opendcl
+```
+
+On first run, OpenDCL will ask you to choose an LLM provider and enter your API key. You can use a free local model via [Ollama](https://ollama.com/) if you don't have an API key.
+
+### In an Empty Folder
+
+```
+$ opendcl
+> Create a medieval tavern scene with a bar, tables, and a fireplace
+```
+
+OpenDCL will scaffold `scene.json`, `package.json`, `tsconfig.json`, and `src/index.ts` with your scene.
+
+### In an Existing Scene
+
+```
+$ cd my-scene/
+$ opendcl
+> Add a click handler to the door that opens it with an animation
+```
+
+OpenDCL reads your scene context and modifies existing code without overwriting it.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/init` | Scaffold a new Decentraland scene in the current directory |
+| `/preview` | Start the development server and preview the scene in browser |
+| `/deploy` | Deploy the scene to Genesis City or a World (auto-detects from scene.json) |
+| `/tasks` | Interactively manage running background processes (preview server, etc.) |
+| `/review` | Review scene code for quality, performance, and SDK7 best practices |
+| `/explain <concept>` | Explain a Decentraland SDK7 concept (e.g., `/explain tweens`) |
+
+## Skills
+
+OpenDCL loads domain-specific skills on demand based on what you're asking:
+
+| Skill | Triggered when you want to... |
+|-------|-------------------------------|
+| `create-scene` | Start a new project, scaffold files |
+| `add-3d-models` | Load .glb models, browse free asset catalog |
+| `add-interactivity` | Add click handlers, hover effects, triggers |
+| `build-ui` | Create HUDs, menus, buttons with React-ECS |
+| `animations-tweens` | Animate objects, play GLTF animations |
+| `multiplayer-sync` | Sync state between players |
+| `audio-video` | Add sounds, music, video screens |
+| `deploy-scene` | Publish to Genesis City (LAND-based) |
+| `deploy-worlds` | Publish to a World (DCL NAME or ENS domain) |
+| `optimize-scene` | Fix performance, stay within limits |
+| `smart-items` | Use asset pack smart items |
+
+## How It Works
+
+OpenDCL is built on [pi-coding-agent](https://github.com/badlogic/pi-mono), the agent engine behind [OpenClaw](https://github.com/openclaw/openclaw). It adds Decentraland-specific:
+
+- **System prompt** with SDK7 architecture knowledge (ECS, QuickJS sandbox, parcel constraints)
+- **Extensions** that detect your project, inject context, validate TypeScript, and provide slash commands
+- **Skills** with detailed guides for every common scene development task
+- **Reference docs** (87KB SDK reference, component tables, code examples, 3D asset catalog)
+
+The agent has full access to standard coding tools (read, write, edit, bash, grep, find) and uses them to understand and modify your scene code.
+
+## Project Structure
+
+```
+opendcl/
+├── src/
+│   ├── index.ts              # CLI entry point
+│   └── scene-context.ts      # Scene detection & context formatting
+├── extensions/
+│   ├── dcl-context.ts        # Auto-detect scene, inject metadata
+│   ├── dcl-init.ts           # /init command
+│   ├── dcl-preview.ts        # /preview command
+│   ├── dcl-deploy.ts         # /deploy command
+│   ├── dcl-validate.ts       # Post-write TypeScript validation
+│   ├── dcl-tasks.ts          # /tasks command (process manager)
+│   └── process-registry.ts   # Shared background process registry
+├── skills/                   # 11 SKILL.md files (domain expertise)
+├── prompts/                  # System prompt + command templates
+├── context/                  # SDK7 reference docs + asset catalog
+└── tests/                    # Vitest test suites
+```
+
+## Development
+
+```bash
+# Clone and install
+git clone https://github.com/decentraland/opendcl.git
+cd opendcl
+npm install
+
+# Build
+npm run build
+
+# Run locally
+node dist/index.js
+
+# Run tests
+npm test
+
+# Watch mode (rebuild on changes)
+npm run dev
+```
+
+### Adding a Skill
+
+Skills are markdown files — no code changes needed:
+
+1. Create `skills/my-skill/SKILL.md`
+2. Add frontmatter with `name` and `description`
+3. Write the instructions the agent should follow
+
+```markdown
+---
+name: my-skill
+description: Brief description of when this skill should be used
+---
+
+# My Skill
+
+Instructions for the agent...
+```
+
+The `description` field determines when the agent loads the skill. Make it specific about the user intent it covers.
+
+### Adding Context
+
+Drop a `.md` file in `context/` and reference it from your skills. The agent reads context files on demand to avoid bloating the context window.
+
+## LLM Providers
+
+OpenDCL supports any provider compatible with pi-coding-agent:
+
+| Provider | API Key Env Var | Notes |
+|----------|----------------|-------|
+| Anthropic (Claude) | `ANTHROPIC_API_KEY` | Best quality |
+| OpenAI | `OPENAI_API_KEY` | GPT-4o, o1, etc. |
+| Google | `GOOGLE_API_KEY` | Gemini models |
+| Ollama | — | Free, runs locally |
+| OpenRouter | `OPENROUTER_API_KEY` | Access to many models |
+
+Set the environment variable or enter the key on first run. Switch models anytime with `Ctrl+P`.
+
+## Requirements
+
+- Node.js >= 18
+- npm
+
+## Contributing
+
+Contributions are welcome! The easiest way to contribute is by adding or improving skills:
+
+1. Fork the repository
+2. Create a new skill in `skills/<name>/SKILL.md`
+3. Test that the skill loads: `npm test`
+4. Submit a pull request
+
+For bugs and feature requests, please [open an issue](https://github.com/decentraland/opendcl/issues).
+
+## License
+
+Apache-2.0

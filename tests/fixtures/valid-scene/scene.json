@@ -1,0 +1,20 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Test Scene",
+    "description": "A test scene for opendcl"
+  },
+  "scene": {
+    "parcels": ["0,0", "0,1", "1,0", "1,1"],
+    "base": "0,0"
+  },
+  "main": "bin/index.js",
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": { "x": 8, "y": 0, "z": 8 }
+    }
+  ]
+}

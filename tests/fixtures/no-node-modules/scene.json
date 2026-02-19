@@ -1,0 +1,12 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "No Modules Scene"
+  },
+  "scene": {
+    "parcels": ["0,0"],
+    "base": "0,0"
+  },
+  "main": "bin/index.js"
+}

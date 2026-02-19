@@ -1,0 +1,7 @@
+{
+  "name": "test-scene",
+  "version": "1.0.0",
+  "dependencies": {
+    "@dcl/sdk": "^7.5.0"
+  }
+}

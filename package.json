@@ -1,0 +1,57 @@
+{
+  "name": "opendcl",
+  "version": "0.1.0",
+  "description": "AI coding assistant for Decentraland SDK7 scene development",
+  "type": "module",
+  "bin": {
+    "opendcl": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "piConfig": {
+    "name": "opendcl",
+    "configDir": ".opendcl"
+  },
+  "pi": {
+    "extensions": ["./extensions"],
+    "skills": ["./skills"],
+    "prompts": ["./prompts"]
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "decentraland",
+    "sdk7",
+    "ai",
+    "coding-agent",
+    "pi-package",
+    "scene-builder"
+  ],
+  "author": "Decentraland",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@mariozechner/pi-coding-agent": "^0.53.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/",
+    "extensions/",
+    "skills/",
+    "prompts/",
+    "context/"
+  ]
+}

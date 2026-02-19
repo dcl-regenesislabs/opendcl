@@ -1,0 +1,9 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "scene": {
+    "parcels": ["0,0"],
+    "base": "0,0"
+  },
+  "main": "bin/index.js"
+}

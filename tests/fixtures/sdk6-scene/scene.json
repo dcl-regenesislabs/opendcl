@@ -1,0 +1,10 @@
+{
+  "display": {
+    "title": "Old SDK6 Scene"
+  },
+  "scene": {
+    "parcels": ["0,0"],
+    "base": "0,0"
+  },
+  "main": "game.js"
+}
