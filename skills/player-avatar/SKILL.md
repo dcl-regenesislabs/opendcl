@@ -1,0 +1,239 @@
+---
+name: player-avatar
+description: Work with player avatars in Decentraland scenes. Read player position and profile data, customize appearance with AvatarBase, trigger emotes with triggerEmote/triggerSceneEmote, read equipped wearables via AvatarEquippedData, attach objects to players with AvatarAttach, create NPC avatars with AvatarShape, and modify avatars in areas. Use when user wants player data, emotes, wearables, avatar attachments, or NPCs.
+---
+
+# Player and Avatar System in Decentraland
+
+## Player Position and Movement
+
+Access the player's position via the reserved `engine.PlayerEntity`:
+
+```typescript
+import { engine, Transform } from '@dcl/sdk/ecs'
+
+function trackPlayer() {
+  if (!Transform.has(engine.PlayerEntity)) return
+
+  const playerTransform = Transform.get(engine.PlayerEntity)
+  console.log('Player position:', playerTransform.position)
+  console.log('Player rotation:', playerTransform.rotation)
+}
+
+engine.addSystem(trackPlayer)
+```
+
+### Distance-Based Logic
+
+```typescript
+import { Vector3 } from '@dcl/sdk/math'
+
+function proximityCheck() {
+  const playerPos = Transform.get(engine.PlayerEntity).position
+  const npcPos = Transform.get(npcEntity).position
+  const distance = Vector3.distance(playerPos, npcPos)
+
+  if (distance < 5) {
+    console.log('Player is near the NPC')
+  }
+}
+
+engine.addSystem(proximityCheck)
+```
+
+## Player Profile Data
+
+Get the player's name, wallet address, and guest status:
+
+```typescript
+import { getPlayer } from '@dcl/sdk/src/players'
+
+function main() {
+  const player = getPlayer()
+  if (player) {
+    console.log('Name:', player.name)
+    console.log('User ID:', player.userId)
+    console.log('Is guest:', player.isGuest)
+  }
+}
+```
+
+- `userId` — the player's Ethereum wallet address (or guest ID)
+- `isGuest` — `true` if the player hasn't connected a wallet
+
+## Avatar Attachments
+
+Attach 3D objects to a player's avatar:
+
+```typescript
+import { engine, Transform, GltfContainer, AvatarAttach, AvatarAnchorPointType } from '@dcl/sdk/ecs'
+
+const hat = engine.addEntity()
+GltfContainer.create(hat, { src: 'models/hat.glb' })
+
+// Attach to the local player's avatar
+AvatarAttach.create(hat, {
+  anchorPointId: AvatarAnchorPointType.AAPT_NAME_TAG
+})
+```
+
+### Anchor Points
+
+```typescript
+AvatarAnchorPointType.AAPT_NAME_TAG      // Above the head
+AvatarAnchorPointType.AAPT_RIGHT_HAND    // Right hand
+AvatarAnchorPointType.AAPT_LEFT_HAND     // Left hand
+AvatarAnchorPointType.AAPT_POSITION      // Avatar root position
+```
+
+### Attach to a Specific Player
+
+```typescript
+AvatarAttach.create(hat, {
+  avatarId: '0x123...abc',  // Target player's wallet address
+  anchorPointId: AvatarAnchorPointType.AAPT_RIGHT_HAND
+})
+```
+
+## Triggering Emotes
+
+### Default Emotes
+
+```typescript
+import { triggerEmote } from '~system/RestrictedActions'
+
+// Play a built-in emote
+triggerEmote({ predefinedEmote: 'robot' })
+triggerEmote({ predefinedEmote: 'wave' })
+triggerEmote({ predefinedEmote: 'clap' })
+```
+
+### Custom Scene Emotes
+
+```typescript
+import { triggerSceneEmote } from '~system/RestrictedActions'
+
+// Play a custom emote animation (file must end with _emote.glb)
+triggerSceneEmote({
+  src: 'animations/Snowball_Throw_emote.glb',
+  loop: false
+})
+```
+
+**Notes:**
+- Emotes play only while the player is standing still — walking or jumping interrupts them
+- Custom emote files must have the `_emote.glb` suffix
+
+## NPC Avatars
+
+Create avatar-shaped NPCs using `AvatarShape`:
+
+```typescript
+import { engine, Transform, AvatarShape } from '@dcl/sdk/ecs'
+import { Vector3 } from '@dcl/sdk/math'
+
+const npc = engine.addEntity()
+Transform.create(npc, { position: Vector3.create(8, 0, 8) })
+
+AvatarShape.create(npc, {
+  id: 'npc-1',
+  name: 'Guard',
+  wearables: [
+    'urn:decentraland:off-chain:base-avatars:f_eyes_01',
+    'urn:decentraland:off-chain:base-avatars:f_eyebrows_01',
+    'urn:decentraland:off-chain:base-avatars:f_mouth_01',
+    'urn:decentraland:off-chain:base-avatars:sport_jacket',
+    'urn:decentraland:off-chain:base-avatars:oxford_pants'
+  ]
+})
+```
+
+NPC avatars are static — they display the avatar model but don't move or animate on their own. Combine with Animator or Tween for movement.
+
+## Avatar Modifier Areas
+
+Modify how avatars appear or behave in a region:
+
+```typescript
+import { engine, Transform, AvatarModifierArea, AvatarModifierType } from '@dcl/sdk/ecs'
+import { Vector3 } from '@dcl/sdk/math'
+
+const modifierArea = engine.addEntity()
+Transform.create(modifierArea, {
+  position: Vector3.create(8, 1.5, 8),
+  scale: Vector3.create(4, 3, 4)
+})
+
+AvatarModifierArea.create(modifierArea, {
+  area: { box: Vector3.create(4, 3, 4) },
+  modifiers: [AvatarModifierType.AMT_HIDE_AVATARS],
+  excludeIds: ['0x123...abc']  // Optional: exclude specific players
+})
+```
+
+### Available Modifiers
+
+```typescript
+AvatarModifierType.AMT_HIDE_AVATARS       // Hide all avatars in the area
+AvatarModifierType.AMT_DISABLE_PASSPORTS  // Disable clicking on avatars to see profiles
+AvatarModifierType.AMT_DISABLE_JUMPING    // Prevent jumping in the area
+```
+
+### Movement Constraints
+
+```typescript
+// Prevent jumping in a specific area
+const constraintArea = engine.addEntity()
+Transform.create(constraintArea, {
+  position: Vector3.create(8, 5, 8),
+  scale: Vector3.create(6, 10, 6)
+})
+
+AvatarModifierArea.create(constraintArea, {
+  area: { box: Vector3.create(6, 10, 6) },
+  modifiers: [AvatarModifierType.AMT_DISABLE_JUMPING]
+})
+```
+
+## Teleporting the Player
+
+Move the player to a specific position:
+
+```typescript
+// Move player position
+const playerTransform = Transform.getMutable(engine.PlayerEntity)
+playerTransform.position = Vector3.create(8, 0, 8)
+
+// Move player with rotation
+playerTransform.position = Vector3.create(8, 0, 8)
+playerTransform.rotation = Quaternion.fromEulerDegrees(0, 180, 0)
+```
+
+### Keeping Player in Bounds
+
+```typescript
+function boundarySystem() {
+  const playerTransform = Transform.getMutable(engine.PlayerEntity)
+  const pos = playerTransform.position
+
+  // Clamp to scene bounds
+  if (pos.x < 0) playerTransform.position.x = 0
+  if (pos.x > 16) playerTransform.position.x = 16
+  if (pos.z < 0) playerTransform.position.z = 0
+  if (pos.z > 16) playerTransform.position.z = 16
+}
+
+engine.addSystem(boundarySystem)
+```
+
+## Best Practices
+
+- Always check `Transform.has(engine.PlayerEntity)` before reading player data — it may not be ready on the first frame
+- Use `getPlayer()` to check `isGuest` before attempting wallet-dependent features
+- `AvatarAttach` requires the target player to be in the same scene — attachments disappear when the player leaves
+- Custom emote files must use the `_emote.glb` naming convention
+- Use `AvatarModifierArea` with `AMT_HIDE_AVATARS` for private rooms or puzzle areas
+- Add `excludeIds` to modifier areas when you want specific players (like the scene owner) to remain visible
+- Teleporting the player works within scene bounds — respect parcel limits
+
+For component field details, see `context/components-reference.md`.

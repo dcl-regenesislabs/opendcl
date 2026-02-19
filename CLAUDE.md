@@ -66,10 +66,11 @@ Prompt templates use the same frontmatter format. `$@` = all user args, `$1` = f
 | `dcl-tasks.ts` | `/tasks` → interactive process manager | `registerCommand` |
 | `process-registry.ts` | Shared background process registry | Module export |
 
-## Skills (11)
+## Skills (18)
 
 create-scene, add-3d-models, add-interactivity, build-ui, animations-tweens,
-multiplayer-sync, audio-video, deploy-scene, deploy-worlds, optimize-scene, smart-items
+multiplayer-sync, authoritative-server, audio-video, deploy-scene, deploy-worlds, optimize-scene, smart-items,
+camera-control, lighting-environment, player-avatar, nft-blockchain, advanced-rendering, advanced-input
 
 Adding a skill = creating `skills/<name>/SKILL.md`. No code changes needed.
 
