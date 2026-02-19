@@ -90,6 +90,24 @@ describe("extension registration", () => {
     });
   });
 
+  describe("dcl-setup", () => {
+    it("registers /setup command with description", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-setup.js`);
+      mod.default(pi);
+      const cmd = records.commands.find((c) => c.name === "setup");
+      expect(cmd).toBeDefined();
+      expect(cmd!.description.length).toBeGreaterThan(0);
+    });
+
+    it("registers no event subscriptions", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-setup.js`);
+      mod.default(pi);
+      expect(records.events).toHaveLength(0);
+    });
+  });
+
   describe("dcl-setup-ollama", () => {
     it("registers /setup-ollama command with description", async () => {
       const { pi, records } = createMockPi();
@@ -105,6 +123,26 @@ describe("extension registration", () => {
       const mod = await import(`${EXTENSIONS_DIR}/dcl-setup-ollama.js`);
       mod.default(pi);
       expect(records.events.some((e) => e.event === "session_start")).toBe(true);
+    });
+  });
+
+  describe("dcl-status", () => {
+    it("subscribes to turn_start, message_update, turn_end, agent_end", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-status.js`);
+      mod.default(pi);
+      const eventNames = records.events.map((e) => e.event);
+      expect(eventNames).toContain("turn_start");
+      expect(eventNames).toContain("message_update");
+      expect(eventNames).toContain("turn_end");
+      expect(eventNames).toContain("agent_end");
+    });
+
+    it("registers no commands", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-status.js`);
+      mod.default(pi);
+      expect(records.commands).toHaveLength(0);
     });
   });
 
@@ -183,8 +221,10 @@ describe("extension registration", () => {
         "dcl-preview",
         "dcl-init",
         "dcl-deploy",
+        "dcl-setup",
         "dcl-validate",
         "dcl-header",
+        "dcl-status",
         "dcl-setup-ollama",
         "dcl-tasks",
         "plan-mode/index",
@@ -200,7 +240,7 @@ describe("extension registration", () => {
       }
 
       allCommands.sort();
-      expect(allCommands).toEqual(["deploy", "init", "plan", "preview", "setup-ollama", "tasks", "todos"]);
+      expect(allCommands).toEqual(["deploy", "init", "plan", "preview", "setup", "setup-ollama", "tasks", "todos"]);
     });
   });
 });

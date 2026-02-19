@@ -27,7 +27,7 @@ npm install -g opendcl
 opendcl
 ```
 
-On first run, type `/setup-ollama` to install [Ollama](https://ollama.com/) and configure a free local model in one step. Or choose any LLM provider and enter your API key.
+On first run, type `/setup` to configure a cloud API provider (Anthropic, OpenAI, Google, etc.) or `/setup-ollama` to install [Ollama](https://ollama.com/) and use a free local model.
 
 ### In an Empty Folder
 
@@ -74,6 +74,7 @@ This uses the open [skills](https://github.com/vercel-labs/skills) CLI to copy S
 
 | Command | Description |
 |---------|-------------|
+| `/setup` | Configure a cloud API provider (Anthropic, OpenAI, Google, etc.) |
 | `/setup-ollama` | Install Ollama and configure a free local LLM model |
 | `/init` | Scaffold a new Decentraland scene in the current directory |
 | `/preview` | Start the Bevy-web preview server and open the scene in browser |
@@ -130,7 +131,9 @@ opendcl/
 │   ├── dcl-init.ts           # /init command
 │   ├── dcl-preview.ts        # /preview command
 │   ├── dcl-deploy.ts         # /deploy command
+│   ├── dcl-setup.ts          # /setup command (cloud API provider config)
 │   ├── dcl-setup-ollama.ts   # /setup-ollama command (Ollama setup wizard)
+│   ├── dcl-status.ts         # Thinking/streaming status (elapsed time + tokens)
 │   ├── dcl-validate.ts       # Post-write TypeScript validation
 │   ├── dcl-tasks.ts          # /tasks command (process manager)
 │   └── process-registry.ts   # Shared background process registry

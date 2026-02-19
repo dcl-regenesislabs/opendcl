@@ -64,7 +64,9 @@ Key lifecycle events: `session_start`, `before_agent_start`, `tool_call`, `tool_
 | `dcl-init.ts` | `/init` → scaffolds new scene | `registerCommand` |
 | `dcl-validate.ts` | Runs `tsc --noEmit` after .ts writes | `tool_result` |
 | `dcl-deploy.ts` | `/deploy` → deploys to Genesis City or World | `registerCommand` |
+| `dcl-setup.ts` | `/setup` → interactive cloud API provider configuration (Anthropic, OpenAI, Google, etc.) | `registerCommand` |
 | `dcl-setup-ollama.ts` | `/setup-ollama` → Ollama install + model config; prompts on startup if no provider configured | `registerCommand` + `session_start` |
+| `dcl-status.ts` | Shows elapsed time + output token count in spinner during LLM inference | `turn_start` + `message_update` + `turn_end` + `agent_end` |
 | `dcl-tasks.ts` | `/tasks` → interactive process manager | `registerCommand` |
 | `process-registry.ts` | Shared `Map<string, BackgroundProcess>` singleton (via globalThis) | Module export |
 

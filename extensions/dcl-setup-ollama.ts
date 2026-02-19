@@ -10,6 +10,7 @@ import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { spawn } from "node:child_process";
 
 interface OllamaProvider {
   baseUrl?: string;
@@ -26,9 +27,10 @@ const API_KEY_ENV_VARS = [
 ];
 
 export const OLLAMA_MODELS = [
-  { id: "qwen2.5-coder:7b", label: "qwen2.5-coder:7b (Recommended — best coding quality, ~4GB)" },
-  { id: "llama3.1:8b", label: "llama3.1:8b (Good general purpose, ~4.7GB)" },
-  { id: "deepseek-coder-v2:16b", label: "deepseek-coder-v2:16b (Strong at code, ~8.9GB)" },
+  { id: "qwen2.5-coder:32b", label: "qwen2.5-coder:32b (Recommended — best coding benchmarks, ~18GB)" },
+  { id: "qwen3-coder:30b", label: "qwen3-coder:30b (Latest Alibaba coder, 256K context, ~19GB)" },
+  { id: "devstral:24b", label: "devstral:24b (Mistral coding agent model, ~14GB)" },
+  { id: "glm-4.7-flash", label: "glm-4.7-flash (Reasoning + code generation, ~25GB)" },
 ];
 
 async function readJsonFile<T>(path: string, fallback: T): Promise<T> {
@@ -81,9 +83,48 @@ export async function isProviderConfigured(): Promise<boolean> {
     return true;
   }
 
-  const modelsPath = join(homedir(), ".opendcl", "agent", "models.json");
+  const configDir = join(homedir(), ".opendcl", "agent");
+
+  const modelsConfig = await readJsonFile<{ providers?: Record<string, unknown> }>(join(configDir, "models.json"), {});
+  if (modelsConfig.providers != null && Object.keys(modelsConfig.providers).length > 0) {
+    return true;
+  }
+
+  const authConfig = await readJsonFile<Record<string, unknown>>(join(configDir, "auth.json"), {});
+  return Object.keys(authConfig).length > 0;
+}
+
+export function parseOllamaList(output: string): string[] {
+  const lines = output.split(/\r?\n/).filter((l) => l.trim());
+  // Skip header line (starts with "NAME")
+  const dataLines = lines.filter((l) => !l.startsWith("NAME"));
+  return dataLines
+    .map((l) => l.split(/\s+/)[0])
+    .filter(Boolean)
+    .map((name) => name.replace(/:latest$/, ""));
+}
+
+export async function removeOllamaModel(
+  modelsPath: string,
+  settingsPath: string,
+  modelId: string,
+): Promise<void> {
   const config = await readJsonFile<{ providers?: Record<string, unknown> }>(modelsPath, {});
-  return config.providers != null && Object.keys(config.providers).length > 0;
+  const ollama = config.providers?.ollama as OllamaProvider | undefined;
+  if (ollama?.models) {
+    ollama.models = ollama.models.filter((m) => m.id !== modelId);
+    if (ollama.models.length === 0) {
+      delete config.providers!.ollama;
+    }
+    await writeJsonFile(modelsPath, config);
+  }
+
+  const settings = await readJsonFile<Record<string, unknown>>(settingsPath, {});
+  if (settings.defaultProvider === "ollama" && settings.defaultModel === modelId) {
+    delete settings.defaultProvider;
+    delete settings.defaultModel;
+    await writeJsonFile(settingsPath, settings);
+  }
 }
 
 /**
@@ -95,14 +136,105 @@ function ollamaExec(pi: Parameters<ExtensionFactory>[0], args: string, timeout =
   return pi.exec(shell, ["-lc", `ollama ${args}`], { timeout }).catch(() => null);
 }
 
+function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e]/g, "");
+}
+
+/**
+ * Extract a clean, human-readable progress line from raw ollama pull output.
+ * Ollama outputs ANSI-heavy terminal UI — this strips escape codes and
+ * picks the most informative line (percentage progress > phase labels).
+ */
+export function extractPullProgress(raw: string): string | null {
+  const clean = stripAnsi(raw);
+  const lines = clean.split(/\r\n|\r|\n/).map((l) => l.trim()).filter(Boolean);
+  // Prefer the line with download percentage (e.g. "pulling abc123:  45%  8 GB/18 GB  12 MB/s")
+  const progress = lines.findLast((l) => /\d+%/.test(l));
+  if (progress) return progress;
+  // Fall back to phase lines like "pulling manifest", "verifying sha256 digest"
+  const phase = lines.findLast((l) => /^(pulling|verifying|writing|success)/.test(l));
+  return phase ?? null;
+}
+
+/**
+ * Pull a model with streaming progress via spawn.
+ * Throttles notifications to avoid UI spam (one update every 2 seconds max).
+ */
+export function ollamaPull(
+  modelId: string,
+  onProgress: (line: string) => void,
+): Promise<{ success: boolean; error?: string }> {
+  return new Promise((resolve) => {
+    const shell = process.env.SHELL || "/bin/sh";
+    const child = spawn(shell, ["-lc", `ollama pull ${modelId}`], {
+      stdio: "pipe",
+    });
+
+    let lastNotify = 0;
+    let lastLine = "";
+    let errorOutput = "";
+
+    function handleData(data: Buffer): void {
+      const text = data.toString();
+      errorOutput += text;
+      const line = extractPullProgress(text);
+      if (!line) return;
+      lastLine = line;
+      const now = Date.now();
+      if (now - lastNotify >= 2000) {
+        lastNotify = now;
+        onProgress(line);
+      }
+    }
+
+    child.stdout?.on("data", handleData);
+    child.stderr?.on("data", handleData);
+
+    child.on("error", (err) => {
+      resolve({ success: false, error: err.message });
+    });
+
+    child.on("exit", (code) => {
+      if (lastLine) onProgress(lastLine);
+      if (code === 0) {
+        resolve({ success: true });
+      } else {
+        resolve({ success: false, error: stripAnsi(errorOutput).slice(-500) });
+      }
+    });
+  });
+}
+
 const extension: ExtensionFactory = (pi) => {
   pi.on("session_start", async (_event, ctx) => {
     if (!(await isProviderConfigured())) {
       ctx.ui.notify(
-        "Get started by running /setup-ollama (free, runs locally) or /login (Claude, OpenAI, etc.)",
+        "Get started by running /setup (cloud providers) or /setup-ollama (free local models)",
         "warning",
       );
+      return;
     }
+
+    const configDir = join(homedir(), ".opendcl", "agent");
+    const settingsPath = join(configDir, "settings.json");
+    const settings = await readJsonFile<Record<string, unknown>>(settingsPath, {});
+    if (settings.defaultProvider !== "ollama") return;
+
+    const defaultModel = settings.defaultModel as string | undefined;
+    if (!defaultModel) return;
+
+    const listResult = await ollamaExec(pi, "list");
+    if (!listResult || listResult.code !== 0) return;
+
+    const installed = parseOllamaList(listResult.stdout || "");
+    if (installed.includes(defaultModel)) return;
+
+    const modelsPath = join(configDir, "models.json");
+    await removeOllamaModel(modelsPath, settingsPath, defaultModel);
+    ctx.ui.notify(
+      `Model '${defaultModel}' is no longer installed in Ollama. Run /setup-ollama to configure a new model.`,
+      "warning",
+    );
   });
 
   pi.registerCommand("setup-ollama", {
@@ -122,26 +254,42 @@ const extension: ExtensionFactory = (pi) => {
         return;
       }
 
-      const selected = await ctx.ui.select(
-        "Which model do you want to use?",
-        OLLAMA_MODELS.map((m) => m.label),
+      const installed = parseOllamaList(listResult.stdout || "");
+      const theme = ctx.ui.theme;
+      const sorted = [...OLLAMA_MODELS].sort((a, b) => {
+        const aInstalled = installed.includes(a.id) ? 0 : 1;
+        const bInstalled = installed.includes(b.id) ? 0 : 1;
+        return aInstalled - bInstalled;
+      });
+      const labels = sorted.map((m) =>
+        installed.includes(m.id)
+          ? `${m.label} ${theme.fg("success", "● ready")}`
+          : `${m.label} ${theme.fg("dim", "○ needs download")}`,
       );
+
+      const selected = await ctx.ui.select("Which model do you want to use?", labels);
       if (!selected) {
         ctx.ui.notify("Setup cancelled.", "info");
         return;
       }
 
-      const model = OLLAMA_MODELS.find((m) => m.label === selected);
+      const model = sorted.find((m) => selected.startsWith(m.label));
       if (!model) {
         ctx.ui.notify("Invalid selection.", "error");
         return;
       }
 
-      ctx.ui.notify(`Pulling ${model.id}... (this may take a few minutes)`, "info");
-      const pullResult = await ollamaExec(pi, `pull ${model.id}`, 600000);
-      if (!pullResult || pullResult.code !== 0) {
-        ctx.ui.notify(`Failed to pull model: ${pullResult?.stderr || pullResult?.stdout || "unknown error"}`, "error");
-        return;
+      const alreadyInstalled = installed.includes(model.id);
+      if (!alreadyInstalled) {
+        ctx.ui.setStatus("pull", `Pulling ${model.id}...`);
+        const pullResult = await ollamaPull(model.id, (line) => {
+          ctx.ui.setStatus("pull", line);
+        });
+        ctx.ui.setStatus("pull", undefined);
+        if (!pullResult.success) {
+          ctx.ui.notify(`Failed to pull model: ${pullResult.error || "unknown error"}`, "error");
+          return;
+        }
       }
       ctx.ui.notify("Model ready.", "info");
 
@@ -152,9 +300,11 @@ const extension: ExtensionFactory = (pi) => {
       await setDefaultModel(settingsPath, "ollama", model.id);
 
       ctx.ui.notify(
-        `Ollama configured as your default provider.\n  Model: ${model.id}\n  You can switch models anytime with Ctrl+P`,
+        `Ollama configured: ${model.id}. Reloading...`,
         "info",
       );
+      await ctx.reload();
+      return;
     },
   });
 };
