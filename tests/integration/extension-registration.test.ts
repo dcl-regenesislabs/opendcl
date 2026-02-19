@@ -90,6 +90,22 @@ describe("extension registration", () => {
     });
   });
 
+  describe("dcl-update-check", () => {
+    it("subscribes to session_start", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-update-check.js`);
+      mod.default(pi);
+      expect(records.events.some((e) => e.event === "session_start")).toBe(true);
+    });
+
+    it("registers no commands", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-update-check.js`);
+      mod.default(pi);
+      expect(records.commands).toHaveLength(0);
+    });
+  });
+
   describe("dcl-setup", () => {
     it("registers /setup command with description", async () => {
       const { pi, records } = createMockPi();
@@ -224,6 +240,7 @@ describe("extension registration", () => {
         "dcl-setup",
         "dcl-validate",
         "dcl-header",
+        "dcl-update-check",
         "dcl-status",
         "dcl-setup-ollama",
         "dcl-tasks",

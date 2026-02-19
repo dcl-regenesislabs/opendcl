@@ -37,7 +37,7 @@
   "author": "Decentraland",
   "license": "Apache-2.0",
   "dependencies": {
-    "@mariozechner/pi-coding-agent": "^0.53.0"
+    "@mariozechner/pi-coding-agent": "^0.54.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

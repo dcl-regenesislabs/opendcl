@@ -134,6 +134,7 @@ opendcl/
 │   ├── dcl-setup.ts          # /setup command (cloud API provider config)
 │   ├── dcl-setup-ollama.ts   # /setup-ollama command (Ollama setup wizard)
 │   ├── dcl-status.ts         # Thinking/streaming status (elapsed time + tokens)
+│   ├── dcl-update-check.ts   # Checks npm for newer OpenDCL versions
 │   ├── dcl-validate.ts       # Post-write TypeScript validation
 │   ├── dcl-tasks.ts          # /tasks command (process manager)
 │   └── process-registry.ts   # Shared background process registry

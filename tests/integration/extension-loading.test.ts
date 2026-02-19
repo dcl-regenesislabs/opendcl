@@ -15,6 +15,7 @@ const EXTENSION_FILES = [
   "dcl-deploy",
   "dcl-validate",
   "dcl-header",
+  "dcl-update-check",
   "dcl-setup-ollama",
   "dcl-tasks",
   "process-registry",
