@@ -101,8 +101,12 @@ const extension: ExtensionFactory = (pi) => {
 
         let bevyUrlFound = false;
 
-        previewProcess.stdout?.on("data", (data: Buffer) => {
+        function handleOutput(data: Buffer): void {
           const output = data.toString().trim();
+          if (output.includes("EADDRINUSE") || output.includes("address already in use")) {
+            ctx.ui.notify("Port already in use. Try /tasks to stop existing servers.", "error");
+            return;
+          }
           const result = selectPreviewUrl(output, bevyUrlFound);
           if (result) {
             if (result.shouldNotify) bevyUrlFound = true;
@@ -116,14 +120,10 @@ const extension: ExtensionFactory = (pi) => {
             }
             updateStatus(ctx);
           }
-        });
+        }
 
-        previewProcess.stderr?.on("data", (data: Buffer) => {
-          const output = data.toString().trim();
-          if (output.includes("EADDRINUSE") || output.includes("address already in use")) {
-            ctx.ui.notify("Port already in use. Try /tasks to stop existing servers.", "error");
-          }
-        });
+        previewProcess.stdout?.on("data", handleOutput);
+        previewProcess.stderr?.on("data", handleOutput);
 
         previewProcess.on("error", (err) => {
           ctx.ui.notify(`Failed to start preview: ${err.message}`, "error");
