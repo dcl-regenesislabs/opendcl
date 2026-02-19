@@ -22,10 +22,7 @@ const extension: ExtensionFactory = (pi) => {
   pi.registerCommand("init", {
     description: "Initialize a new Decentraland scene project in the current directory",
     handler: async (_args, ctx) => {
-      const cwd = ctx.cwd;
-
-      // Check if scene.json already exists
-      if (await fileExists(join(cwd, "scene.json"))) {
+      if (await fileExists(join(ctx.cwd, "scene.json"))) {
         ctx.ui.notify("A scene.json already exists in this directory. Aborting to prevent overwriting.", "warning");
         return;
       }
@@ -34,16 +31,16 @@ const extension: ExtensionFactory = (pi) => {
 
       try {
         const result = await pi.exec("npx", ["@dcl/sdk-commands", "init", "--skip-install"], {
-          cwd,
+          cwd: ctx.cwd,
           timeout: 60000,
         });
 
-        if (result.exitCode === 0) {
+        if (result.code === 0) {
           ctx.ui.notify("Scene initialized! Run 'npm install' to install dependencies, then '/preview' to start.", "info");
           // Reload to pick up the new scene context
           await ctx.reload();
         } else {
-          ctx.ui.notify(`Init failed (exit code ${result.exitCode}): ${result.stderr || result.stdout}`, "error");
+          ctx.ui.notify(`Init failed (exit code ${result.code}): ${result.stderr || result.stdout}`, "error");
         }
       } catch (err) {
         ctx.ui.notify(`Failed to initialize scene: ${err instanceof Error ? err.message : String(err)}`, "error");

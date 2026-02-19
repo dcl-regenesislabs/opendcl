@@ -35,10 +35,12 @@ export interface MockRecords {
   commands: RegisteredCommand[];
   shortcuts: RegisteredShortcut[];
   flags: RegisteredFlag[];
+  providers: { name: string; config: unknown }[];
   tools: unknown[];
   messages: unknown[];
-  activeTools: string[][] ;
+  activeTools: string[][];
   entries: unknown[];
+  workingMessages: (string | undefined)[];
 }
 
 export interface MockPi {
@@ -46,8 +48,9 @@ export interface MockPi {
   registerCommand(name: string, opts: { description: string; handler: (...args: unknown[]) => unknown }): void;
   registerShortcut(key: unknown, opts: { description: string; handler: (...args: unknown[]) => unknown }): void;
   registerFlag(name: string, opts: { description: string; type: string; default: unknown }): void;
+  registerProvider(name: string, config: unknown): void;
   registerTool(definition: unknown): void;
-  exec(cmd: string, args: string[], opts?: unknown): Promise<{ exitCode: number; stdout: string; stderr: string }>;
+  exec(cmd: string, args: string[], opts?: unknown): Promise<{ code: number; stdout: string; stderr: string }>;
   sendMessage(msg: unknown, opts?: unknown): void;
   sendUserMessage(msg: string): void;
   setActiveTools(tools: string[]): void;
@@ -61,10 +64,12 @@ export function createMockPi(): { pi: MockPi; records: MockRecords } {
     commands: [],
     shortcuts: [],
     flags: [],
+    providers: [],
     tools: [],
     messages: [],
     activeTools: [],
     entries: [],
+    workingMessages: [],
   };
 
   const flagValues = new Map<string, unknown>();
@@ -83,11 +88,14 @@ export function createMockPi(): { pi: MockPi; records: MockRecords } {
       records.flags.push({ name, description: opts.description, type: opts.type, default: opts.default });
       flagValues.set(name, opts.default);
     },
+    registerProvider(name, config) {
+      records.providers.push({ name, config });
+    },
     registerTool(definition) {
       records.tools.push(definition);
     },
     async exec(_cmd, _args, _opts) {
-      return { exitCode: 0, stdout: "", stderr: "" };
+      return { code: 0, stdout: "", stderr: "" };
     },
     sendMessage(msg, _opts) {
       records.messages.push(msg);
@@ -113,12 +121,14 @@ export function createMockPi(): { pi: MockPi; records: MockRecords } {
 export function createMockContext(overrides: Partial<MockContext> = {}): MockContext {
   const notifications: { message: string; type: string }[] = [];
   const statusUpdates: { key: string; text: string | undefined }[] = [];
+  const workingMessages: (string | undefined)[] = [];
 
   return {
     cwd: overrides.cwd ?? process.cwd(),
     hasUI: overrides.hasUI ?? true,
     notifications,
     statusUpdates,
+    workingMessages,
     ui: {
       notify(message: string, type = "info") {
         notifications.push({ message, type });
@@ -126,7 +136,12 @@ export function createMockContext(overrides: Partial<MockContext> = {}): MockCon
       setStatus(key: string, text: string | undefined) {
         statusUpdates.push({ key, text });
       },
+      setWorkingMessage(msg?: string) {
+        workingMessages.push(msg);
+      },
       select: overrides.ui?.select ?? (async () => null),
+      confirm: overrides.ui?.confirm ?? (async () => false),
+      input: overrides.ui?.input ?? (async () => null),
       editor: overrides.ui?.editor ?? (async () => null),
       setHeader: overrides.ui?.setHeader ?? (() => {}),
       setWidget: overrides.ui?.setWidget ?? (() => {}),
@@ -148,10 +163,14 @@ export interface MockContext {
   hasUI: boolean;
   notifications: { message: string; type: string }[];
   statusUpdates: { key: string; text: string | undefined }[];
+  workingMessages: (string | undefined)[];
   ui: {
     notify(message: string, type?: string): void;
     setStatus(key: string, text: string | undefined): void;
+    setWorkingMessage(msg?: string): void;
     select: (...args: unknown[]) => Promise<string | null>;
+    confirm: (...args: unknown[]) => Promise<boolean>;
+    input: (...args: unknown[]) => Promise<string | null>;
     editor: (...args: unknown[]) => Promise<string | null>;
     setHeader: (...args: unknown[]) => void;
     setWidget: (...args: unknown[]) => void;

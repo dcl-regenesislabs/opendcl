@@ -13,12 +13,13 @@ const ROOT = join(import.meta.dirname, "../..");
 const INDEX_SRC = readFileSync(join(ROOT, "src/index.ts"), "utf-8");
 
 describe("index.ts wiring", () => {
-  // Extract extension filenames from the for-of loop:
-  //   for (const ext of ["dcl-context.ts", "dcl-preview.ts", ...])
-  const forOfMatch = INDEX_SRC.match(/for\s*\(\s*const\s+\w+\s+of\s+\[([^\]]+)\]/);
-  const loopExtensions = forOfMatch
-    ? [...forOfMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1])
-    : [];
+  // Extract extension filenames from either:
+  //   for (const ext of ["dcl-context.ts", ...])        — inline array
+  //   const extensions = ["dcl-context.ts", ...];        — named array
+  const inlineMatch = INDEX_SRC.match(/for\s*\(\s*const\s+\w+\s+of\s+\[([^\]]+)\]/);
+  const namedMatch = INDEX_SRC.match(/const\s+extensions\s*=\s*\[([^\]]+)\]/);
+  const arrayContent = inlineMatch?.[1] ?? namedMatch?.[1] ?? "";
+  const loopExtensions = [...arrayContent.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 
   // Extract standalone -e pushes (like plan-mode/index.ts)
   const standalonePushes = [...INDEX_SRC.matchAll(/args\.push\("-e",\s*join\(extDir,\s*"([^"]+)"\)/g)].map(

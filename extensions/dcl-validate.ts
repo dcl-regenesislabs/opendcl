@@ -72,11 +72,11 @@ const extension: ExtensionFactory = (pi) => {
           timeout: 30000,
         });
 
-        if (result.exitCode !== 0 && result.stdout) {
+        if (result.code !== 0 && result.stdout) {
           // Extract error summary
           const errors = result.stdout
             .split("\n")
-            .filter((line: string) => line.includes("error TS"))
+            .filter((line) => line.includes("error TS"))
             .slice(0, 5) // Show max 5 errors
             .join("\n");
 

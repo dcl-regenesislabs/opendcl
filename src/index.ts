@@ -6,7 +6,7 @@
  * Wraps pi-coding-agent with Decentraland-specific system prompt, skills, and extensions.
  */
 
-import { main } from "@mariozechner/pi-coding-agent";
+import { main, InteractiveMode } from "@mariozechner/pi-coding-agent";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -41,7 +41,19 @@ if (!args.includes("--system-prompt")) {
 
 // Load our extensions
 const extDir = join(packageDir, "extensions");
-for (const ext of ["dcl-context.ts", "dcl-preview.ts", "dcl-init.ts", "dcl-deploy.ts", "dcl-validate.ts", "dcl-header.ts", "dcl-tasks.ts"]) {
+const extensions = [
+  "dcl-context.ts",
+  "dcl-preview.ts",
+  "dcl-init.ts",
+  "dcl-deploy.ts",
+  "dcl-setup.ts",
+  "dcl-setup-ollama.ts",
+  "dcl-validate.ts",
+  "dcl-header.ts",
+  "dcl-status.ts",
+  "dcl-tasks.ts",
+];
+for (const ext of extensions) {
   args.push("-e", join(extDir, ext));
 }
 args.push("-e", join(extDir, "plan-mode/index.ts"));
@@ -52,6 +64,14 @@ args.push("--skill", join(packageDir, "skills"));
 // Load prompt templates (review, explain — NOT system.md since that's the system prompt)
 args.push("--prompt-template", join(packageDir, "prompts/review.md"));
 args.push("--prompt-template", join(packageDir, "prompts/explain.md"));
+
+// Suppress pi's generic "No models available" warning — our dcl-setup-ollama
+// extension shows a more helpful message that mentions /setup-ollama.
+const _showWarning = InteractiveMode.prototype.showWarning;
+InteractiveMode.prototype.showWarning = function (msg: string) {
+  if (msg.startsWith("No models available")) return;
+  _showWarning.call(this, msg);
+};
 
 main(args).catch((err) => {
   console.error("OpenDCL fatal error:", err);
