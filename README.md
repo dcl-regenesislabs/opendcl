@@ -1,4 +1,4 @@
-# OpenDCL
+# OpenDCL 🧪
 
 [![CI](https://github.com/dcl-regenesislabs/opendcl/actions/workflows/ci.yaml/badge.svg)](https://github.com/dcl-regenesislabs/opendcl/actions/workflows/ci.yaml)
 
