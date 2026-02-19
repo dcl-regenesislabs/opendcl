@@ -109,6 +109,13 @@ describe("skill loading", () => {
       "deploy-worlds",
       "optimize-scene",
       "smart-items",
+      "camera-control",
+      "lighting-environment",
+      "player-avatar",
+      "nft-blockchain",
+      "advanced-rendering",
+      "advanced-input",
+      "authoritative-server",
     ];
     for (const name of expected) {
       expect(names, `Missing skill: ${name}`).toContain(name);

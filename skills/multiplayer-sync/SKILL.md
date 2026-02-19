@@ -129,4 +129,4 @@ engine.addSystem(() => {
 - **No server-side code**: Decentraland scenes run entirely client-side with CRDT sync
 - **Entity limits apply**: Each synced entity counts toward the scene's entity budget
 - **Custom schemas must be deterministic**: Same component name = same schema across all clients
-- For complex multiplayer logic (authoritative game servers), consider using Decentraland's WebSocket libraries
+- For server-authoritative multiplayer with validation and anti-cheat, see the `authoritative-server` skill

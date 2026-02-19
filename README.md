@@ -8,9 +8,10 @@ OpenDCL is a terminal-based AI agent that understands Decentraland's SDK, compon
 
 ## Features
 
+- **Branded header** — on startup, displays a block-character "Decentraland" ASCII art banner with version and working directory. Falls back to a compact text header on narrow terminals
 - **Multi-provider LLM support** — works with Claude, OpenAI, Google, Ollama (free/local), OpenRouter, and more
 - **Scene-aware** — automatically detects your project's `scene.json`, SDK version, and entry points
-- **11 built-in skills** — scaffolding, 3D models, interactivity, UI, animations, multiplayer, audio/video, deployment (Genesis City & Worlds), optimization, smart items
+- **18 built-in skills** — scaffolding, 3D models, interactivity, UI, animations, multiplayer, authoritative server, audio/video, deployment (Genesis City & Worlds), optimization, smart items, camera control, lighting, player/avatar, NFT/blockchain, advanced rendering, advanced input
 - **Integrated commands** — `/init` to scaffold, `/preview` to launch the dev server, `/tasks` to manage running processes, `/review` to audit code
 - **TypeScript validation** — catches type errors immediately after writing code
 - **Free 3D asset catalog** — 900+ CC0-licensed models the agent can suggest and help you use
@@ -70,11 +71,18 @@ OpenDCL loads domain-specific skills on demand based on what you're asking:
 | `build-ui` | Create HUDs, menus, buttons with React-ECS |
 | `animations-tweens` | Animate objects, play GLTF animations |
 | `multiplayer-sync` | Sync state between players |
+| `authoritative-server` | Server-authoritative multiplayer with anti-cheat, storage, env vars |
 | `audio-video` | Add sounds, music, video screens |
 | `deploy-scene` | Publish to Genesis City (LAND-based) |
 | `deploy-worlds` | Publish to a World (DCL NAME or ENS domain) |
 | `optimize-scene` | Fix performance, stay within limits |
 | `smart-items` | Use asset pack smart items |
+| `camera-control` | Switch camera modes, cinematic cameras, cutscenes |
+| `lighting-environment` | Add lights, shadows, day/night cycle, glow effects |
+| `player-avatar` | Player data, emotes, attachments, NPC avatars |
+| `nft-blockchain` | Display NFTs, wallet checks, smart contracts |
+| `advanced-rendering` | Billboards, 3D text, materials, transparency |
+| `advanced-input` | Cursor state, movement restriction, WASD patterns |
 
 ## How It Works
 
@@ -102,7 +110,7 @@ opendcl/
 │   ├── dcl-validate.ts       # Post-write TypeScript validation
 │   ├── dcl-tasks.ts          # /tasks command (process manager)
 │   └── process-registry.ts   # Shared background process registry
-├── skills/                   # 11 SKILL.md files (domain expertise)
+├── skills/                   # 18 SKILL.md files (domain expertise)
 ├── prompts/                  # System prompt + command templates
 ├── context/                  # SDK7 reference docs + asset catalog
 └── tests/                    # Vitest test suites
