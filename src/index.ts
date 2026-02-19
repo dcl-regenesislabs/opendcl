@@ -41,7 +41,7 @@ if (!args.includes("--system-prompt")) {
 
 // Load our extensions
 const extDir = join(packageDir, "extensions");
-for (const ext of ["dcl-context.ts", "dcl-preview.ts", "dcl-init.ts", "dcl-deploy.ts", "dcl-validate.ts", "dcl-header.ts", "dcl-background.ts"]) {
+for (const ext of ["dcl-context.ts", "dcl-preview.ts", "dcl-init.ts", "dcl-deploy.ts", "dcl-validate.ts", "dcl-header.ts", "dcl-tasks.ts"]) {
   args.push("-e", join(extDir, ext));
 }
 args.push("-e", join(extDir, "plan-mode/index.ts"));
