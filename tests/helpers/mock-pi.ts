@@ -37,7 +37,7 @@ export interface MockRecords {
   flags: RegisteredFlag[];
   tools: unknown[];
   messages: unknown[];
-  activeTools: string[][] ;
+  activeTools: string[][];
   entries: unknown[];
 }
 
@@ -47,7 +47,7 @@ export interface MockPi {
   registerShortcut(key: unknown, opts: { description: string; handler: (...args: unknown[]) => unknown }): void;
   registerFlag(name: string, opts: { description: string; type: string; default: unknown }): void;
   registerTool(definition: unknown): void;
-  exec(cmd: string, args: string[], opts?: unknown): Promise<{ exitCode: number; stdout: string; stderr: string }>;
+  exec(cmd: string, args: string[], opts?: unknown): Promise<{ code: number; stdout: string; stderr: string }>;
   sendMessage(msg: unknown, opts?: unknown): void;
   sendUserMessage(msg: string): void;
   setActiveTools(tools: string[]): void;
@@ -87,7 +87,7 @@ export function createMockPi(): { pi: MockPi; records: MockRecords } {
       records.tools.push(definition);
     },
     async exec(_cmd, _args, _opts) {
-      return { exitCode: 0, stdout: "", stderr: "" };
+      return { code: 0, stdout: "", stderr: "" };
     },
     sendMessage(msg, _opts) {
       records.messages.push(msg);
@@ -127,6 +127,8 @@ export function createMockContext(overrides: Partial<MockContext> = {}): MockCon
         statusUpdates.push({ key, text });
       },
       select: overrides.ui?.select ?? (async () => null),
+      confirm: overrides.ui?.confirm ?? (async () => false),
+      input: overrides.ui?.input ?? (async () => null),
       editor: overrides.ui?.editor ?? (async () => null),
       setHeader: overrides.ui?.setHeader ?? (() => {}),
       setWidget: overrides.ui?.setWidget ?? (() => {}),
@@ -152,6 +154,8 @@ export interface MockContext {
     notify(message: string, type?: string): void;
     setStatus(key: string, text: string | undefined): void;
     select: (...args: unknown[]) => Promise<string | null>;
+    confirm: (...args: unknown[]) => Promise<boolean>;
+    input: (...args: unknown[]) => Promise<string | null>;
     editor: (...args: unknown[]) => Promise<string | null>;
     setHeader: (...args: unknown[]) => void;
     setWidget: (...args: unknown[]) => void;

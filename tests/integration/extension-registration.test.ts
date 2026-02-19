@@ -90,6 +90,24 @@ describe("extension registration", () => {
     });
   });
 
+  describe("dcl-setup-ollama", () => {
+    it("registers /setup-ollama command with description", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-setup-ollama.js`);
+      mod.default(pi);
+      const cmd = records.commands.find((c) => c.name === "setup-ollama");
+      expect(cmd).toBeDefined();
+      expect(cmd!.description.length).toBeGreaterThan(0);
+    });
+
+    it("subscribes to session_start", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-setup-ollama.js`);
+      mod.default(pi);
+      expect(records.events.some((e) => e.event === "session_start")).toBe(true);
+    });
+  });
+
   describe("dcl-tasks", () => {
     it("registers /tasks command", async () => {
       const { pi, records } = createMockPi();
@@ -167,6 +185,7 @@ describe("extension registration", () => {
         "dcl-deploy",
         "dcl-validate",
         "dcl-header",
+        "dcl-setup-ollama",
         "dcl-tasks",
         "plan-mode/index",
       ];
@@ -181,7 +200,7 @@ describe("extension registration", () => {
       }
 
       allCommands.sort();
-      expect(allCommands).toEqual(["deploy", "init", "plan", "preview", "tasks", "todos"]);
+      expect(allCommands).toEqual(["deploy", "init", "plan", "preview", "setup-ollama", "tasks", "todos"]);
     });
   });
 });

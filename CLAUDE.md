@@ -1,70 +1,72 @@
-# OpenDCL — Project Guide for AI Assistants
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What This Is
 
 OpenDCL is a standalone AI coding agent CLI for Decentraland SDK7 scene development. It wraps `@mariozechner/pi-coding-agent` (the engine behind OpenClaw) with Decentraland-specific extensions, skills, prompts, and reference documentation.
 
+## Build, Test, Lint
+
+```bash
+npm run build       # tsc → dist/
+npm run dev         # tsc --watch
+npm run lint        # tsc --noEmit (type-check only)
+npm test            # vitest run (all tests)
+npm run test:watch  # vitest in watch mode
+npx vitest run tests/integration/dcl-setup-ollama.test.ts  # single test file
+node dist/index.js  # run locally (build first)
+```
+
 ## Architecture
 
 ```
-src/index.ts          → Calls pi-coding-agent main(), delegates everything
-extensions/*.ts       → Auto-loaded by pi via "pi.extensions" in package.json
-skills/*/SKILL.md     → Auto-loaded by pi via "pi.skills" in package.json
-prompts/*.md          → Auto-loaded by pi via "pi.prompts" in package.json
-context/*.md          → SDK reference docs, read on-demand by the agent (not auto-loaded)
+src/index.ts          → Entry point: builds CLI args, calls pi-coding-agent main()
+extensions/*.ts       → Loaded via -e flags in index.ts (order matters)
+skills/*/SKILL.md     → Loaded via --skill flag (auto-discovered by pi)
+prompts/*.md          → Loaded via --prompt-template flags
+context/*.md          → SDK reference docs, NOT auto-loaded (read on-demand by skills)
 ```
 
-The `piConfig` field in `package.json` sets the branding:
-- `name: "opendcl"` → CLI name, displayed in TUI
-- `configDir: ".opendcl"` → user config directory (~/.opendcl/)
+**Key wiring**: `src/index.ts` explicitly lists every extension in a `for...of` loop. Adding an extension file without updating this list will cause the wiring test to fail. The `pi` field in `package.json` is NOT used for loading — `index.ts` does it manually.
+
+**Config**: `piConfig` in `package.json` sets `name: "opendcl"` and `configDir: ".opendcl"`. User config lives at `~/.opendcl/agent/` (settings, models, sessions).
 
 ## Pi-Coding-Agent API
 
-Extensions export an `ExtensionFactory` as default export:
+Extensions export an `ExtensionFactory` as default:
 
 ```typescript
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
-
 const extension: ExtensionFactory = (pi) => {
-  // pi.on(event, handler)        — subscribe to lifecycle events
-  // pi.registerCommand(name, {}) — register /slash commands
-  // pi.registerTool(definition)  — register LLM-callable tools
-  // pi.exec(cmd, args, opts)     — run shell commands
-  // pi.sendMessage(msg, opts)    — send messages to agent context
+  pi.on(event, handler)           // lifecycle events
+  pi.registerCommand(name, opts)  // /slash commands (handler receives ExtensionCommandContext)
+  pi.exec(cmd, args, opts)        // shell commands (returns { code, stdout, stderr })
+  pi.sendMessage(msg, opts)       // inject messages into agent context
 };
-
 export default extension;
 ```
 
-Key events used by our extensions:
-- `before_agent_start` — modify system prompt (dcl-context uses this)
-- `tool_result` — react after tool execution (dcl-validate uses this)
-- `session_shutdown` — cleanup on exit (dcl-tasks uses this)
+**UI API** (available on `ctx.ui` in handlers):
+- `select(title, options)` → `string | undefined`
+- `confirm(title, message)` → `boolean`
+- `input(title, placeholder?)` → `string | undefined`
+- `notify(message, type?)` — "info" | "warning" | "error"
 
-Skills use YAML frontmatter:
-```markdown
----
-name: skill-name
-description: When to load this skill (drives LLM selection)
----
-# Instructions for the agent...
-```
-
-`{baseDir}` in skill content is replaced with the skill's directory path at runtime.
-
-Prompt templates use the same frontmatter format. `$@` = all user args, `$1` = first arg.
+Key lifecycle events: `session_start`, `before_agent_start`, `tool_call`, `tool_result`, `session_shutdown`.
 
 ## Extensions
 
 | File | Purpose | Trigger |
 |------|---------|---------|
 | `dcl-context.ts` | Injects scene metadata into system prompt | `before_agent_start` |
-| `dcl-preview.ts` | `/preview` → starts dev server | `registerCommand` |
+| `dcl-preview.ts` | `/preview` → starts Bevy-web dev server | `registerCommand` |
 | `dcl-init.ts` | `/init` → scaffolds new scene | `registerCommand` |
 | `dcl-validate.ts` | Runs `tsc --noEmit` after .ts writes | `tool_result` |
 | `dcl-deploy.ts` | `/deploy` → deploys to Genesis City or World | `registerCommand` |
+| `dcl-setup-ollama.ts` | `/setup-ollama` → Ollama install + model config; prompts on startup if no provider configured | `registerCommand` + `session_start` |
 | `dcl-tasks.ts` | `/tasks` → interactive process manager | `registerCommand` |
-| `process-registry.ts` | Shared background process registry | Module export |
+| `process-registry.ts` | Shared `Map<string, BackgroundProcess>` singleton (via globalThis) | Module export |
 
 ## Skills (18)
 
@@ -104,21 +106,28 @@ npm run dev       # tsc --watch
 npm run lint      # tsc --noEmit
 node dist/index.js # run locally
 ```
+## Testing Patterns
+
+- **Framework**: Vitest with tests split into `tests/unit/` and `tests/integration/`
+- **Mock PI**: `tests/helpers/mock-pi.ts` provides `createMockPi()` (records registrations) and `createMockContext()` (simulates command handler context)
+- **Wiring test**: `tests/integration/wiring.test.ts` parses `src/index.ts` source to verify every extension file is referenced — catches dangling or renamed files
+- **Registration tests**: Call each `ExtensionFactory` with mock pi, assert correct commands/events are registered
+- **Fixtures**: `tests/fixtures/` contains scene directories (valid-scene, minimal-scene, broken-scene, no-node-modules, sdk6-scene) for filesystem-based tests
+- **Every new feature must include tests + README updates**
 
 ## Conventions
 
-- Extensions are plain TypeScript files in `extensions/`, NOT compiled through tsconfig (pi loads them directly)
-- Skills are pure markdown — no code, just instructions for the agent
-- Context files are reference material, not injected into prompts automatically
-- The preview command uses `--bevy-web` flag for the dev server
-- Scene context detection walks up directories to find `scene.json` (supports running from subdirectories)
-- Validation is debounced (2s) and has a 30s timeout to avoid blocking
+- Extensions are plain TypeScript loaded at runtime by pi — they are NOT compiled through tsconfig
+- Skills are pure markdown with YAML frontmatter (`name`, `description`). `{baseDir}` is replaced with the skill directory path
+- Prompt templates use same frontmatter. `$@` = all args, `$1` = first arg
+- The preview command uses `--bevy-web` flag
+- Scene context detection walks up directories to find `scene.json`
+- Validation is debounced (2s) with a 30s timeout
 
 ## Decentraland SDK Reference
 
-- Scene templates: `https://github.com/decentraland/sdk7-scene-template`
-- AI context source: GitHub API `decentraland/documentation/contents/ai-sdk-context`
 - SDK commands: `npx @dcl/sdk-commands [init|start|build|deploy]`
-- ECS components: defined in `@dcl/ecs/src/components/generated/global.gen.ts`
 - Runtime: sandboxed QuickJS — no Node.js APIs (fs, http, etc.)
 - Each parcel: 16m x 16m x 20m height
+- Scene templates: `https://github.com/decentraland/sdk7-scene-template`
+- ECS components: `@dcl/ecs/src/components/generated/global.gen.ts`
