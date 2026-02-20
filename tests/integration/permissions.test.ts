@@ -10,26 +10,22 @@ const EXTENSIONS_DIR = "../../extensions";
 
 type ToolCallHandler = (event: unknown, ctx: unknown) => Promise<unknown>;
 
-function denyingContext(overrides: Record<string, unknown> = {}) {
-  return createMockContext({ ui: { confirm: async () => false } as any, ...overrides });
-}
-
-function allowingContext(overrides: Record<string, unknown> = {}) {
-  return createMockContext({ ui: { confirm: async () => true } as any, ...overrides });
+function selectingContext(choice: string | null, overrides: Record<string, unknown> = {}) {
+  return createMockContext({ ui: { select: async () => choice } as any, ...overrides });
 }
 
 function spyingContext(overrides: Record<string, unknown> = {}) {
-  let confirmCalled = false;
+  let selectCalled = false;
   const ctx = createMockContext({
     ui: {
-      confirm: async () => {
-        confirmCalled = true;
-        return false;
+      select: async () => {
+        selectCalled = true;
+        return null;
       },
     } as any,
     ...overrides,
   });
-  return { ctx, wasConfirmCalled: () => confirmCalled };
+  return { ctx, wasSelectCalled: () => selectCalled };
 }
 
 describe("permissions extension", () => {
@@ -47,15 +43,21 @@ describe("permissions extension", () => {
   describe("dangerous bash commands", () => {
     const dangerousEvent = { toolName: "bash", input: { command: "rm -rf /tmp/test" } };
 
-    it("blocks when user denies confirmation", async () => {
-      const result = await toolCallHandler(dangerousEvent, denyingContext());
+    it("blocks when user denies", async () => {
+      const result = await toolCallHandler(dangerousEvent, selectingContext("Deny"));
 
       expect(result).toEqual(expect.objectContaining({ block: true }));
       expect((result as any).reason).toContain("denied");
     });
 
-    it("allows when user confirms", async () => {
-      const result = await toolCallHandler(dangerousEvent, allowingContext());
+    it("blocks when user dismisses (null)", async () => {
+      const result = await toolCallHandler(dangerousEvent, selectingContext(null));
+
+      expect(result).toEqual(expect.objectContaining({ block: true }));
+    });
+
+    it("allows when user selects Allow once", async () => {
+      const result = await toolCallHandler(dangerousEvent, selectingContext("Allow once"));
 
       expect(result).toBeUndefined();
     });
@@ -70,11 +72,11 @@ describe("permissions extension", () => {
 
   describe("safe bash commands", () => {
     it("allows without prompting", async () => {
-      const { ctx, wasConfirmCalled } = spyingContext();
+      const { ctx, wasSelectCalled } = spyingContext();
       const result = await toolCallHandler({ toolName: "bash", input: { command: "git status" } }, ctx);
 
       expect(result).toBeUndefined();
-      expect(wasConfirmCalled()).toBe(false);
+      expect(wasSelectCalled()).toBe(false);
     });
   });
 
@@ -91,13 +93,73 @@ describe("permissions extension", () => {
     });
   });
 
+  describe("session permissions", () => {
+    it("skips bash prompts after 'always allow' for the session", async () => {
+      // First call: user selects "always allow"
+      const ctx1 = selectingContext("Always allow dangerous commands this session");
+      await toolCallHandler({ toolName: "bash", input: { command: "rm -rf /tmp/a" } }, ctx1);
+
+      // Second call: should not prompt
+      const { ctx: ctx2, wasSelectCalled } = spyingContext();
+      const result = await toolCallHandler({ toolName: "bash", input: { command: "sudo reboot" } }, ctx2);
+
+      expect(result).toBeUndefined();
+      expect(wasSelectCalled()).toBe(false);
+    });
+
+    it("skips write prompts after 'always allow' for the session", async () => {
+      const PROJECT_ROOT = "/home/user/project";
+
+      // First call: user selects "always allow"
+      const ctx1 = selectingContext("Always allow sensitive file writes this session", { cwd: PROJECT_ROOT });
+      await toolCallHandler({ toolName: "write", input: { path: ".env" } }, ctx1);
+
+      // Second call: should not prompt
+      const { ctx: ctx2, wasSelectCalled } = spyingContext({ cwd: PROJECT_ROOT });
+      const result = await toolCallHandler({ toolName: "write", input: { path: "package.json" } }, ctx2);
+
+      expect(result).toBeUndefined();
+      expect(wasSelectCalled()).toBe(false);
+    });
+
+    it("session bash permission does not affect write gating", async () => {
+      const PROJECT_ROOT = "/home/user/project";
+
+      // Allow bash for session
+      const ctx1 = selectingContext("Always allow dangerous commands this session");
+      await toolCallHandler({ toolName: "bash", input: { command: "rm -rf /tmp" } }, ctx1);
+
+      // Write should still be gated
+      const result = await toolCallHandler(
+        { toolName: "write", input: { path: ".env" } },
+        selectingContext("Deny", { cwd: PROJECT_ROOT }),
+      );
+      expect(result).toEqual(expect.objectContaining({ block: true }));
+    });
+
+    it("session write permission covers edit too", async () => {
+      const PROJECT_ROOT = "/home/user/project";
+
+      // Allow writes for session
+      const ctx1 = selectingContext("Always allow sensitive file writes this session", { cwd: PROJECT_ROOT });
+      await toolCallHandler({ toolName: "write", input: { path: ".env" } }, ctx1);
+
+      // Edit should also be allowed
+      const { ctx: ctx2, wasSelectCalled } = spyingContext({ cwd: PROJECT_ROOT });
+      const result = await toolCallHandler({ toolName: "edit", input: { path: ".env" } }, ctx2);
+
+      expect(result).toBeUndefined();
+      expect(wasSelectCalled()).toBe(false);
+    });
+  });
+
   describe("sensitive file writes", () => {
     const PROJECT_ROOT = "/home/user/project";
 
     it("blocks writes to .env when user denies", async () => {
       const result = await toolCallHandler(
         { toolName: "write", input: { path: ".env" } },
-        denyingContext({ cwd: PROJECT_ROOT }),
+        selectingContext("Deny", { cwd: PROJECT_ROOT }),
       );
       expect(result).toEqual(expect.objectContaining({ block: true }));
     });
@@ -105,7 +167,7 @@ describe("permissions extension", () => {
     it("blocks writes to package.json when user denies", async () => {
       const result = await toolCallHandler(
         { toolName: "write", input: { path: "package.json" } },
-        denyingContext({ cwd: PROJECT_ROOT }),
+        selectingContext("Deny", { cwd: PROJECT_ROOT }),
       );
       expect(result).toEqual(expect.objectContaining({ block: true }));
     });
@@ -113,17 +175,17 @@ describe("permissions extension", () => {
     it("blocks writes outside project root", async () => {
       const result = await toolCallHandler(
         { toolName: "write", input: { path: "../../etc/passwd" } },
-        denyingContext({ cwd: PROJECT_ROOT }),
+        selectingContext("Deny", { cwd: PROJECT_ROOT }),
       );
       expect(result).toEqual(expect.objectContaining({ block: true }));
     });
 
     it("allows writes to safe project files without prompting", async () => {
-      const { ctx, wasConfirmCalled } = spyingContext({ cwd: PROJECT_ROOT });
+      const { ctx, wasSelectCalled } = spyingContext({ cwd: PROJECT_ROOT });
       const result = await toolCallHandler({ toolName: "write", input: { path: "src/index.ts" } }, ctx);
 
       expect(result).toBeUndefined();
-      expect(wasConfirmCalled()).toBe(false);
+      expect(wasSelectCalled()).toBe(false);
     });
   });
 
@@ -131,7 +193,7 @@ describe("permissions extension", () => {
     it("gates edit same as write for sensitive files", async () => {
       const result = await toolCallHandler(
         { toolName: "edit", input: { path: ".env" } },
-        denyingContext({ cwd: "/home/user/project" }),
+        selectingContext("Deny", { cwd: "/home/user/project" }),
       );
       expect(result).toEqual(expect.objectContaining({ block: true }));
     });
@@ -139,11 +201,11 @@ describe("permissions extension", () => {
 
   describe("read tool", () => {
     it("does not gate read operations", async () => {
-      const { ctx, wasConfirmCalled } = spyingContext({ cwd: "/home/user/project" });
+      const { ctx, wasSelectCalled } = spyingContext({ cwd: "/home/user/project" });
       const result = await toolCallHandler({ toolName: "read", input: { path: ".env" } }, ctx);
 
       expect(result).toBeUndefined();
-      expect(wasConfirmCalled()).toBe(false);
+      expect(wasSelectCalled()).toBe(false);
     });
   });
 });
