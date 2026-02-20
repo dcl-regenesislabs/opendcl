@@ -8,6 +8,7 @@
 
 import { main, InteractiveMode } from "@mariozechner/pi-coding-agent";
 import { isDev } from "./utils.js";
+import { getCompactToolDefinition } from "./compact-tool-renderers.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -80,6 +81,17 @@ const _showWarning = InteractiveMode.prototype.showWarning;
 InteractiveMode.prototype.showWarning = function (msg: string) {
   if (msg.startsWith("No models available")) return;
   _showWarning.call(this, msg);
+};
+
+// Compact tool output — override built-in write/read renderers to reduce terminal noise.
+// When a built-in tool has no custom renderCall/renderResult, pi shows verbose output.
+// By returning compact renderers from getRegisteredToolDefinition, the ToolExecutionComponent
+// uses them instead (see shouldUseBuiltInRenderer() in tool-execution.js).
+const _getToolDef = (InteractiveMode.prototype as any).getRegisteredToolDefinition;
+(InteractiveMode.prototype as any).getRegisteredToolDefinition = function (toolName: string) {
+  const original = _getToolDef.call(this, toolName);
+  if (original) return original;
+  return getCompactToolDefinition(toolName);
 };
 
 main(args).catch((err) => {
