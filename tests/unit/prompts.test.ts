@@ -46,6 +46,19 @@ describe("prompt templates", () => {
     expect(content).toContain("scene.json");
   });
 
+  it("system.md documents LLM-callable tools", async () => {
+    const content = await readFile(
+      join(PROMPTS_DIR, "system.md"),
+      "utf-8"
+    );
+    expect(content).toContain("Tools & Commands");
+    expect(content).toContain("use them directly");
+    expect(content).toContain("`init`");
+    expect(content).toContain("`preview`");
+    expect(content).toContain("`deploy`");
+    expect(content).toContain("`tasks`");
+  });
+
   it("review.md has review criteria", async () => {
     const content = await readFile(
       join(PROMPTS_DIR, "review.md"),

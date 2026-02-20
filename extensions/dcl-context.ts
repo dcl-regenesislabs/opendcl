@@ -6,8 +6,9 @@
  */
 
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
-import { readFile, access } from "node:fs/promises";
-import { join, dirname, resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { fileExists, findSceneRoot } from "./scene-utils.js";
 
 interface SceneJson {
   ecs7?: boolean;
@@ -17,28 +18,6 @@ interface SceneJson {
   main?: string;
   worldConfiguration?: { name?: string; [key: string]: unknown };
   [key: string]: unknown;
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function findSceneRoot(startDir: string): Promise<string | null> {
-  let current = resolve(startDir);
-  for (let i = 0; i < 10; i++) {
-    if (await fileExists(join(current, "scene.json"))) {
-      return current;
-    }
-    const parent = dirname(current);
-    if (parent === current) break;
-    current = parent;
-  }
-  return null;
 }
 
 function calculateSceneSize(parcels: string[]): { width: number; depth: number } {
