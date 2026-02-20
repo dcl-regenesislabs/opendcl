@@ -32,6 +32,7 @@ The result: **more creators building more scenes, faster.**
 - **Integrated commands** — `/init` to scaffold, `/preview` to launch the dev server, `/tasks` to manage running processes, `/review` to audit code
 - **TypeScript validation** — catches type errors immediately after writing code
 - **Free 3D asset catalog** — 900+ CC0-licensed models the agent can suggest and help you use
+- **Permission gate** — prompts for confirmation before destructive bash commands or writes to sensitive files
 - **Session persistence** — pick up where you left off across sessions
 
 ## Quick Start
@@ -154,7 +155,8 @@ opendcl/
 │   ├── dcl-update-check.ts   # Checks npm for newer OpenDCL versions
 │   ├── dcl-validate.ts       # Post-write TypeScript validation
 │   ├── dcl-tasks.ts          # /tasks command (process manager)
-│   └── process-registry.ts   # Shared background process registry
+│   ├── process-registry.ts   # Shared background process registry
+│   └── permissions/           # Permission gate for dangerous operations
 ├── skills/                   # 18 SKILL.md files (domain expertise)
 ├── prompts/                  # System prompt + command templates
 ├── context/                  # SDK7 reference docs + asset catalog
