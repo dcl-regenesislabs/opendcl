@@ -21,7 +21,7 @@ OpenDCL is a terminal-based AI agent that understands Decentraland's SDK, compon
 
 ```bash
 # Install
-npm install -g opendcl
+npm install -g @dcl-regenesislabs/opendcl
 
 # Run in any directory
 opendcl
@@ -134,6 +134,7 @@ opendcl/
 │   ├── dcl-setup.ts          # /setup command (cloud API provider config)
 │   ├── dcl-setup-ollama.ts   # /setup-ollama command (Ollama setup wizard)
 │   ├── dcl-status.ts         # Thinking/streaming status (elapsed time + tokens)
+│   ├── dcl-update-check.ts   # Checks npm for newer OpenDCL versions
 │   ├── dcl-validate.ts       # Post-write TypeScript validation
 │   ├── dcl-tasks.ts          # /tasks command (process manager)
 │   └── process-registry.ts   # Shared background process registry
@@ -147,7 +148,7 @@ opendcl/
 
 ```bash
 # Clone and install
-git clone https://github.com/decentraland/opendcl.git
+git clone https://github.com/dcl-regenesislabs/opendcl.git
 cd opendcl
 npm install
 
@@ -226,7 +227,7 @@ Contributions are welcome! The easiest way to contribute is by adding or improvi
 3. Test that the skill loads: `npm test`
 4. Submit a pull request
 
-For bugs and feature requests, please [open an issue](https://github.com/decentraland/opendcl/issues).
+For bugs and feature requests, please [open an issue](https://github.com/dcl-regenesislabs/opendcl/issues).
 
 ## License
 
