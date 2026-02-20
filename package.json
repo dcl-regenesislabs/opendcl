@@ -1,5 +1,5 @@
 {
-  "name": "opendcl",
+  "name": "@dcl-regenesislabs/opendcl",
   "version": "0.1.0",
   "description": "AI coding assistant for Decentraland SDK7 scene development",
   "type": "module",
@@ -13,9 +13,15 @@
     "configDir": ".opendcl"
   },
   "pi": {
-    "extensions": ["./extensions"],
-    "skills": ["./skills"],
-    "prompts": ["./prompts"]
+    "extensions": [
+      "./extensions"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./prompts"
+    ]
   },
   "scripts": {
     "build": "tsc",
@@ -31,8 +37,9 @@
     "sdk7",
     "ai",
     "coding-agent",
-    "pi-package",
-    "scene-builder"
+    "scene-builder",
+    "scene-creator",
+    "sdk7-scenes"
   ],
   "author": "Decentraland",
   "license": "Apache-2.0",
