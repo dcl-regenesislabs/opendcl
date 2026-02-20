@@ -56,8 +56,8 @@ describe("permissions extension", () => {
       expect(result).toEqual(expect.objectContaining({ block: true }));
     });
 
-    it("allows when user selects Allow once", async () => {
-      const result = await toolCallHandler(dangerousEvent, selectingContext("Allow once"));
+    it("allows when user selects Allow", async () => {
+      const result = await toolCallHandler(dangerousEvent, selectingContext("Allow"));
 
       expect(result).toBeUndefined();
     });
@@ -94,57 +94,70 @@ describe("permissions extension", () => {
   });
 
   describe("session permissions", () => {
-    it("skips bash prompts after 'always allow' for the session", async () => {
-      // First call: user selects "always allow"
-      const ctx1 = selectingContext("Always allow dangerous commands this session");
+    it("auto-allows same pattern after 'Always allow'", async () => {
+      // Allow rm once with "Always allow"
+      const ctx1 = selectingContext("Always allow");
       await toolCallHandler({ toolName: "bash", input: { command: "rm -rf /tmp/a" } }, ctx1);
 
-      // Second call: should not prompt
+      // Another rm command: same pattern → auto-allowed
       const { ctx: ctx2, wasSelectCalled } = spyingContext();
-      const result = await toolCallHandler({ toolName: "bash", input: { command: "sudo reboot" } }, ctx2);
+      const result = await toolCallHandler({ toolName: "bash", input: { command: "rm /tmp/b" } }, ctx2);
 
       expect(result).toBeUndefined();
       expect(wasSelectCalled()).toBe(false);
     });
 
-    it("skips write prompts after 'always allow' for the session", async () => {
+    it("still prompts for a different dangerous pattern", async () => {
+      // Allow rm
+      const ctx1 = selectingContext("Always allow");
+      await toolCallHandler({ toolName: "bash", input: { command: "rm -rf /tmp/a" } }, ctx1);
+
+      // git push is a different pattern → should still prompt
+      const result = await toolCallHandler(
+        { toolName: "bash", input: { command: "git push origin main" } },
+        selectingContext("Deny"),
+      );
+      expect(result).toEqual(expect.objectContaining({ block: true }));
+    });
+
+    it("auto-allows same file pattern after 'Always allow'", async () => {
       const PROJECT_ROOT = "/home/user/project";
 
-      // First call: user selects "always allow"
-      const ctx1 = selectingContext("Always allow sensitive file writes this session", { cwd: PROJECT_ROOT });
+      // Allow .env writes
+      const ctx1 = selectingContext("Always allow", { cwd: PROJECT_ROOT });
       await toolCallHandler({ toolName: "write", input: { path: ".env" } }, ctx1);
 
-      // Second call: should not prompt
+      // Another .env write → auto-allowed
       const { ctx: ctx2, wasSelectCalled } = spyingContext({ cwd: PROJECT_ROOT });
-      const result = await toolCallHandler({ toolName: "write", input: { path: "package.json" } }, ctx2);
+      const result = await toolCallHandler({ toolName: "write", input: { path: ".env.local" } }, ctx2);
 
       expect(result).toBeUndefined();
       expect(wasSelectCalled()).toBe(false);
     });
 
-    it("session bash permission does not affect write gating", async () => {
+    it("still prompts for a different sensitive file pattern", async () => {
       const PROJECT_ROOT = "/home/user/project";
 
-      // Allow bash for session
-      const ctx1 = selectingContext("Always allow dangerous commands this session");
-      await toolCallHandler({ toolName: "bash", input: { command: "rm -rf /tmp" } }, ctx1);
+      // Allow .env writes
+      const ctx1 = selectingContext("Always allow", { cwd: PROJECT_ROOT });
+      await toolCallHandler({ toolName: "write", input: { path: ".env" } }, ctx1);
 
-      // Write should still be gated
+      // package.json is a different pattern → should still prompt
       const result = await toolCallHandler(
-        { toolName: "write", input: { path: ".env" } },
+        { toolName: "write", input: { path: "package.json" } },
         selectingContext("Deny", { cwd: PROJECT_ROOT }),
       );
       expect(result).toEqual(expect.objectContaining({ block: true }));
     });
 
-    it("session write permission covers edit too", async () => {
+    it("write pattern permission covers edit too", async () => {
       const PROJECT_ROOT = "/home/user/project";
 
-      // Allow writes for session
-      const ctx1 = selectingContext("Always allow sensitive file writes this session", { cwd: PROJECT_ROOT });
+      // Allow .env via write
+      const ctx1 = selectingContext("Always allow", { cwd: PROJECT_ROOT });
       await toolCallHandler({ toolName: "write", input: { path: ".env" } }, ctx1);
 
-      // Edit should also be allowed
+      // Edit .env → same pattern → auto-allowed
       const { ctx: ctx2, wasSelectCalled } = spyingContext({ cwd: PROJECT_ROOT });
       const result = await toolCallHandler({ toolName: "edit", input: { path: ".env" } }, ctx2);
 
