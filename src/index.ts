@@ -7,6 +7,7 @@
  */
 
 import { main, InteractiveMode } from "@mariozechner/pi-coding-agent";
+import { isDev } from "./utils.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -50,6 +51,7 @@ const extensions = [
   "dcl-setup-ollama.ts",
   "dcl-validate.ts",
   "dcl-header.ts",
+  "dcl-update-check.ts",
   "dcl-status.ts",
   "dcl-tasks.ts",
 ];
@@ -64,6 +66,12 @@ args.push("--skill", join(packageDir, "skills"));
 // Load prompt templates (review, explain — NOT system.md since that's the system prompt)
 args.push("--prompt-template", join(packageDir, "prompts/review.md"));
 args.push("--prompt-template", join(packageDir, "prompts/explain.md"));
+
+// Suppress pi's built-in update notification in npm installs (it tells users to
+// install pi directly). In local dev (ENV=dev) we keep it visible.
+if (!isDev()) {
+  process.env.PI_SKIP_VERSION_CHECK = "1";
+}
 
 // Suppress pi's generic "No models available" warning — our dcl-setup-ollama
 // extension shows a more helpful message that mentions /setup-ollama.
