@@ -48,10 +48,10 @@ describe("CLI configuration", () => {
     expect(content.startsWith("#!/usr/bin/env node")).toBe(true);
   });
 
-  it("package.json has pi-package keyword for discovery", async () => {
+  it("package.json has sdk7 keyword for discovery", async () => {
     const pkg = JSON.parse(
       await readFile(join(ROOT, "package.json"), "utf-8")
     );
-    expect(pkg.keywords).toContain("pi-package");
+    expect(pkg.keywords).toContain("sdk7");
   });
 });
