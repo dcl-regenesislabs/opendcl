@@ -88,6 +88,11 @@ describe("index.ts wiring", () => {
     }
   });
 
+  it("compact tool renderers are wired via getRegisteredToolDefinition patch", () => {
+    expect(INDEX_SRC).toContain("getRegisteredToolDefinition");
+    expect(INDEX_SRC).toContain("getCompactToolDefinition");
+  });
+
   it("every .ts extension directory (plan-mode) is referenced in index.ts", () => {
     const allReferenced = new Set([...loopExtensions, ...standalonePushes]);
 

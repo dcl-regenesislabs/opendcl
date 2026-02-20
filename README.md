@@ -33,6 +33,7 @@ The result: **more creators building more scenes, faster.**
 - **TypeScript validation** — catches type errors immediately after writing code
 - **Free 3D asset catalog** — 900+ CC0-licensed models the agent can suggest and help you use
 - **Permission gate** — prompts for confirmation before destructive bash commands or writes to sensitive files
+- **Compact tool output** — write shows path + size instead of file content, read shows a 5-line preview instead of 10
 - **Session persistence** — pick up where you left off across sessions
 
 ## Quick Start
