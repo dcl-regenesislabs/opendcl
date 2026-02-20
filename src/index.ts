@@ -59,6 +59,7 @@ for (const ext of extensions) {
   args.push("-e", join(extDir, ext));
 }
 args.push("-e", join(extDir, "plan-mode/index.ts"));
+args.push("-e", join(extDir, "permissions/index.ts"));
 
 // Load all skill directories
 args.push("--skill", join(packageDir, "skills"));

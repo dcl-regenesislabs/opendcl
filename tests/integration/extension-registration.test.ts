@@ -258,6 +258,29 @@ describe("extension registration", () => {
     });
   });
 
+  describe("permissions", () => {
+    it("registers no-permissions flag", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/permissions/index.js`);
+      mod.default(pi);
+      expect(records.flags.find((f) => f.name === "no-permissions")).toBeDefined();
+    });
+
+    it("subscribes to tool_call", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/permissions/index.js`);
+      mod.default(pi);
+      expect(records.events.some((e) => e.event === "tool_call")).toBe(true);
+    });
+
+    it("registers no commands", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/permissions/index.js`);
+      mod.default(pi);
+      expect(records.commands).toHaveLength(0);
+    });
+  });
+
   describe("all extensions combined", () => {
     const ALL_EXTENSIONS = [
       "dcl-context",
@@ -272,6 +295,7 @@ describe("extension registration", () => {
       "dcl-setup-ollama",
       "dcl-tasks",
       "plan-mode/index",
+      "permissions/index",
     ];
 
     async function collectFromAllExtensions<T>(extract: (records: ReturnType<typeof createMockPi>["records"]) => T[]): Promise<T[]> {
