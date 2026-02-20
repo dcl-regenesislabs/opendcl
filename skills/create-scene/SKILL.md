@@ -55,7 +55,7 @@ export function main() {
 
 After creating the files, tell the user:
 1. Run `npm install` to install dependencies
-2. Run `/preview` or `npx @dcl/sdk-commands start` to preview the scene
+2. Use the `preview` tool to start the preview server (or run `npx @dcl/sdk-commands start --bevy-web` manually)
 3. The scene will open in a browser at http://localhost:8000
 
 ## Important Notes

@@ -31,9 +31,7 @@ Before deploying, verify:
    ```
 
 3. **Scene previews correctly**:
-   ```bash
-   npx @dcl/sdk-commands start
-   ```
+   Use the `preview` tool to verify the scene works (or `npx @dcl/sdk-commands start --bevy-web` manually)
 
 4. **Dependencies installed**:
    ```bash

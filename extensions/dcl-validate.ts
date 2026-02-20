@@ -6,30 +6,8 @@
  */
 
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
-import { access } from "node:fs/promises";
-import { join, dirname, resolve } from "node:path";
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function findSceneRoot(startDir: string): Promise<string | null> {
-  let current = resolve(startDir);
-  for (let i = 0; i < 10; i++) {
-    if (await fileExists(join(current, "scene.json"))) {
-      return current;
-    }
-    const parent = dirname(current);
-    if (parent === current) break;
-    current = parent;
-  }
-  return null;
-}
+import { join, dirname } from "node:path";
+import { fileExists, findSceneRoot } from "./scene-utils.js";
 
 const extension: ExtensionFactory = (pi) => {
   let validationTimeout: ReturnType<typeof setTimeout> | null = null;

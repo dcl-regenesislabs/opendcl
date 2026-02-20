@@ -1,50 +1,60 @@
 /**
  * DCL Init Extension
  *
- * Registers the /init command that scaffolds a new Decentraland scene project
- * using `npx @dcl/sdk-commands init`.
+ * Registers the `init` tool (LLM-callable) and `/init` command that scaffolds
+ * a new Decentraland scene project using `npx @dcl/sdk-commands init`.
  */
 
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
-import { access } from "node:fs/promises";
+import { Type } from "@sinclair/typebox";
 import { join } from "node:path";
+import { fileExists } from "./scene-utils.js";
 
-async function fileExists(path: string): Promise<boolean> {
+async function initScene(
+  cwd: string,
+  pi: { exec(cmd: string, args: string[], opts?: unknown): Promise<{ code: number; stdout: string; stderr: string }> }
+): Promise<{ message: string; isError?: boolean }> {
+  if (await fileExists(join(cwd, "scene.json"))) {
+    return { message: "A scene.json already exists in this directory. Aborting to prevent overwriting.", isError: true };
+  }
+
   try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
+    const result = await pi.exec("npx", ["@dcl/sdk-commands", "init", "--skip-install"], {
+      cwd,
+      timeout: 60000,
+    });
+
+    if (result.code === 0) {
+      return { message: "Scene initialized! Run 'npm install' to install dependencies, then use the preview tool to start." };
+    } else {
+      return { message: `Init failed (exit code ${result.code}): ${result.stderr || result.stdout}`, isError: true };
+    }
+  } catch (err) {
+    return { message: `Failed to initialize scene: ${err instanceof Error ? err.message : String(err)}`, isError: true };
   }
 }
 
 const extension: ExtensionFactory = (pi) => {
+  pi.registerTool({
+    name: "init",
+    label: "Init Scene",
+    description:
+      "Initialize a new Decentraland SDK7 scene. Scaffolds scene.json, package.json, tsconfig.json, and src/index.ts. Use when user wants to create or start a new scene.",
+    parameters: Type.Object({}),
+    async execute(_id, _params, _signal, _onUpdate, ctx) {
+      const result = await initScene(ctx.cwd, pi);
+      if (!result.isError) await ctx.reload();
+      return { content: [{ type: "text" as const, text: result.message }], details: undefined };
+    },
+  });
+
   pi.registerCommand("init", {
     description: "Initialize a new Decentraland scene project in the current directory",
     handler: async (_args, ctx) => {
-      if (await fileExists(join(ctx.cwd, "scene.json"))) {
-        ctx.ui.notify("A scene.json already exists in this directory. Aborting to prevent overwriting.", "warning");
-        return;
-      }
-
       ctx.ui.notify("Initializing new Decentraland scene...", "info");
-
-      try {
-        const result = await pi.exec("npx", ["@dcl/sdk-commands", "init", "--skip-install"], {
-          cwd: ctx.cwd,
-          timeout: 60000,
-        });
-
-        if (result.code === 0) {
-          ctx.ui.notify("Scene initialized! Run 'npm install' to install dependencies, then '/preview' to start.", "info");
-          // Reload to pick up the new scene context
-          await ctx.reload();
-        } else {
-          ctx.ui.notify(`Init failed (exit code ${result.code}): ${result.stderr || result.stdout}`, "error");
-        }
-      } catch (err) {
-        ctx.ui.notify(`Failed to initialize scene: ${err instanceof Error ? err.message : String(err)}`, "error");
-      }
+      const result = await initScene(ctx.cwd, pi);
+      ctx.ui.notify(result.message, result.isError ? "error" : "info");
+      if (!result.isError) await ctx.reload();
     },
   });
 };

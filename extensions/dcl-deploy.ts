@@ -1,36 +1,16 @@
 /**
  * DCL Deploy Extension
  *
- * Registers the /deploy command that deploys a Decentraland scene
- * using `npx @dcl/sdk-commands deploy`. Supports both Genesis City
- * and Worlds deployment.
+ * Registers the `deploy` tool (LLM-callable) and `/deploy` command that deploys
+ * a Decentraland scene using `npx @dcl/sdk-commands deploy`. Supports both
+ * Genesis City and Worlds deployment.
  */
 
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
-import { readFile, access } from "node:fs/promises";
-import { join, resolve, dirname } from "node:path";
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function findSceneRoot(startDir: string): Promise<string | null> {
-  let current = resolve(startDir);
-  for (let i = 0; i < 10; i++) {
-    if (await fileExists(join(current, "scene.json"))) {
-      return current;
-    }
-    const parent = dirname(current);
-    if (parent === current) break;
-    current = parent;
-  }
-  return null;
-}
+import { Type } from "@sinclair/typebox";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { fileExists, findSceneRoot } from "./scene-utils.js";
 
 const WORLDS_CONTENT_SERVER = "https://worlds-content-server.decentraland.org";
 
@@ -45,45 +25,63 @@ async function hasWorldConfiguration(sceneRoot: string): Promise<boolean> {
   }
 }
 
+async function deployScene(
+  cwd: string,
+  pi: { exec(cmd: string, args: string[], opts?: unknown): Promise<{ code: number; stdout: string; stderr: string }> }
+): Promise<{ message: string; isError?: boolean }> {
+  const sceneRoot = await findSceneRoot(cwd);
+
+  if (!sceneRoot) {
+    return { message: "No scene.json found. Create a scene first with /init.", isError: true };
+  }
+
+  if (!(await fileExists(join(sceneRoot, "node_modules")))) {
+    return { message: "node_modules not found. Run 'npm install' first.", isError: true };
+  }
+
+  const isWorldDeploy = await hasWorldConfiguration(sceneRoot);
+  const deployArgs = ["@dcl/sdk-commands", "deploy"];
+  if (isWorldDeploy) {
+    deployArgs.push("--target-content", WORLDS_CONTENT_SERVER);
+  }
+
+  const targetLabel = isWorldDeploy ? "World" : "Genesis City";
+
+  try {
+    const result = await pi.exec("npx", deployArgs, {
+      cwd: sceneRoot,
+      timeout: 120000,
+    });
+
+    if (result.code === 0) {
+      return { message: `Scene deployed to ${targetLabel} successfully!` };
+    } else {
+      return { message: `Deploy failed (exit code ${result.code}): ${result.stderr || result.stdout}`, isError: true };
+    }
+  } catch (err) {
+    return { message: `Failed to deploy scene: ${err instanceof Error ? err.message : String(err)}`, isError: true };
+  }
+}
+
 const extension: ExtensionFactory = (pi) => {
+  pi.registerTool({
+    name: "deploy",
+    label: "Deploy Scene",
+    description:
+      "Deploy the Decentraland scene. Auto-detects Genesis City vs World from scene.json worldConfiguration. Use when user wants to deploy, publish, or go live.",
+    parameters: Type.Object({}),
+    async execute(_id, _params, _signal, _onUpdate, ctx) {
+      const result = await deployScene(ctx.cwd, pi);
+      return { content: [{ type: "text" as const, text: result.message }], details: undefined };
+    },
+  });
+
   pi.registerCommand("deploy", {
     description: "Deploy the scene to Genesis City or a World",
     handler: async (_args, ctx) => {
-      const sceneRoot = await findSceneRoot(ctx.cwd);
-
-      if (!sceneRoot) {
-        ctx.ui.notify("No scene.json found. Create a scene first with /init.", "error");
-        return;
-      }
-
-      if (!(await fileExists(join(sceneRoot, "node_modules")))) {
-        ctx.ui.notify("node_modules not found. Run 'npm install' first.", "error");
-        return;
-      }
-
-      const isWorldDeploy = await hasWorldConfiguration(sceneRoot);
-      const deployArgs = ["@dcl/sdk-commands", "deploy"];
-      if (isWorldDeploy) {
-        deployArgs.push("--target-content", WORLDS_CONTENT_SERVER);
-      }
-
-      const targetLabel = isWorldDeploy ? "World" : "Genesis City";
-      ctx.ui.notify(`Deploying scene to ${targetLabel}...`, "info");
-
-      try {
-        const result = await pi.exec("npx", deployArgs, {
-          cwd: sceneRoot,
-          timeout: 120000,
-        });
-
-        if (result.code === 0) {
-          ctx.ui.notify(`Scene deployed to ${targetLabel} successfully!`, "info");
-        } else {
-          ctx.ui.notify(`Deploy failed (exit code ${result.code}): ${result.stderr || result.stdout}`, "error");
-        }
-      } catch (err) {
-        ctx.ui.notify(`Failed to deploy scene: ${err instanceof Error ? err.message : String(err)}`, "error");
-      }
+      ctx.ui.notify("Deploying scene...", "info");
+      const result = await deployScene(ctx.cwd, pi);
+      ctx.ui.notify(result.message, result.isError ? "error" : "info");
     },
   });
 };

@@ -97,9 +97,9 @@ scene-project/
 
 ### Empty Folder (No scene.json)
 1. Ask the user what they want to build.
-2. **Run `/init` first** — this uses the official SDK scaffolding to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration. Never create these files manually.
-3. After `/init` completes, customize `scene.json` (title, description, parcels) and `src/index.ts` (scene code) based on what the user wants.
-4. Run `npm install`, then suggest `/preview` to see the result.
+2. **Use the `init` tool first** — this uses the official SDK scaffolding to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration. Never create these files manually.
+3. After init completes, customize `scene.json` (title, description, parcels) and `src/index.ts` (scene code) based on what the user wants.
+4. Run `npm install`, then use the `preview` tool to start the preview server.
 
 ### Existing Scene
 1. Read scene.json and src/index.ts to understand the project.
@@ -111,13 +111,16 @@ scene-project/
 - Use `Vector3.create()` and `Quaternion.fromEulerDegrees()` for transforms.
 - For 3D models, use `GltfContainer.create(entity, { src: 'models/myModel.glb' })`.
 - Place `.glb` files in a `models/` directory, textures in `images/`.
-- After writing TypeScript, suggest running `/preview` to test.
+- After writing TypeScript, use the `preview` tool to start the preview server.
 - If the user asks about 3D models, reference the open-source-3D-assets catalog in `context/open-source-3d-assets.md`.
 
-## Available Commands
-- `/init` — **Always use this first** in an empty folder to scaffold a new scene with the official SDK template
-- `/preview` — Start the development server and preview the scene
-- `/deploy` — Deploy the scene to Genesis City or a World (auto-detects target from scene.json)
-- `/tasks` — Manage running background tasks (preview server, etc.)
-- `/review` — Review scene code quality and suggest improvements
-- `/explain` — Explain Decentraland SDK7 concepts
+## Tools & Commands
+
+You have these Decentraland-specific tools — **use them directly** when the user's request matches:
+- `init` — Scaffold a new scene (**always use this first** in an empty folder)
+- `preview` — Start the Bevy-web preview server
+- `deploy` — Deploy to Genesis City or a World (auto-detects from scene.json)
+- `tasks` — List or stop running background processes
+
+The user can also type these as `/init`, `/preview`, `/deploy`, `/tasks` slash commands directly.
+Additional user-only commands: `/review`, `/explain`, `/setup`, `/setup-ollama`

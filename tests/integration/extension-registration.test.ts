@@ -34,6 +34,13 @@ describe("extension registration", () => {
       expect(cmd).toBeDefined();
       expect(cmd!.description.length).toBeGreaterThan(0);
     });
+
+    it("registers preview tool", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-preview.js`);
+      mod.default(pi);
+      expect(records.tools.some((t: any) => t.name === "preview")).toBe(true);
+    });
   });
 
   describe("dcl-init", () => {
@@ -45,6 +52,13 @@ describe("extension registration", () => {
       expect(cmd).toBeDefined();
       expect(cmd!.description.length).toBeGreaterThan(0);
     });
+
+    it("registers init tool", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-init.js`);
+      mod.default(pi);
+      expect(records.tools.some((t: any) => t.name === "init")).toBe(true);
+    });
   });
 
   describe("dcl-deploy", () => {
@@ -55,6 +69,13 @@ describe("extension registration", () => {
       const cmd = records.commands.find((c) => c.name === "deploy");
       expect(cmd).toBeDefined();
       expect(cmd!.description.length).toBeGreaterThan(0);
+    });
+
+    it("registers deploy tool", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-deploy.js`);
+      mod.default(pi);
+      expect(records.tools.some((t: any) => t.name === "deploy")).toBe(true);
     });
   });
 
@@ -155,6 +176,13 @@ describe("extension registration", () => {
       expect(cmd).toBeDefined();
     });
 
+    it("registers tasks tool", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-tasks.js`);
+      mod.default(pi);
+      expect(records.tools.some((t: any) => t.name === "tasks")).toBe(true);
+    });
+
     it("subscribes to session_shutdown", async () => {
       const { pi, records } = createMockPi();
       const mod = await import(`${EXTENSIONS_DIR}/dcl-tasks.js`);
@@ -215,32 +243,41 @@ describe("extension registration", () => {
   });
 
   describe("all extensions combined", () => {
-    it("register exactly the expected set of commands", async () => {
-      const extensions = [
-        "dcl-context",
-        "dcl-preview",
-        "dcl-init",
-        "dcl-deploy",
-        "dcl-setup",
-        "dcl-validate",
-        "dcl-header",
-        "dcl-status",
-        "dcl-setup-ollama",
-        "dcl-tasks",
-        "plan-mode/index",
-      ];
+    const ALL_EXTENSIONS = [
+      "dcl-context",
+      "dcl-preview",
+      "dcl-init",
+      "dcl-deploy",
+      "dcl-setup",
+      "dcl-validate",
+      "dcl-header",
+      "dcl-status",
+      "dcl-setup-ollama",
+      "dcl-tasks",
+      "plan-mode/index",
+    ];
 
-      const allCommands: string[] = [];
-
-      for (const ext of extensions) {
+    async function collectFromAllExtensions<T>(extract: (records: ReturnType<typeof createMockPi>["records"]) => T[]): Promise<T[]> {
+      const collected: T[] = [];
+      for (const ext of ALL_EXTENSIONS) {
         const { pi, records } = createMockPi();
         const mod = await import(`${EXTENSIONS_DIR}/${ext}.js`);
         mod.default(pi);
-        allCommands.push(...records.commands.map((c) => c.name));
+        collected.push(...extract(records));
       }
+      return collected;
+    }
 
+    it("register exactly the expected set of commands", async () => {
+      const allCommands = await collectFromAllExtensions((r) => r.commands.map((c) => c.name));
       allCommands.sort();
       expect(allCommands).toEqual(["deploy", "init", "plan", "preview", "setup", "setup-ollama", "tasks", "todos"]);
+    });
+
+    it("register exactly the expected set of tools", async () => {
+      const allTools = await collectFromAllExtensions((r) => r.tools.map((t: any) => t.name));
+      allTools.sort();
+      expect(allTools).toEqual(["deploy", "init", "preview", "tasks"]);
     });
   });
 });
