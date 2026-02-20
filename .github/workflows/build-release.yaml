@@ -9,6 +9,7 @@ jobs:
   build-release:
     permissions:
       contents: read
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,5 +28,6 @@ jobs:
           deterministic-snapshot: true
           registry-url: 'https://registry.npmjs.org'
           access: public
+          provenance: false
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

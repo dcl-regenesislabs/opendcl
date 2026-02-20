@@ -10,7 +10,7 @@ describe("CLI configuration", () => {
       await readFile(join(ROOT, "package.json"), "utf-8")
     );
     expect(pkg.bin).toBeDefined();
-    expect(pkg.bin.opendcl).toBe("./dist/index.js");
+    expect(pkg.bin.opendcl).toBe("dist/index.js");
   });
 
   it("package.json has piConfig with correct name", async () => {

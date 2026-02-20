@@ -4,7 +4,7 @@
   "description": "AI coding assistant for Decentraland SDK7 scene development",
   "type": "module",
   "bin": {
-    "opendcl": "./dist/index.js"
+    "opendcl": "dist/index.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
