@@ -2,9 +2,26 @@
 
 [![CI](https://github.com/dcl-regenesislabs/opendcl/actions/workflows/ci.yaml/badge.svg)](https://github.com/dcl-regenesislabs/opendcl/actions/workflows/ci.yaml)
 
-AI coding assistant for Decentraland SDK7 scene development.
+Build Decentraland scenes with AI. Describe what you want in plain language — OpenDCL handles the SDK7 code, ECS architecture, and deployment for you.
 
-OpenDCL is a terminal-based AI agent that understands Decentraland's SDK, components, and patterns out of the box. It helps creators — from beginners to experienced developers — build interactive 3D scenes faster using natural language.
+OpenDCL is a terminal-based AI agent that knows Decentraland inside out: every component, every pattern, every constraint. Whether you're a first-time creator or a seasoned developer, you go from idea to running scene in minutes instead of hours.
+
+## Why OpenDCL?
+
+Building a Decentraland scene today means learning SDK7, an entity-component-system architecture, TypeScript, 60+ ECS components, parcel size limits, a QuickJS sandbox with no Node.js APIs, and a deployment pipeline. That's a steep learning curve — and it slows down even experienced developers on repetitive tasks.
+
+OpenDCL puts an AI assistant in your terminal that already knows all of this. You describe what you want, and it writes correct, deployable scene code. It validates TypeScript as it goes, knows which 3D assets are freely available, and handles multiplayer sync, UI, animations, and deployment config without you needing to look anything up.
+
+The result: **more creators building more scenes, faster.**
+
+## Use Cases
+
+- **Beginners & non-developers** — "Build me a gallery with clickable paintings." Go from zero to a working scene without writing code manually.
+- **Experienced developers** — Skip the boilerplate. Let the agent handle multiplayer sync, UI scaffolding, and deployment config while you focus on creative decisions.
+- **Teams & studios** — Prototype scene concepts quickly and iterate before committing full dev resources.
+- **Land owners & brands** — Build and update experiences on your LAND without hiring a dedicated development team.
+- **Event organizers** — Spin up interactive stages, gathering areas, and event spaces fast.
+- **Hackathons & game jams** — Go from concept to deployed scene in hours instead of days.
 
 ## Features
 
