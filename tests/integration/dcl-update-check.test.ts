@@ -8,6 +8,7 @@ import { createMockPi } from "../helpers/mock-pi.js";
 import {
   isNewerVersion,
   getInstalledVersion,
+  getPackageName,
 } from "../../extensions/dcl-update-check.js";
 import extension from "../../extensions/dcl-update-check.js";
 
@@ -40,6 +41,12 @@ describe("dcl-update-check", () => {
 
     it("handles minor bump with lower patch", () => {
       expect(isNewerVersion("1.0.9", "1.1.0")).toBe(true);
+    });
+  });
+
+  describe("getPackageName", () => {
+    it("returns the scoped package name", () => {
+      expect(getPackageName()).toBe("@dcl-regenesislabs/opendcl");
     });
   });
 
