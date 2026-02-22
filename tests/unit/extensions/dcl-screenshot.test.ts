@@ -38,8 +38,8 @@ describe("dcl-screenshot extension", () => {
     expect(content).toContain("URL not ready");
   });
 
-  it("returns error when Chrome not found", () => {
-    expect(content).toContain("Chrome/Chromium not found");
+  it("returns error when no compatible browser found", () => {
+    expect(content).toContain("No compatible browser found");
     expect(content).toContain("npx playwright install chromium");
   });
 

@@ -36,6 +36,7 @@ function findSystemChrome(): string | null {
     const paths = [
       "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
       "/Applications/Chromium.app/Contents/MacOS/Chromium",
+      "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
     ];
     for (const p of paths) {
       if (existsSync(p)) return p;
@@ -46,12 +47,18 @@ function findSystemChrome(): string | null {
       process.env["ProgramFiles(x86)"],
       process.env.LOCALAPPDATA,
     ].filter(Boolean) as string[];
+    const subPaths = [
+      "Google\\Chrome\\Application\\chrome.exe",
+      "BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+    ];
     for (const base of envPaths) {
-      const p = `${base}\\Google\\Chrome\\Application\\chrome.exe`;
-      if (existsSync(p)) return p;
+      for (const sub of subPaths) {
+        const p = `${base}\\${sub}`;
+        if (existsSync(p)) return p;
+      }
     }
   } else {
-    for (const cmd of ["google-chrome", "chromium", "chromium-browser"]) {
+    for (const cmd of ["google-chrome", "chromium", "chromium-browser", "brave-browser"]) {
       try {
         const result = execSync(`which ${cmd}`, { encoding: "utf-8" }).trim();
         if (result) return result;
@@ -126,7 +133,7 @@ const extension: ExtensionFactory = (pi) => {
     const executablePath = await findChrome();
     if (!executablePath) {
       throw new Error(
-        "Chrome/Chromium not found. Install Google Chrome or run: npx playwright install chromium"
+        "No compatible browser found. Install a Chromium-based browser or run: npx playwright install chromium"
       );
     }
 

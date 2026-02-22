@@ -3,3 +3,5 @@ dist/
 *.tsbuildinfo
 .opendcl/
 .pi/
+.claude/
+.DS_Store
