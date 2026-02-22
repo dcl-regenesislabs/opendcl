@@ -34,6 +34,7 @@ The result: **more creators building more scenes, faster.**
 - **Free 3D asset catalog** — 900+ CC0-licensed models the agent can suggest and help you use
 - **Permission gate** — prompts for confirmation before destructive bash commands or writes to sensitive files
 - **Compact tool output** — write shows path + size instead of file content, read shows a 5-line preview instead of 10
+- **Visual feedback** — screenshot the running preview and iterate visually (requires Chrome or Chromium)
 - **Session persistence** — pick up where you left off across sessions
 
 ## Quick Start
@@ -127,6 +128,18 @@ OpenDCL loads domain-specific skills on demand based on what you're asking:
 | `advanced-rendering` | Billboards, 3D text, materials, transparency |
 | `advanced-input` | Cursor state, movement restriction, WASD patterns |
 
+## Visual Feedback
+
+OpenDCL can see what it builds. After starting the preview server, the agent can take screenshots of the running scene, describe what it sees, and iterate until the result matches your vision.
+
+**Two modes:**
+- **Guided** — the agent screenshots the scene and asks you what to change
+- **Autonomous** — you set a goal (e.g., "make this look like a park"), the agent iterates on its own (write code → screenshot → analyze → fix → repeat)
+
+The screenshot tool also supports input actions — clicking, key presses, and mouse drags — so the agent can explore the scene from different angles or test interactivity.
+
+**Requirements:** Google Chrome or Chromium. If neither is installed, run `npx playwright install chromium` to install a bundled browser.
+
 ## How It Works
 
 OpenDCL is built on [pi-coding-agent](https://github.com/badlogic/pi-mono), the agent engine behind [OpenClaw](https://github.com/openclaw/openclaw). It adds Decentraland-specific:
@@ -149,6 +162,7 @@ opendcl/
 │   ├── dcl-context.ts        # Auto-detect scene, inject metadata
 │   ├── dcl-init.ts           # /init command
 │   ├── dcl-preview.ts        # /preview command
+│   ├── dcl-screenshot.ts     # Screenshot tool (visual feedback loop)
 │   ├── dcl-deploy.ts         # /deploy command
 │   ├── dcl-setup.ts          # /setup command (cloud API provider config)
 │   ├── dcl-setup-ollama.ts   # /setup-ollama command (Ollama setup wizard)
@@ -237,6 +251,7 @@ Set the environment variable or enter the key on first run. Switch models anytim
 
 - Node.js >= 18
 - npm
+- Google Chrome or Chromium (for screenshot tool; or run `npx playwright install chromium`)
 
 ## Contributing
 

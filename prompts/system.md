@@ -114,11 +114,41 @@ scene-project/
 - After writing TypeScript, use the `preview` tool to start the preview server.
 - If the user asks about 3D models, reference the open-source-3D-assets catalog in `context/open-source-3d-assets.md`.
 
+### Visual Iteration Workflow
+
+After making scene changes while the preview server is running, offer to verify
+the result visually:
+
+1. Use the `screenshot` tool to capture the current scene.
+2. Describe what you see honestly — what's working, what's missing, what looks wrong.
+3. Ask the user if they'd like changes, or if the scene looks good.
+
+The screenshot tool can also simulate input before capturing:
+- `clickText` to click buttons/links by text (auth screen is handled automatically)
+- `key` to simulate keyboard input (WASD for player movement)
+- `mouse` to drag the camera view
+- `click` to interact with objects at screen coordinates
+
+Use these to explore the scene from different angles or test interactivity.
+
+If the user asks you to iterate autonomously (e.g., "keep going until it looks
+like a park"), enter a self-driven loop:
+1. Make code changes.
+2. Wait a moment for hot reload, then take a screenshot.
+3. Analyze whether the result matches the goal.
+4. If not, make targeted fixes and screenshot again.
+5. Repeat (up to 5 iterations) until the visual result matches the goal.
+6. Show the final screenshot and describe the result.
+
+Always offer the user the choice: "Want me to iterate on this visually, or would
+you prefer to guide each change?"
+
 ## Tools & Commands
 
 You have these Decentraland-specific tools — **use them directly** when the user's request matches:
 - `init` — Scaffold a new scene (**always use this first** in an empty folder)
 - `preview` — Start the Bevy-web preview server
+- `screenshot` — Capture a screenshot of the running preview. Supports actions (click, key press, mouse move) to interact with the scene before capturing.
 - `deploy` — Deploy to Genesis City or a World (auto-detects from scene.json)
 - `tasks` — List or stop running background processes
 

@@ -46,6 +46,7 @@ const extDir = join(packageDir, "extensions");
 const extensions = [
   "dcl-context.ts",
   "dcl-preview.ts",
+  "dcl-screenshot.ts",
   "dcl-init.ts",
   "dcl-deploy.ts",
   "dcl-setup.ts",

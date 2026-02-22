@@ -61,6 +61,29 @@ describe("extension registration", () => {
     });
   });
 
+  describe("dcl-screenshot", () => {
+    it("registers screenshot tool", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-screenshot.js`);
+      mod.default(pi);
+      expect(records.tools.some((t: any) => t.name === "screenshot")).toBe(true);
+    });
+
+    it("subscribes to session_shutdown", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-screenshot.js`);
+      mod.default(pi);
+      expect(records.events.some((e) => e.event === "session_shutdown")).toBe(true);
+    });
+
+    it("registers no commands", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-screenshot.js`);
+      mod.default(pi);
+      expect(records.commands).toHaveLength(0);
+    });
+  });
+
   describe("dcl-deploy", () => {
     it("registers /deploy command with description", async () => {
       const { pi, records } = createMockPi();
@@ -282,23 +305,27 @@ describe("extension registration", () => {
   });
 
   describe("all extensions combined", () => {
+    // Matches the order in src/index.ts
     const ALL_EXTENSIONS = [
       "dcl-context",
       "dcl-preview",
+      "dcl-screenshot",
       "dcl-init",
       "dcl-deploy",
       "dcl-setup",
+      "dcl-setup-ollama",
       "dcl-validate",
       "dcl-header",
       "dcl-update-check",
       "dcl-status",
-      "dcl-setup-ollama",
       "dcl-tasks",
       "plan-mode/index",
       "permissions/index",
     ];
 
-    async function collectFromAllExtensions<T>(extract: (records: ReturnType<typeof createMockPi>["records"]) => T[]): Promise<T[]> {
+    async function collectFromAllExtensions<T>(
+      extract: (records: ReturnType<typeof createMockPi>["records"]) => T[]
+    ): Promise<T[]> {
       const collected: T[] = [];
       for (const ext of ALL_EXTENSIONS) {
         const { pi, records } = createMockPi();
@@ -318,7 +345,7 @@ describe("extension registration", () => {
     it("register exactly the expected set of tools", async () => {
       const allTools = await collectFromAllExtensions((r) => r.tools.map((t: any) => t.name));
       allTools.sort();
-      expect(allTools).toEqual(["deploy", "init", "preview", "tasks"]);
+      expect(allTools).toEqual(["deploy", "init", "preview", "screenshot", "tasks"]);
     });
   });
 });
