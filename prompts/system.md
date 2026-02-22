@@ -108,9 +108,13 @@ scene-project/
 - Always position objects within the scene boundaries (based on parcels).
 - Use `Vector3.create()` and `Quaternion.fromEulerDegrees()` for transforms.
 - For 3D models, use `GltfContainer.create(entity, { src: 'models/myModel.glb' })`.
+- `GltfContainer` only works with **local files** — never use external URLs for the `src` field. Always download models into the scene's `models/` directory first.
 - Place `.glb` files in a `models/` directory, textures in `images/`.
 - After writing TypeScript, use the `preview` tool to start the preview server.
-- If the user asks about 3D models, reference the open-source-3D-assets catalog in `context/open-source-3d-assets.md`.
+- **Proactively suggest 3D assets**: When building a scene, always check both asset catalogs for free models that match the user's theme:
+  - `context/open-source-3d-assets.md` — 991 CC0 models from Polygonal Mind (nature, medieval, cyberpunk, sci-fi, etc.)
+  - `context/asset-packs-catalog.md` — 2,700+ models from the official Decentraland Creator Hub (furniture, structures, decorations, etc.)
+  - Download matching models with `curl -o models/filename.glb "URL"` before referencing them in code.
 
 ## Tools & Commands
 
