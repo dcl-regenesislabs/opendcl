@@ -19,13 +19,13 @@ async function initScene(
   }
 
   try {
-    const result = await pi.exec("npx", ["@dcl/sdk-commands", "init", "--skip-install"], {
+    const result = await pi.exec("npx", ["@dcl/sdk-commands", "init"], {
       cwd,
-      timeout: 60000,
+      timeout: 180000,
     });
 
     if (result.code === 0) {
-      return { message: "Scene initialized! Run 'npm install' to install dependencies, then use the preview tool to start." };
+      return { message: "Scene initialized and dependencies installed! Use the preview tool to start." };
     } else {
       return { message: `Init failed (exit code ${result.code}): ${result.stderr || result.stdout}`, isError: true };
     }

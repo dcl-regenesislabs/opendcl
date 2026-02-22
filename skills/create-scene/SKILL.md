@@ -16,7 +16,7 @@ If the user hasn't described their scene, ask them:
 
 ## 2. Scaffold the Project with `/init`
 
-**Always run `/init` first.** This uses the official `@dcl/sdk-commands init` to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration.
+**Always run `/init` first.** This uses the official `@dcl/sdk-commands init` to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration, and installs dependencies automatically.
 
 Never manually create scene.json, package.json, or tsconfig.json — the SDK templates may change between versions and hand-written copies will diverge.
 
@@ -53,10 +53,9 @@ export function main() {
 
 ## 4. Post-Creation Steps
 
-After creating the files, tell the user:
-1. Run `npm install` to install dependencies
-2. Use the `preview` tool to start the preview server (or run `npx @dcl/sdk-commands start --bevy-web` manually)
-3. The scene will open in a browser at http://localhost:8000
+After customizing the files:
+1. Use the `preview` tool to start the preview server (or run `npx @dcl/sdk-commands start --bevy-web` manually)
+2. The scene will open in a browser at http://localhost:8000
 
 ## Important Notes
 
