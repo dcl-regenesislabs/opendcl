@@ -138,13 +138,34 @@ Transform.create(npc, { position: Vector3.create(8, 0, 8) })
 AvatarShape.create(npc, {
   id: 'npc-1',
   name: 'Guard',
+  bodyShape: 'urn:decentraland:off-chain:base-avatars:BaseMale',  // or BaseFemale
   wearables: [
-    'urn:decentraland:off-chain:base-avatars:f_eyes_01',
-    'urn:decentraland:off-chain:base-avatars:f_eyebrows_01',
-    'urn:decentraland:off-chain:base-avatars:f_mouth_01',
-    'urn:decentraland:off-chain:base-avatars:sport_jacket',
-    'urn:decentraland:off-chain:base-avatars:oxford_pants'
-  ]
+    'urn:decentraland:off-chain:base-avatars:eyebrows_00',
+    'urn:decentraland:off-chain:base-avatars:mouth_00',
+    'urn:decentraland:off-chain:base-avatars:eyes_00',
+    'urn:decentraland:off-chain:base-avatars:blue_tshirt',
+    'urn:decentraland:off-chain:base-avatars:brown_pants',
+    'urn:decentraland:off-chain:base-avatars:classic_shoes',
+    'urn:decentraland:off-chain:base-avatars:short_hair'
+  ],
+  hairColor: { r: 0.92, g: 0.76, b: 0.62 },  // RGB values 0-1
+  skinColor: { r: 0.94, g: 0.85, b: 0.6 },   // RGB values 0-1
+  emotes: []
+})
+```
+
+### Mannequin (Show Only Wearables)
+
+Display just the wearables without a full avatar body:
+
+```typescript
+AvatarShape.create(mannequin, {
+  id: 'mannequin-1',
+  name: 'Display',
+  wearables: [
+    'urn:decentraland:matic:collections-v2:0x90e5cb2d673699be8f28d339c818a0b60144c494:0'
+  ],
+  show_only_wearables: true
 })
 ```
 

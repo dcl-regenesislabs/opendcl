@@ -10,7 +10,7 @@ description: Control camera behavior in Decentraland scenes. Switch between firs
 Access the camera's current position and rotation via the reserved `engine.CameraEntity`:
 
 ```typescript
-import { engine, Transform, CameraMode, CameraType } from '@dcl/sdk/ecs'
+import { engine, Transform } from '@dcl/sdk/ecs'
 
 function trackCamera() {
   if (!Transform.has(engine.CameraEntity)) return
@@ -28,6 +28,8 @@ engine.addSystem(trackCamera)
 Check whether the player is in first-person or third-person:
 
 ```typescript
+import { engine, CameraMode, CameraType } from '@dcl/sdk/ecs'
+
 function checkCameraMode() {
   if (!CameraMode.has(engine.CameraEntity)) return
 
@@ -73,7 +75,7 @@ When the player leaves the area, the camera reverts to their preferred mode.
 Create scripted camera positions for cutscenes or special views:
 
 ```typescript
-import { engine, Transform, VirtualCamera, CameraTransition } from '@dcl/sdk/ecs'
+import { engine, Transform, VirtualCamera, MainCamera } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 
 const cinematicCam = engine.addEntity()
@@ -84,16 +86,23 @@ Transform.create(cinematicCam, {
 
 VirtualCamera.create(cinematicCam, {
   defaultTransition: {
-    transitionMode: CameraTransition.CT_SPEED,
-    speed: 1.0
+    transitionMode: VirtualCamera.Transition.Speed(1.0)
   }
 })
+
+// Activate the virtual camera
+MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = cinematicCam
+
+// Return to normal camera
+MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = undefined
 ```
 
 ### Transition Modes
 
-- `CameraTransition.CT_SPEED` — smooth transition at a fixed speed
-- Higher `speed` values = faster camera movement to the virtual camera position
+```typescript
+VirtualCamera.Transition.Speed(1.0)  // Speed-based smooth transition
+VirtualCamera.Transition.Time(2)     // Time-based transition (2 seconds)
+```
 
 ### Look-At Target
 
@@ -106,10 +115,12 @@ Transform.create(target, { position: Vector3.create(8, 1, 8) })
 VirtualCamera.create(cinematicCam, {
   lookAtEntity: target,
   defaultTransition: {
-    transitionMode: CameraTransition.CT_SPEED,
-    speed: 2.0
+    transitionMode: VirtualCamera.Transition.Speed(2.0)
   }
 })
+
+// Activate
+MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = cinematicCam
 ```
 
 ## Tracking Camera Position
@@ -117,7 +128,7 @@ VirtualCamera.create(cinematicCam, {
 Poll camera position each frame for camera-triggered events:
 
 ```typescript
-import { engine, Transform, CameraMode, CameraType } from '@dcl/sdk/ecs'
+import { engine, Transform } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 
 let lastNotifiedZone = ''

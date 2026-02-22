@@ -79,26 +79,46 @@ GltfContainer.create(entity, {
 
 ## Trigger Areas (Proximity Detection)
 
-Detect when the player enters or exits an area:
+Detect when the player enters, exits, or stays inside an area:
 
 ```typescript
-import { engine, Transform, TriggerArea, TriggerAreaResult } from '@dcl/sdk/ecs'
+import { engine, Transform, TriggerArea } from '@dcl/sdk/ecs'
+import { triggerAreaEventsSystem } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 
-const trigger = engine.addEntity()
-Transform.create(trigger, { position: Vector3.create(8, 0, 8) })
-
-TriggerArea.create(trigger, {
-  area: Vector3.create(4, 4, 4) // 4x4x4 meter box
+const area = engine.addEntity()
+TriggerArea.setBox(area) // or TriggerArea.setSphere(area)
+Transform.create(area, {
+  position: Vector3.create(8, 0, 8),
+  scale: Vector3.create(4, 4, 4) // Size the area via Transform.scale
 })
 
-// System to check trigger
-engine.addSystem(() => {
-  const result = TriggerAreaResult.getOrNull(trigger)
-  if (result && result.isTriggered) {
-    // Player is inside the trigger area
-  }
+// Register enter/exit/stay events
+triggerAreaEventsSystem.onTriggerEnter(area, (event) => {
+  console.log('Entity entered trigger:', event.trigger.entity)
 })
+
+triggerAreaEventsSystem.onTriggerExit(area, () => {
+  console.log('Entity exited trigger')
+})
+
+triggerAreaEventsSystem.onTriggerStay(area, () => {
+  // Called every frame while an entity is inside
+})
+```
+
+By default, trigger areas react to the player layer. Use `ColliderLayer` to restrict which entities activate the area:
+
+```typescript
+import { ColliderLayer, MeshCollider } from '@dcl/sdk/ecs'
+
+// Area that only reacts to custom layers
+TriggerArea.setBox(area, ColliderLayer.CL_CUSTOM1 | ColliderLayer.CL_CUSTOM2)
+
+// Mark a moving entity to activate the area
+const mover = engine.addEntity()
+Transform.create(mover, { position: Vector3.create(8, 0, 8) })
+MeshCollider.setBox(mover, ColliderLayer.CL_CUSTOM1)
 ```
 
 ## Raycasting

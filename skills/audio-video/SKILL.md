@@ -122,16 +122,16 @@ VideoPlayer.create(screen, {
   playing: true,
   loop: true,
   volume: 0.5,
-  playbackRate: 1.0
+  playbackRate: 1.0,
+  position: 0  // Start time in seconds
 })
 
-// Set material to show the video texture
-Material.setPbrMaterial(screen, {
-  texture: Material.Texture.Video({ videoPlayerEntity: screen }),
-  roughness: 1,
-  emissiveColor: { r: 1, g: 1, b: 1 },
-  emissiveIntensity: 1,
-  emissiveTexture: Material.Texture.Video({ videoPlayerEntity: screen })
+// Create video texture
+const videoTexture = Material.Texture.Video({ videoPlayerEntity: screen })
+
+// Basic material (recommended — better performance)
+Material.setBasicMaterial(screen, {
+  texture: videoTexture
 })
 ```
 
@@ -148,6 +148,50 @@ VideoPlayer.getMutable(screen).volume = 0.8
 
 // Change source
 VideoPlayer.getMutable(screen).src = 'https://example.com/other.mp4'
+```
+
+### Enhanced Video Material (PBR)
+
+For a brighter, emissive video screen:
+
+```typescript
+import { Color3 } from '@dcl/sdk/math'
+
+const videoTexture = Material.Texture.Video({ videoPlayerEntity: screen })
+Material.setPbrMaterial(screen, {
+  texture: videoTexture,
+  roughness: 1.0,
+  specularIntensity: 0,
+  metallic: 0,
+  emissiveTexture: videoTexture,
+  emissiveIntensity: 0.6,
+  emissiveColor: Color3.White()
+})
+```
+
+### Video Events
+
+Monitor video playback state:
+
+```typescript
+import { videoEventsSystem, VideoState } from '@dcl/sdk/ecs'
+
+videoEventsSystem.registerVideoEventsEntity(screen, (videoEvent) => {
+  switch (videoEvent.state) {
+    case VideoState.VS_PLAYING:
+      console.log('Video started playing')
+      break
+    case VideoState.VS_PAUSED:
+      console.log('Video paused')
+      break
+    case VideoState.VS_READY:
+      console.log('Video ready to play')
+      break
+    case VideoState.VS_ERROR:
+      console.log('Video error occurred')
+      break
+  }
+})
 ```
 
 ## Spatial Audio
