@@ -61,7 +61,7 @@ describe("dcl-screenshot extension", () => {
 
   it("has configurable wait parameter with default", () => {
     expect(content).toContain("wait");
-    expect(content).toContain("default: 5000");
+    expect(content).toContain("default: 1000");
   });
 
   it("supports input actions before screenshot", () => {
