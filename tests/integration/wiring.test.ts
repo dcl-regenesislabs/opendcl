@@ -93,6 +93,11 @@ describe("index.ts wiring", () => {
     expect(INDEX_SRC).toContain("getCompactToolDefinition");
   });
 
+  it("pi changelog patches are wired (getChangelogForDisplay + handleChangelogCommand)", () => {
+    expect(INDEX_SRC).toContain("getChangelogForDisplay");
+    expect(INDEX_SRC).toContain("handleChangelogCommand");
+  });
+
   it("every .ts extension directory (plan-mode) is referenced in index.ts", () => {
     const allReferenced = new Set([...loopExtensions, ...standalonePushes]);
 

@@ -83,7 +83,7 @@ const extension: ExtensionFactory = (pi) => {
     // Fire-and-forget: don't block session startup
     fetchLatestVersion().then((latest) => {
       if (latest && isNewerVersion(getInstalledVersion(), latest)) {
-        ctx.ui.notify(`OpenDCL v${latest} is available. Run: npm install -g ${getPackageName()}`, "info");
+        ctx.ui.notify(`OpenDCL v${latest} is available. Run: npm install -g ${getPackageName()}`, "warning");
       }
     });
   });

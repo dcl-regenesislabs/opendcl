@@ -83,6 +83,22 @@ InteractiveMode.prototype.showWarning = function (msg: string) {
   _showWarning.call(this, msg);
 };
 
+// Suppress pi's "What's New" changelog notification on startup — it shows pi's
+// own version/changes, which confuses OpenDCL users.
+(InteractiveMode.prototype as any).getChangelogForDisplay = function () {
+  return undefined;
+};
+
+// Override pi's built-in /changelog command — it shows pi's CHANGELOG.md,
+// not OpenDCL's. The command is hardcoded in handleEditorSubmit before extension
+// commands, so monkey-patching is the only way to intercept it.
+const opendclVersion = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf-8")).version;
+(InteractiveMode.prototype as any).handleChangelogCommand = function () {
+  (this as any).showStatus(
+    `OpenDCL v${opendclVersion} — https://github.com/dcl-regenesislabs/opendcl/releases/tag/${opendclVersion}`,
+  );
+};
+
 // Compact tool output — override built-in write/read renderers to reduce terminal noise.
 // When a built-in tool has no custom renderCall/renderResult, pi shows verbose output.
 // By returning compact renderers from getRegisteredToolDefinition, the ToolExecutionComponent
