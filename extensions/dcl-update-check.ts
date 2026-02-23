@@ -49,18 +49,31 @@ export async function fetchLatestVersion(): Promise<string | null> {
   }
 }
 
+/** Strip pre-release and build metadata from a version string (e.g. "1.0.0-beta" -> "1.0.0"). */
+function stripPreRelease(version: string): string {
+  return version.replace(/[-+].*$/, "");
+}
+
 /** Compare two semver strings. Returns true if latest is newer than current. */
 export function isNewerVersion(current: string, latest: string): boolean {
-  const currentParts = current.split(".").map((n) => parseInt(n, 10) || 0);
-  const latestParts = latest.split(".").map((n) => parseInt(n, 10) || 0);
+  const currentBase = stripPreRelease(current);
+  const latestBase = stripPreRelease(latest);
+
+  const currentParts = currentBase.split(".").map((n) => parseInt(n, 10) || 0);
+  const latestParts = latestBase.split(".").map((n) => parseInt(n, 10) || 0);
   const length = Math.max(currentParts.length, latestParts.length);
+
   for (let i = 0; i < length; i++) {
     const currentPart = currentParts[i] || 0;
     const latestPart = latestParts[i] || 0;
     if (latestPart > currentPart) return true;
     if (latestPart < currentPart) return false;
   }
-  return false;
+
+  // Base versions equal: pre-release < stable (e.g., 0.1.0-snapshot < 0.1.0)
+  const currentHasPreRelease = current !== currentBase;
+  const latestHasPreRelease = latest !== latestBase;
+  return currentHasPreRelease && !latestHasPreRelease;
 }
 
 const extension: ExtensionFactory = (pi) => {

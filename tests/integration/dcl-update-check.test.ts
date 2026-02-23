@@ -42,6 +42,22 @@ describe("dcl-update-check", () => {
     it("handles minor bump with lower patch", () => {
       expect(isNewerVersion("1.0.9", "1.1.0")).toBe(true);
     });
+
+    it("treats stable as newer than snapshot with same base version", () => {
+      expect(isNewerVersion("0.1.0-22234509684.commit-63dfd19", "0.1.0")).toBe(true);
+    });
+
+    it("treats snapshot as not newer than stable with same base version", () => {
+      expect(isNewerVersion("0.1.0", "0.1.0-123.commit-abc")).toBe(false);
+    });
+
+    it("detects newer version even when current has pre-release suffix", () => {
+      expect(isNewerVersion("0.1.0-123.commit-abc", "0.2.0")).toBe(true);
+    });
+
+    it("treats two pre-releases with same base as equal", () => {
+      expect(isNewerVersion("0.1.0-abc", "0.1.0-def")).toBe(false);
+    });
   });
 
   describe("getPackageName", () => {
