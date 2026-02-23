@@ -93,16 +93,40 @@ GltfContainer.create(child, { src: 'models/hat.glb' })
 
 ## Free 3D Models
 
-For free CC0-licensed 3D models suitable for Decentraland, read the catalog at:
-`context/open-source-3d-assets.md` (in the opendcl repo root). If unavailable locally, fetch from:
-https://raw.githubusercontent.com/dcl-regenesislabs/opendcl/main/context/open-source-3d-assets.md
+Always check both asset catalogs before suggesting the user create or find their own models.
 
-This catalog contains 991+ models organized by themed collections (Cyberpunk, Medieval, MomusPark, etc.) with direct download URLs.
+### Creator Hub Asset Packs (2,700+ models)
 
-When the user asks for 3D models:
-1. Read the open-source-3d-assets.md file
-2. Suggest models that match their description
-3. Show them how to download and add the model to their scene
+Read `context/asset-packs-catalog.md` for official Decentraland models across 12 themed packs (Cyberpunk, Fantasy, Gallery, Sci-fi, Western, Pirates, etc.) with furniture, structures, decorations, nature, and more.
+
+To use a Creator Hub model:
+```bash
+# Download from catalog
+mkdir -p models
+curl -o models/arcade_machine.glb "https://builder-items.decentraland.org/contents/bafybei..."
+```
+```typescript
+// Reference in code — must be a local file path
+GltfContainer.create(entity, { src: 'models/arcade_machine.glb' })
+```
+
+### Open Source CC0 Models (991 models)
+
+Read `context/open-source-3d-assets.md` for free CC0-licensed models from Polygonal Mind, organized by 18 themed collections (MomusPark, Medieval Fair, Cyberpunk, Sci-fi, etc.) with direct GitHub download URLs.
+
+```bash
+curl -o models/tree.glb "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/momuspark/Tree_01_Art.glb"
+```
+
+### How to suggest models
+
+1. Read both catalog files
+2. Search for models matching the user's description/theme
+3. Suggest specific models with download commands
+4. Download selected models into the scene's `models/` directory
+5. Reference them in code with local paths
+
+> **Important**: `GltfContainer` only works with **local files**. Never use external URLs for the model `src` field. Always download models into `models/` first.
 
 ## Model Best Practices
 

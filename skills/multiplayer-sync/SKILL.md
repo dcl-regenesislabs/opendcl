@@ -9,24 +9,28 @@ Decentraland scenes are inherently multiplayer. All players in the same scene sh
 
 ## How Sync Works
 
-- Components on entities created via `engine.addEntity()` are **automatically synced** between all players in the scene.
+- Entities must be explicitly synced using `syncEntity()` from `@dcl/sdk/network`.
 - The Decentraland runtime uses CRDTs (Conflict-free Replicated Data Types) to resolve conflicts.
 - Last-write-wins semantics for most components (Transform, Material, etc.).
 - No server code needed — sync is built into the runtime.
 
 ## Basic Synced Entity
 
-Any entity with standard components syncs automatically:
+Use `syncEntity()` to mark an entity and its components for multiplayer sync:
 
 ```typescript
 import { engine, Transform, MeshRenderer, Material } from '@dcl/sdk/ecs'
+import { syncEntity } from '@dcl/sdk/network'
 import { Vector3, Color4 } from '@dcl/sdk/math'
 
-// This entity and all its components sync to all players
+// Create entity
 const sharedCube = engine.addEntity()
 Transform.create(sharedCube, { position: Vector3.create(8, 1, 8) })
 MeshRenderer.setBox(sharedCube)
 Material.setPbrMaterial(sharedCube, { albedoColor: Color4.Red() })
+
+// Sync this entity's Transform to all players
+syncEntity(sharedCube, [Transform.componentId])
 
 // When any player changes the transform, all players see it
 function moveCube() {
@@ -37,23 +41,25 @@ function moveCube() {
 
 ## Custom Synced Components
 
-Define custom components that sync between players:
+Define custom components and sync them between players:
 
 ```typescript
 import { engine, Schemas } from '@dcl/sdk/ecs'
+import { syncEntity } from '@dcl/sdk/network'
 
-// Define a custom synced component
+// Define a custom component
 const ScoreBoard = engine.defineComponent('scoreBoard', {
   score: Schemas.Int,
   playerName: Schemas.String,
   lastUpdated: Schemas.Int64
 })
 
-// Use it on an entity — automatically syncs
+// Create and sync the entity
 const board = engine.addEntity()
 ScoreBoard.create(board, { score: 0, playerName: '', lastUpdated: 0 })
+syncEntity(board, [ScoreBoard.componentId])
 
-// Update from any player
+// Update from any player — synced via CRDT
 function addScore(points: number) {
   const data = ScoreBoard.getMutable(board)
   data.score += points
@@ -124,9 +130,10 @@ engine.addSystem(() => {
 
 ## Important Notes
 
-- **All component changes sync automatically** — no explicit "send" calls needed
+- **Entities must be explicitly synced** via `syncEntity(entity, [componentIds])` — pass the `componentId` of each component to sync
 - **CRDT resolution**: If two players change the same component simultaneously, last-write-wins
 - **No server-side code**: Decentraland scenes run entirely client-side with CRDT sync
 - **Entity limits apply**: Each synced entity counts toward the scene's entity budget
 - **Custom schemas must be deterministic**: Same component name = same schema across all clients
+- **Use `Schemas.Int64` for timestamps**: `Schemas.Number` corrupts large numbers (13+ digits). Always use `Schemas.Int64` for values like `Date.now()`
 - For server-authoritative multiplayer with validation and anti-cheat, see the `authoritative-server` skill

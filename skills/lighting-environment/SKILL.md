@@ -39,6 +39,8 @@ LightSource.create(light, {
 Emit a cone of light in a direction:
 
 ```typescript
+import { Quaternion } from '@dcl/sdk/math'
+
 const spotlight = engine.addEntity()
 Transform.create(spotlight, {
   position: Vector3.create(8, 4, 8),
@@ -175,10 +177,10 @@ For a visual glow without casting light on surroundings:
 import { engine, Material } from '@dcl/sdk/ecs'
 import { Color4, Color3 } from '@dcl/sdk/math'
 
-// Self-illuminated material
+// Self-illuminated material (emissiveColor uses Color3, not Color4)
 Material.setPbrMaterial(entity, {
   albedoColor: Color4.create(0, 0, 0, 1),
-  emissiveColor: Color4.create(0, 1, 0, 1),  // Green glow
+  emissiveColor: Color3.create(0, 1, 0),  // Green glow
   emissiveIntensity: 2.0
 })
 ```
@@ -190,7 +192,7 @@ For an object that both glows visually and casts light:
 ```typescript
 // Visual glow on the mesh
 Material.setPbrMaterial(bulb, {
-  emissiveColor: Color4.create(1, 0.9, 0.7, 1),
+  emissiveColor: Color3.create(1, 0.9, 0.7),
   emissiveIntensity: 1.5
 })
 

@@ -11,25 +11,23 @@ Decentraland SDK7 uses a React-like JSX system for 2D UI overlays.
 
 ### File: src/ui.tsx
 ```tsx
-import ReactEcs, { UiEntity, Label, Button } from '@dcl/sdk/react-ecs'
+import ReactEcs, { ReactEcsRenderer, UiEntity, Label, Button } from '@dcl/sdk/react-ecs'
 
-function MyUI() {
-  return (
-    <UiEntity
-      uiTransform={{
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}
-    >
-      <Label value="Hello Decentraland!" fontSize={24} />
-    </UiEntity>
-  )
-}
+const MyUI = () => (
+  <UiEntity
+    uiTransform={{
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}
+  >
+    <Label value="Hello Decentraland!" fontSize={24} />
+  </UiEntity>
+)
 
 export function setupUi() {
-  ReactEcs.setUiRenderer(MyUI)
+  ReactEcsRenderer.setUiRenderer(MyUI)
 }
 ```
 
@@ -56,6 +54,8 @@ export function main() {
 
 ### UiEntity (Container)
 ```tsx
+import { Color4 } from '@dcl/sdk/math'
+
 <UiEntity
   uiTransform={{
     width: 300,              // Pixels or '50%'
@@ -70,17 +70,19 @@ export function main() {
     display: 'flex'           // 'flex' | 'none' (hide)
   }}
   uiBackground={{
-    color: { r: 0, g: 0, b: 0, a: 0.8 } // Semi-transparent black
+    color: Color4.create(0, 0, 0, 0.8) // Semi-transparent black
   }}
 />
 ```
 
 ### Label (Text)
 ```tsx
+import { Color4 } from '@dcl/sdk/math'
+
 <Label
   value="Score: 100"
   fontSize={18}
-  color={{ r: 1, g: 1, b: 1, a: 1 }}
+  color={Color4.White()}
   textAlign="middle-center"
   font="sans-serif"
   uiTransform={{ width: 200, height: 30 }}
@@ -103,12 +105,16 @@ export function main() {
 ### Input
 ```tsx
 import { Input } from '@dcl/sdk/react-ecs'
+import { Color4 } from '@dcl/sdk/math'
 
 <Input
   placeholder="Type here..."
   fontSize={14}
-  color={{ r: 1, g: 1, b: 1, a: 1 }}
+  color={Color4.White()}
   uiTransform={{ width: 250, height: 35 }}
+  onChange={(value) => {
+    console.log('Value changing:', value)
+  }}
   onSubmit={(value) => {
     console.log('Submitted:', value)
   }}
@@ -135,45 +141,45 @@ import { Dropdown } from '@dcl/sdk/react-ecs'
 Use module-level variables for UI state (React hooks are NOT available):
 
 ```tsx
+import { Color4 } from '@dcl/sdk/math'
+
 let score = 0
 let showMenu = false
 
-function GameUI() {
-  return (
-    <UiEntity uiTransform={{ width: '100%', height: '100%' }}>
-      {/* HUD - always visible */}
-      <Label
-        value={`Score: ${score}`}
-        fontSize={20}
-        uiTransform={{
-          positionType: 'absolute',
-          position: { top: 10, left: 10 }
-        }}
-      />
+const GameUI = () => (
+  <UiEntity uiTransform={{ width: '100%', height: '100%' }}>
+    {/* HUD - always visible */}
+    <Label
+      value={`Score: ${score}`}
+      fontSize={20}
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: 10, left: 10 }
+      }}
+    />
 
-      {/* Menu - conditionally shown */}
-      {showMenu && (
-        <UiEntity
-          uiTransform={{
-            width: 300,
-            height: 400,
-            positionType: 'absolute',
-            position: { top: '50%', left: '50%' }
-          }}
-          uiBackground={{ color: { r: 0.1, g: 0.1, b: 0.1, a: 0.9 } }}
-        >
-          <Label value="Game Menu" fontSize={24} />
-          <Button
-            value="Resume"
-            variant="primary"
-            onMouseDown={() => { showMenu = false }}
-            uiTransform={{ width: 200, height: 40 }}
-          />
-        </UiEntity>
-      )}
-    </UiEntity>
-  )
-}
+    {/* Menu - conditionally shown */}
+    {showMenu && (
+      <UiEntity
+        uiTransform={{
+          width: 300,
+          height: 400,
+          positionType: 'absolute',
+          position: { top: '50%', left: '50%' }
+        }}
+        uiBackground={{ color: Color4.create(0.1, 0.1, 0.1, 0.9) }}
+      >
+        <Label value="Game Menu" fontSize={24} />
+        <Button
+          value="Resume"
+          variant="primary"
+          onMouseDown={() => { showMenu = false }}
+          uiTransform={{ width: 200, height: 40 }}
+        />
+      </UiEntity>
+    )}
+  </UiEntity>
+)
 
 // Update state from game logic
 export function addScore(points: number) {
@@ -189,25 +195,25 @@ export function toggleMenu() {
 
 ### Health Bar
 ```tsx
+import { Color4 } from '@dcl/sdk/math'
+
 let health = 100
 
-function HealthBar() {
-  return (
+const HealthBar = () => (
+  <UiEntity
+    uiTransform={{
+      width: 200, height: 20,
+      positionType: 'absolute',
+      position: { bottom: 20, left: '50%' }
+    }}
+    uiBackground={{ color: Color4.create(0.3, 0.3, 0.3, 0.8) }}
+  >
     <UiEntity
-      uiTransform={{
-        width: 200, height: 20,
-        positionType: 'absolute',
-        position: { bottom: 20, left: '50%' }
-      }}
-      uiBackground={{ color: { r: 0.3, g: 0.3, b: 0.3, a: 0.8 } }}
-    >
-      <UiEntity
-        uiTransform={{ width: `${health}%`, height: '100%' }}
-        uiBackground={{ color: { r: 0.2, g: 0.8, b: 0.2, a: 1 } }}
-      />
-    </UiEntity>
-  )
-}
+      uiTransform={{ width: `${health}%`, height: '100%' }}
+      uiBackground={{ color: Color4.create(0.2, 0.8, 0.2, 1) }}
+    />
+  </UiEntity>
+)
 ```
 
 ### Image Background
@@ -228,4 +234,4 @@ function HealthBar() {
 - UI is rendered as a 2D overlay on top of the 3D scene
 - Use `display: 'none'` in `uiTransform` to hide elements without removing them
 - File extension must be `.tsx` for JSX support
-- Only one `ReactEcs.setUiRenderer()` call per scene — combine all UI into one root component
+- Only one `ReactEcsRenderer.setUiRenderer()` call per scene — combine all UI into one root component

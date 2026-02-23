@@ -16,11 +16,26 @@ If the user hasn't described their scene, ask them:
 
 ## 2. Scaffold the Project with `/init`
 
-**Always run `/init` first.** This uses the official `@dcl/sdk-commands init` to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration.
+**Always run `/init` first.** This uses the official `@dcl/sdk-commands init` to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration, and installs dependencies automatically.
 
 Never manually create scene.json, package.json, or tsconfig.json — the SDK templates may change between versions and hand-written copies will diverge.
 
-## 3. Customize the Generated Files
+## 3. Find Matching 3D Assets
+
+Before writing scene code, check both asset catalogs for free models that match the user's theme:
+
+1. Read `context/asset-packs-catalog.md` (2,700+ Creator Hub models — furniture, structures, decorations, nature, etc.)
+2. Read `context/open-source-3d-assets.md` (991 CC0 models — cyberpunk, medieval, nature, sci-fi, etc.)
+3. Suggest matching models to the user
+4. Download selected models into the scene's `models/` directory:
+   ```bash
+   mkdir -p models
+   curl -o models/arcade_machine.glb "https://builder-items.decentraland.org/contents/bafybei..."
+   ```
+
+> **Important**: `GltfContainer` only works with local files. Never use external URLs for the model `src` field.
+
+## 4. Customize the Generated Files
 
 After `/init` completes, customize the generated files based on what the user wants:
 
@@ -51,12 +66,11 @@ export function main() {
 }
 ```
 
-## 4. Post-Creation Steps
+## 5. Post-Creation Steps
 
-After creating the files, tell the user:
-1. Run `npm install` to install dependencies
-2. Use the `preview` tool to start the preview server (or run `npx @dcl/sdk-commands start --bevy-web` manually)
-3. The scene will open in a browser at http://localhost:8000
+After customizing the files:
+1. Use the `preview` tool to start the preview server (or run `npx @dcl/sdk-commands start --bevy-web` manually)
+2. The scene will open in a browser at http://localhost:8000
 
 ## Important Notes
 

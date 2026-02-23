@@ -137,10 +137,10 @@ Material.setPbrMaterial(entity, {
 ### Emissive (Glow Effects)
 
 ```typescript
-// Glowing material
+// Glowing material (emissiveColor uses Color3, not Color4)
 Material.setPbrMaterial(entity, {
   albedoColor: Color4.create(0, 0, 0, 1),
-  emissiveColor: Color4.create(0, 1, 0, 1),  // Green glow
+  emissiveColor: Color3.create(0, 1, 0),  // Green glow
   emissiveIntensity: 2.0
 })
 
@@ -163,32 +163,23 @@ Material.setPbrMaterial(entity, {
 })
 ```
 
-## GltfNodeModifiers
+## GltfContainer Visibility Masks
 
-Override visibility or materials on specific nodes within a GLTF model:
+Control visibility and collision of specific mesh layers within a GLTF model using collision masks:
 
 ```typescript
-import { engine, Transform, GltfContainer, GltfNodeModifiers, Material } from '@dcl/sdk/ecs'
-import { Vector3, Color4 } from '@dcl/sdk/math'
+import { engine, Transform, GltfContainer, ColliderLayer } from '@dcl/sdk/ecs'
+import { Vector3 } from '@dcl/sdk/math'
 
 const model = engine.addEntity()
-GltfContainer.create(model, { src: 'models/myModel.glb' })
 Transform.create(model, { position: Vector3.create(4, 0, 4) })
 
-// Override material of the entire model (empty path = whole model)
-GltfNodeModifiers.create(model, {
-  modifiers: [
-    {
-      path: '',  // empty string = all nodes
-      materialOverride: Material.setPbrMaterial(model, {
-        albedoColor: Color4.Red()
-      })
-    }
-  ]
+GltfContainer.create(model, {
+  src: 'models/myModel.glb',
+  visibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS | ColliderLayer.CL_POINTER,
+  invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS
 })
 ```
-
-Use node paths to target specific parts of a model for visibility or material changes.
 
 ## VisibilityComponent
 
