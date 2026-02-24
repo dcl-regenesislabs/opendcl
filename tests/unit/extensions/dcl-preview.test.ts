@@ -63,6 +63,14 @@ describe("dcl-preview extension", () => {
     expect(content).toContain("decentraland.zone/bevy-web");
     expect(content).toContain("bevyUrlFound");
   });
+
+  it("spawns with detached: true for process group cleanup", () => {
+    expect(content).toContain("detached: true");
+  });
+
+  it("kills the process group via process.kill(-pid)", () => {
+    expect(content).toContain("process.kill(-pid");
+  });
 });
 
 describe("selectPreviewUrl", () => {
