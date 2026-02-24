@@ -9,6 +9,13 @@ Free CC0-licensed GLB 3D models curated from the [Open Source 3D Assets](https:/
 - **Creator**: Polygonal Mind
 - **License**: CC0 (Public Domain)
 
+**How to use**:
+1. Find a model below that matches your scene
+2. Download it into `models/`: `curl -o models/filename.glb "URL"`
+3. Reference it: `GltfContainer.create(entity, { src: 'models/filename.glb' })`
+
+> **Important**: `GltfContainer` only works with local files. Always download models into the scene's `models/` directory first.
+
 Base URL for all downloads:
 ```
 https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/
