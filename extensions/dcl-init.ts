@@ -19,7 +19,7 @@ async function initScene(
   }
 
   try {
-    const result = await pi.exec("npx", ["@dcl/sdk-commands", "init"], {
+    const result = await pi.exec("npx", ["@dcl/sdk-commands", "init", "--yes"], {
       cwd,
       timeout: 180000,
     });

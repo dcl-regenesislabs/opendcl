@@ -110,7 +110,6 @@ Declare required permissions in scene.json so the runtime allows restricted acti
 ```json
 {
   "requiredPermissions": [
-    "ALLOW_TO_MOVE_PLAYER_INSIDE_SCENE",
     "ALLOW_TO_TRIGGER_AVATAR_EMOTE",
     "ALLOW_MEDIA_HOSTNAMES"
   ],

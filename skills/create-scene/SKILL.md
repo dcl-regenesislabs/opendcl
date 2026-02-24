@@ -79,4 +79,4 @@ After customizing the files:
 - Center of a single-parcel scene is (8, 0, 8) at ground level
 - Y axis is up, minimum Y=0 (ground)
 - The `main` field in scene.json MUST be `"bin/index.js"` — this is the compiled output path
-- The `jsx` and `jsxImportSource` in tsconfig are required for React-ECS UI support
+- The `jsx` and `jsxImportSource` tsconfig settings are already included by `/init` — do not modify them

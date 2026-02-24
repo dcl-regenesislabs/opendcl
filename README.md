@@ -28,7 +28,7 @@ The result: **more creators building more scenes, faster.**
 - **Branded header** — on startup, displays a block-character "Decentraland" ASCII art banner with version and working directory. Falls back to a compact text header on narrow terminals
 - **Multi-provider LLM support** — works with Claude, OpenAI, Google, Ollama (free/local), OpenRouter, and more
 - **Scene-aware** — automatically detects your project's `scene.json`, SDK version, and entry points
-- **19 built-in skills** — scaffolding, 3D models, interactivity, UI, animations, multiplayer, authoritative server, audio/video, deployment (Genesis City & Worlds), optimization, smart items, camera control, lighting, player/avatar, NFT/blockchain, advanced rendering, advanced input, scene runtime
+- **18 built-in skills** — scaffolding, 3D models, interactivity, UI, animations, multiplayer, authoritative server, audio/video, deployment (Genesis City & Worlds), optimization, camera control, lighting, player/avatar, NFT/blockchain, advanced rendering, advanced input, scene runtime
 - **Integrated commands** — `/init` to scaffold, `/preview` to launch the dev server, `/tasks` to manage running processes, `/review` to audit code
 - **TypeScript validation** — catches type errors immediately after writing code
 - **Free asset catalogs** — 2,700+ Creator Hub 3D models, 900+ CC0-licensed models, and 50 audio files the agent proactively suggests when building scenes
@@ -119,7 +119,6 @@ OpenDCL loads domain-specific skills on demand based on what you're asking:
 | `deploy-scene` | Publish to Genesis City (LAND-based) |
 | `deploy-worlds` | Publish to a World (DCL NAME or ENS domain) |
 | `optimize-scene` | Fix performance, stay within limits |
-| `smart-items` | Use asset pack smart items |
 | `camera-control` | Switch camera modes, cinematic cameras, cutscenes |
 | `lighting-environment` | Add lights, shadows, day/night cycle, glow effects |
 | `player-avatar` | Player data, emotes, attachments, NPC avatars |
@@ -159,7 +158,7 @@ opendcl/
 │   ├── dcl-tasks.ts          # /tasks command (process manager)
 │   ├── process-registry.ts   # Shared background process registry
 │   └── permissions/           # Permission gate for dangerous operations
-├── skills/                   # 18 SKILL.md files (domain expertise)
+├── skills/                   # 17 SKILL.md files (domain expertise)
 ├── prompts/                  # System prompt + command templates
 ├── context/                  # SDK7 reference docs + asset catalog
 └── tests/                    # Vitest test suites
