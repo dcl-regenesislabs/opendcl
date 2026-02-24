@@ -24,9 +24,9 @@ Never manually create scene.json, package.json, or tsconfig.json — the SDK tem
 
 Before writing scene code, check both asset catalogs for free models that match the user's theme:
 
-1. Read `context/asset-packs-catalog.md` (2,700+ Creator Hub models — furniture, structures, decorations, nature, etc.)
-2. Read `context/open-source-3d-assets.md` (991 CC0 models — cyberpunk, medieval, nature, sci-fi, etc.)
-3. Read `context/audio-catalog.md` (50 free sounds — music, ambient, SFX, game mechanics, etc.)
+1. Read `{baseDir}/../../context/asset-packs-catalog.md` (2,700+ Creator Hub models — furniture, structures, decorations, nature, etc.)
+2. Read `{baseDir}/../../context/open-source-3d-assets.md` (991 CC0 models — cyberpunk, medieval, nature, sci-fi, etc.)
+3. Read `{baseDir}/../../context/audio-catalog.md` (50 free sounds — music, ambient, SFX, game mechanics, etc.)
 4. Suggest matching models and sounds to the user
 5. Download selected models into the scene's `models/` directory:
    ```bash

@@ -279,4 +279,4 @@ Beyond the commonly used anchor points, the full list includes:
 - **Never use `Transform.getMutable(engine.PlayerEntity)` to move the player** — it does not work. Always use `movePlayerTo` from `~system/RestrictedActions`
 - `Transform.get(engine.PlayerEntity)` is valid for **reading** position only
 
-For component field details, see `context/components-reference.md`.
+For component field details, see `{baseDir}/../../context/components-reference.md`.

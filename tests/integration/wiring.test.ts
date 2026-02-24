@@ -88,6 +88,25 @@ describe("index.ts wiring", () => {
     }
   });
 
+  it("system prompt resolves context/ paths to absolute paths", () => {
+    // The system prompt is built by stripping frontmatter then replacing context/foo.md
+    // with absolute paths. Verify the replacement logic produces absolute paths.
+    const raw = readFileSync(join(ROOT, "prompts/system.md"), "utf-8");
+    const contextDir = join(ROOT, "context");
+    const systemPrompt = raw
+      .replace(/^---\n[\s\S]*?\n---\n/, "")
+      .replace(/context\/([\w-]+\.md)/g, (_: string, filename: string) => join(contextDir, filename))
+      .trim();
+
+    // After replacement, every context/foo.md should be an absolute path (preceded by /)
+    expect(systemPrompt).not.toMatch(/(?<!\/)context\/[\w-]+\.md/);
+
+    // Should contain absolute paths to the context directory
+    expect(systemPrompt).toContain(join(contextDir, "sdk7-cheat-sheet.md"));
+    expect(systemPrompt).toContain(join(contextDir, "open-source-3d-assets.md"));
+    expect(systemPrompt).toContain(join(contextDir, "asset-packs-catalog.md"));
+  });
+
   it("compact tool renderers are wired via getRegisteredToolDefinition patch", () => {
     expect(INDEX_SRC).toContain("getRegisteredToolDefinition");
     expect(INDEX_SRC).toContain("getCompactToolDefinition");

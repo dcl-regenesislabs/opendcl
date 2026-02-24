@@ -34,10 +34,14 @@ if (!existsSync(settingsPath)) {
 // Build args: start with user's CLI args
 const args = process.argv.slice(2);
 
-// Inject DCL system prompt (read from prompts/system.md, strip YAML frontmatter)
+// Inject DCL system prompt (strip YAML frontmatter, resolve context/ paths to absolute)
 if (!args.includes("--system-prompt")) {
   const raw = readFileSync(join(packageDir, "prompts/system.md"), "utf-8");
-  const systemPrompt = raw.replace(/^---\n[\s\S]*?\n---\n/, "").trim();
+  const contextDir = join(packageDir, "context");
+  const systemPrompt = raw
+    .replace(/^---\n[\s\S]*?\n---\n/, "")
+    .replace(/context\/([\w-]+\.md)/g, (_, filename) => join(contextDir, filename))
+    .trim();
   args.push("--system-prompt", systemPrompt);
 }
 
