@@ -80,7 +80,6 @@ npx @dcl/sdk-commands deploy
     "base": "0,0"
   },
   "main": "bin/index.js",
-  "requiredPermissions": []
 }
 ```
 
@@ -102,20 +101,6 @@ Configure where players appear when entering the scene:
 ```
 
 Position ranges (e.g., `[1, 5]`) spawn players randomly within the range. Use `cameraTarget` to orient the player's camera on spawn.
-
-### Permissions
-
-Declare required permissions in scene.json so the runtime allows restricted actions:
-
-```json
-{
-  "requiredPermissions": [
-    "ALLOW_TO_TRIGGER_AVATAR_EMOTE",
-    "ALLOW_MEDIA_HOSTNAMES"
-  ],
-  "allowedMediaHostnames": ["video.example.com"]
-}
-```
 
 ## Best Practices
 

@@ -296,5 +296,4 @@ Material.setPbrMaterial(screen2, {
 - Players must interact with the scene (click) before audio can play (browser autoplay policy)
 - Keep audio files small — large files increase scene load time
 - Use `.mp3` for music and `.ogg` for sound effects (smaller file sizes)
-- Video playback requires the `ALLOW_MEDIA_HOSTNAMES` permission in scene.json for external URLs
 - For live video streaming, use HLS (.m3u8) URLs when possible
