@@ -115,7 +115,7 @@ GltfContainer.create(entity, { src: 'models/arcade_machine.glb' })
 Read `context/open-source-3d-assets.md` for free CC0-licensed models from Polygonal Mind, organized by 18 themed collections (MomusPark, Medieval Fair, Cyberpunk, Sci-fi, etc.) with direct GitHub download URLs.
 
 ```bash
-curl -o models/tree.glb "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/momuspark/Tree_01_Art.glb"
+curl -o models/tree.glb "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/MomusPark/Tree_01_Art.glb"
 ```
 
 ### How to suggest models
