@@ -31,13 +31,14 @@ describe("dcl-init extension", () => {
     expect(content).toContain("already exists");
   });
 
-  it("calls sdk-commands init", async () => {
+  it("calls sdk-commands init with --yes flag", async () => {
     const content = await readFile(
       join(EXTENSIONS_DIR, "dcl-init.ts"),
       "utf-8"
     );
     expect(content).toContain("@dcl/sdk-commands");
     expect(content).toContain("init");
+    expect(content).toContain("--yes");
   });
 
   it("reloads after successful init", async () => {
