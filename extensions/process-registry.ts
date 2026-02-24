@@ -23,3 +23,18 @@ if (!_global[REGISTRY_KEY]) {
 
 /** Shared registry of running background processes, keyed by unique id. */
 export const processes = _global[REGISTRY_KEY] as Map<string, BackgroundProcess>;
+
+const EXIT_HANDLER_KEY = Symbol.for("opendcl.exitHandler");
+if (!_global[EXIT_HANDLER_KEY]) {
+  _global[EXIT_HANDLER_KEY] = true;
+  process.on("exit", () => {
+    for (const [id, proc] of processes) {
+      try {
+        proc.kill();
+      } catch {
+        // Best-effort
+      }
+      processes.delete(id);
+    }
+  });
+}

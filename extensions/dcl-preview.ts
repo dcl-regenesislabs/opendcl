@@ -41,7 +41,16 @@ const extension: ExtensionFactory = (pi) => {
 
   function cleanupPreview(): void {
     if (previewProcess && !previewProcess.killed) {
-      previewProcess.kill();
+      const pid = previewProcess.pid;
+      if (pid) {
+        try {
+          process.kill(-pid, "SIGTERM");
+        } catch {
+          // Process group already exited
+        }
+      } else {
+        previewProcess.kill();
+      }
     }
     previewProcess = null;
     processes.delete("preview");
@@ -68,6 +77,7 @@ const extension: ExtensionFactory = (pi) => {
         cwd: sceneRoot,
         stdio: "pipe",
         shell: true,
+        detached: true,
       });
 
       processes.set("preview", {
