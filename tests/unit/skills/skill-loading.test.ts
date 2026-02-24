@@ -102,7 +102,6 @@ describe("skill loading", () => {
       "deploy-scene",
       "deploy-worlds",
       "optimize-scene",
-      "smart-items",
       "camera-control",
       "lighting-environment",
       "player-avatar",

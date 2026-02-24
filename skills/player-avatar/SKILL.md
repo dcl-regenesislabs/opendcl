@@ -218,33 +218,21 @@ AvatarModifierArea.create(constraintArea, {
 
 ## Teleporting the Player
 
-Move the player to a specific position:
+**You MUST use `movePlayerTo` from `~system/RestrictedActions` to move or teleport the player.** Setting `Transform.getMutable(engine.PlayerEntity).position` does NOT work — the runtime ignores direct writes to the player transform.
 
 ```typescript
-// Move player position
-const playerTransform = Transform.getMutable(engine.PlayerEntity)
-playerTransform.position = Vector3.create(8, 0, 8)
+import { movePlayerTo } from '~system/RestrictedActions'
 
-// Move player with rotation
-playerTransform.position = Vector3.create(8, 0, 8)
-playerTransform.rotation = Quaternion.fromEulerDegrees(0, 180, 0)
-```
+// Move player to a position
+void movePlayerTo({
+  newRelativePosition: Vector3.create(8, 0, 8)
+})
 
-### Keeping Player in Bounds
-
-```typescript
-function boundarySystem() {
-  const playerTransform = Transform.getMutable(engine.PlayerEntity)
-  const pos = playerTransform.position
-
-  // Clamp to scene bounds
-  if (pos.x < 0) playerTransform.position.x = 0
-  if (pos.x > 16) playerTransform.position.x = 16
-  if (pos.z < 0) playerTransform.position.z = 0
-  if (pos.z > 16) playerTransform.position.z = 16
-}
-
-engine.addSystem(boundarySystem)
+// Move player with camera direction
+void movePlayerTo({
+  newRelativePosition: Vector3.create(8, 0, 8),
+  cameraTarget: Vector3.create(8, 1, 12)
+})
 ```
 
 ### Avatar Change Listeners
@@ -288,4 +276,7 @@ Beyond the commonly used anchor points, the full list includes:
 - Custom emote files must use the `_emote.glb` naming convention
 - Use `AvatarModifierArea` with `AMT_HIDE_AVATARS` for private rooms or puzzle areas
 - Add `excludeIds` to modifier areas when you want specific players (like the scene owner) to remain visible
-- Teleporting the player works within scene bounds — respect parcel limits
+- **Never use `Transform.getMutable(engine.PlayerEntity)` to move the player** — it does not work. Always use `movePlayerTo` from `~system/RestrictedActions`
+- `Transform.get(engine.PlayerEntity)` is valid for **reading** position only
+
+For component field details, see `context/components-reference.md`.

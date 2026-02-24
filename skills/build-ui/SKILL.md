@@ -40,15 +40,11 @@ export function main() {
 }
 ```
 
-### Required tsconfig.json settings
-```json
-{
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "@dcl/sdk/react-ecs-lib"
-  }
-}
-```
+### tsconfig.json (already configured by /init)
+
+The SDK template already includes the required JSX settings — do NOT modify tsconfig.json:
+- `"jsx": "react-jsx"`
+- `"jsxImportSource": "@dcl/sdk/react-ecs-lib"`
 
 ## Core Components
 
