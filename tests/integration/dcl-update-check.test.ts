@@ -4,6 +4,8 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { createMockPi } from "../helpers/mock-pi.js";
 import {
   isNewerVersion,
@@ -73,6 +75,16 @@ describe("dcl-update-check", () => {
 
     it("does not return 0.0.0", () => {
       expect(getInstalledVersion()).not.toBe("0.0.0");
+    });
+  });
+
+  describe("notification type", () => {
+    it("uses warning notification type for update availability", () => {
+      const src = readFileSync(
+        join(import.meta.dirname, "../../extensions/dcl-update-check.ts"),
+        "utf-8",
+      );
+      expect(src).toMatch(/ctx\.ui\.notify\([\s\S]+?,\s*"warning"\)/);
     });
   });
 
