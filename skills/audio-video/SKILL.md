@@ -200,6 +200,33 @@ Audio in Decentraland is **spatial by default** — it gets louder as the player
 
 To make audio non-spatial (same volume everywhere), there's no built-in flag — keep the volume low and place the audio at the scene center.
 
+## Free Audio Files
+
+Always check the audio catalog before creating placeholder sound file references. It contains 50 free sounds from the Creator Hub asset packs.
+
+Read `context/audio-catalog.md` for music tracks (ambient, dance, medieval, sci-fi, etc.), ambient sounds (birds, city, factory, etc.), interaction sounds (buttons, doors, levers, chests), sound effects (explosions, sirens, bells), and game mechanic sounds (win/lose, heal, respawn, damage).
+
+To use a catalog sound:
+```bash
+# Download from catalog
+mkdir -p sounds
+curl -o sounds/ambient_1.mp3 "https://builder-items.decentraland.org/contents/bafybeic4faewxkdqx67dloyw57ikgaeibc2e2dbx34hwjubl3gfvs2r4su"
+```
+```typescript
+// Reference in code — must be a local file path
+AudioSource.create(entity, { audioClipUrl: 'sounds/ambient_1.mp3', playing: true, loop: true })
+```
+
+### How to suggest audio
+
+1. Read the audio catalog file
+2. Search for sounds matching the user's description/theme
+3. Suggest specific sounds with download commands
+4. Download selected sounds into the scene's `sounds/` directory
+5. Reference them in code with local paths
+
+> **Important**: `AudioSource` only works with **local files**. Never use external URLs for the `audioClipUrl` field. Always download audio into `sounds/` first.
+
 ## Important Notes
 
 - Audio files must be in the project's directory (relative paths from project root)

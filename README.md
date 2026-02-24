@@ -31,7 +31,7 @@ The result: **more creators building more scenes, faster.**
 - **18 built-in skills** — scaffolding, 3D models, interactivity, UI, animations, multiplayer, authoritative server, audio/video, deployment (Genesis City & Worlds), optimization, smart items, camera control, lighting, player/avatar, NFT/blockchain, advanced rendering, advanced input
 - **Integrated commands** — `/init` to scaffold, `/preview` to launch the dev server, `/tasks` to manage running processes, `/review` to audit code
 - **TypeScript validation** — catches type errors immediately after writing code
-- **Free 3D asset catalogs** — 2,700+ Creator Hub models and 900+ CC0-licensed models the agent proactively suggests when building scenes
+- **Free asset catalogs** — 2,700+ Creator Hub 3D models, 900+ CC0-licensed models, and 50 audio files the agent proactively suggests when building scenes
 - **Permission gate** — prompts for confirmation before destructive bash commands or writes to sensitive files
 - **Compact tool output** — write shows path + size instead of file content, read shows a 5-line preview instead of 10
 - **Session persistence** — pick up where you left off across sessions
@@ -134,7 +134,7 @@ OpenDCL is built on [pi-coding-agent](https://github.com/badlogic/pi-mono), the 
 - **System prompt** with SDK7 architecture knowledge (ECS, QuickJS sandbox, parcel constraints)
 - **Extensions** that detect your project, inject context, validate TypeScript, and provide slash commands
 - **Skills** with detailed guides for every common scene development task
-- **Reference docs** (87KB SDK reference, component tables, code examples, 3D asset catalogs)
+- **Reference docs** (87KB SDK reference, component tables, code examples, 3D asset and audio catalogs)
 
 The agent has full access to standard coding tools (read, write, edit, bash, grep, find) and uses them to understand and modify your scene code.
 

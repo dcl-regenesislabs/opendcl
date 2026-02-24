@@ -11,6 +11,7 @@ describe("context files", () => {
       "sdk7-examples.md",
       "components-reference.md",
       "open-source-3d-assets.md",
+      "audio-catalog.md",
     ];
 
     for (const file of required) {
@@ -27,7 +28,7 @@ describe("context files", () => {
   it("context files are valid markdown with content", async () => {
     const files = await readdir(CONTEXT_DIR);
     const mdFiles = files.filter((f) => f.endsWith(".md"));
-    expect(mdFiles.length).toBeGreaterThanOrEqual(4);
+    expect(mdFiles.length).toBeGreaterThanOrEqual(5);
 
     for (const file of mdFiles) {
       const content = await readFile(join(CONTEXT_DIR, file), "utf-8");
@@ -84,6 +85,20 @@ describe("context files", () => {
         `Missing component: ${comp}`
       ).toContain(comp);
     }
+  });
+
+  it("audio-catalog.md contains audio entries with correct structure", async () => {
+    const content = await readFile(
+      join(CONTEXT_DIR, "audio-catalog.md"),
+      "utf-8"
+    );
+    expect(content).toContain("AudioSource");
+    expect(content).toContain("sounds/");
+    // Should have category headings
+    expect(content).toContain("## Music");
+    expect(content).toContain("## Sound Effects");
+    // Should have CDN download URLs
+    expect(content).toContain("builder-items.decentraland.org/contents");
   });
 
   it("open-source-3d-assets.md contains model entries", async () => {
