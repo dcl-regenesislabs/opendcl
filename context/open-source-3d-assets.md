@@ -11,10 +11,12 @@ Free CC0-licensed GLB 3D models curated from the [Open Source 3D Assets](https:/
 
 **How to use**:
 1. Find a model below that matches your scene
-2. Download it into `models/`: `curl -o models/filename.glb "URL"`
-3. Reference it: `GltfContainer.create(entity, { src: 'models/filename.glb' })`
+2. Download it — the output path **must** start with `models/`:
+   `curl -o models/<filename>.glb "<URL>"`
+3. Reference it: `GltfContainer.create(entity, { src: 'models/<filename>.glb' })`
 
-> **Important**: `GltfContainer` only works with local files. Always download models into the scene's `models/` directory first.
+> **Important**: Always download into `models/`. Never write to the scene root.
+> Correct: `curl -o models/Tree_01.glb "..."` | Wrong: `curl -o Tree_01.glb "..."`
 
 Base URL for all downloads:
 ```

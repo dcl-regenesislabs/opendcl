@@ -6,10 +6,12 @@ Free audio files from the official Decentraland Creator Hub asset packs. All sou
 
 **How to use**:
 1. Find a sound below that matches your scene
-2. Download it: `curl -o sounds/filename.mp3 "URL"`
-3. Reference it: `AudioSource.create(entity, { audioClipUrl: 'sounds/filename.mp3', playing: true, loop: false })`
+2. Download it — the output path **must** start with `sounds/`:
+   `curl -o sounds/<filename>.mp3 "<URL>"`
+3. Reference it: `AudioSource.create(entity, { audioClipUrl: 'sounds/<filename>.mp3', playing: true, loop: false })`
 
-> **Important**: `AudioSource` only works with local files. Always download audio into the scene's `sounds/` directory first.
+> **Important**: Always download into `sounds/`. Never write to the scene root.
+> Correct: `curl -o sounds/click.mp3 "..."` | Wrong: `curl -o click.mp3 "..."`
 
 ---
 
