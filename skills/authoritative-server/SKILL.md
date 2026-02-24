@@ -7,7 +7,7 @@ description: Build multiplayer scenes with a headless authoritative server that 
 
 Build multiplayer Decentraland scenes where a **headless server** controls game state, validates changes, and prevents cheating. The same codebase runs on both server and client, with the server having full authority.
 
-Before reading this skill, read `{baseDir}/../../context/sdk7-complete-reference.md` for general SDK7 knowledge. For basic CRDT multiplayer (no server), see the `multiplayer-sync` skill instead.
+For basic CRDT multiplayer (no server), see the `multiplayer-sync` skill instead.
 
 ## Setup
 
@@ -315,7 +315,7 @@ Put synced components and messages in `shared/` so both server and client import
 - **Log prefixes**: Use `[Server]` and `[Client]` prefixes in `console.log()` to distinguish server and client output in the terminal.
 - **Stale CRDT files**: If you see "Outside of the bounds of written data" errors, delete `main.crdt` and `main1.crdt` files and restart.
 - **Storage inspection**: Check `node_modules/@dcl/sdk-commands/.runtime-data/server-storage.json` to inspect persisted data during local development.
-- **No setTimeout/setInterval**: The DCL runtime does not support these. Use `engine.addSystem()` with a timer variable instead.
+- **Timers**: `setTimeout`/`setInterval` are available via runtime polyfill. For game logic, prefer `engine.addSystem()` with a delta-time accumulator to stay in sync with the frame loop.
 - **Entity sync issues**: Verify you call `syncEntity(entity, [componentIds])` with the correct component IDs (`MyComponent.componentId`).
 
 ## Important Notes
@@ -324,6 +324,6 @@ Put synced components and messages in `shared/` so both server and client import
 - **Room readiness**: Clients must wait for `RealmInfo.get(engine.RootEntity).isConnectedSceneRoom` before sending messages.
 - **Custom vs built-in validation**: Custom components use global `validateBeforeChange((value) => ...)`. Built-in components (Transform, GltfContainer) use per-entity `validateBeforeChange(entity, (value) => ...)`.
 - **Single codebase**: Both server and client run the same `index.ts` entry point. Use `isServer()` to branch.
-- **No Node.js APIs**: The DCL runtime uses sandboxed QuickJS — no `fs`, `http`, `setTimeout`, etc. Use SDK-provided APIs (Storage, EnvVar, engine systems) instead.
+- **No Node.js APIs**: The DCL runtime uses sandboxed QuickJS — no `fs`, `http`, etc. `setTimeout`/`setInterval` are supported. Use SDK-provided APIs (Storage, EnvVar, engine systems) for server-side operations.
 - **SDK branch**: The auth-server pattern requires `@dcl/sdk@auth-server`, not the standard `@dcl/sdk` package.
 - For basic CRDT multiplayer without a server, see the `multiplayer-sync` skill.

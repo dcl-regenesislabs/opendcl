@@ -227,6 +227,68 @@ AudioSource.create(entity, { audioClipUrl: 'sounds/ambient_1.mp3', playing: true
 
 > **Important**: `AudioSource` only works with **local files**. Never use external URLs for the `audioClipUrl` field. Always download audio into `sounds/` first.
 
+### Video State Polling
+
+Check video playback state programmatically:
+
+```typescript
+import { videoEventsSystem, VideoState } from '@dcl/sdk/ecs'
+
+engine.addSystem(() => {
+  const state = videoEventsSystem.getVideoState(videoEntity)
+  if (state) {
+    console.log('Video state:', state.state) // VideoState.VS_PLAYING, VS_PAUSED, etc.
+    console.log('Current time:', state.currentOffset)
+  }
+})
+```
+
+### Audio Playback Events
+
+Use the `AudioEvent` component to detect audio state changes:
+
+```typescript
+import { AudioEvent } from '@dcl/sdk/ecs'
+
+engine.addSystem(() => {
+  const event = AudioEvent.getOrNull(audioEntity)
+  if (event) {
+    console.log('Audio state:', event.state) // playing, paused, finished
+  }
+})
+```
+
+### Permission for External Media
+
+External audio/video URLs require the `ALLOW_MEDIA_HOSTNAMES` permission in scene.json:
+
+```json
+{
+  "requiredPermissions": ["ALLOW_MEDIA_HOSTNAMES"],
+  "allowedMediaHostnames": ["stream.example.com", "cdn.example.com"]
+}
+```
+
+### Multiple Video Surfaces
+
+Share one VideoPlayer across multiple screens by referencing the same `videoPlayerEntity`:
+
+```typescript
+Material.setPbrMaterial(screen1, {
+  texture: Material.Texture.Video({ videoPlayerEntity: videoEntity })
+})
+Material.setPbrMaterial(screen2, {
+  texture: Material.Texture.Video({ videoPlayerEntity: videoEntity })
+})
+```
+
+### Video Limits & Tips
+
+- **Simultaneous videos**: 1 in preview, 5 in Explorer, 10 max across the scene
+- **Distance-based control**: Pause video when player is far away to save bandwidth
+- **Supported formats**: `.mp4` (H.264), `.webm`, HLS (`.m3u8`) for live streaming
+- **Live streaming**: Use HLS (`.m3u8`) URLs — most reliable across clients
+
 ## Important Notes
 
 - Audio files must be in the project's directory (relative paths from project root)

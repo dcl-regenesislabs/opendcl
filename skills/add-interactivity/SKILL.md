@@ -186,6 +186,33 @@ pointerEventsSystem.onPointerDown(
 )
 ```
 
+### Raycast System Helpers
+
+Use `raycastSystem` for convenient raycasting without manual component management:
+
+```typescript
+import { raycastSystem, RaycastQueryType, ColliderLayer } from '@dcl/sdk/ecs'
+
+// Register a continuous local-direction raycast
+raycastSystem.registerLocalDirectionRaycast(
+  { entity: myEntity, opts: { queryType: RaycastQueryType.RQT_HIT_FIRST, direction: Vector3.Forward(), maxDistance: 16, collisionMask: ColliderLayer.CL_POINTER } },
+  (result) => {
+    if (result.hits.length > 0) {
+      console.log('Hit:', result.hits[0].entityId)
+    }
+  }
+)
+
+// Register a global-direction raycast
+raycastSystem.registerGlobalDirectionRaycast(
+  { entity: myEntity, opts: { queryType: RaycastQueryType.RQT_HIT_FIRST, direction: Vector3.Down(), maxDistance: 20 } },
+  (result) => { /* handle hits */ }
+)
+
+// Remove raycast from entity
+raycastSystem.removeRaycasterEntity(myEntity)
+```
+
 ## Best Practices
 
 - Always set `maxDistance` on pointer events (8-16m is typical)

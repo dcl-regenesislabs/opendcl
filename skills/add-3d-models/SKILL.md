@@ -128,6 +128,23 @@ curl -o models/tree.glb "https://raw.githubusercontent.com/ToxSam/cc0-models-Pol
 
 > **Important**: `GltfContainer` only works with **local files**. Never use external URLs for the model `src` field. Always download models into `models/` first.
 
+### Checking Model Load State
+
+Use `GltfContainerLoadingState` to check if a model has finished loading:
+
+```typescript
+import { GltfContainer, GltfContainerLoadingState, LoadingState } from '@dcl/sdk/ecs'
+
+engine.addSystem(() => {
+  const state = GltfContainerLoadingState.getOrNull(modelEntity)
+  if (state && state.currentState === LoadingState.FINISHED) {
+    console.log('Model loaded successfully')
+  } else if (state && state.currentState === LoadingState.FINISHED_WITH_ERROR) {
+    console.log('Model failed to load')
+  }
+})
+```
+
 ## Model Best Practices
 
 - Keep models under 50MB per file for good loading times

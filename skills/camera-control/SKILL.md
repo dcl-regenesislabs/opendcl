@@ -206,5 +206,3 @@ engine.addSystem(followNpcCamera)
 - Read camera state via `engine.CameraEntity` — never try to write to it directly
 - For look-at detection, combine camera position with raycasting (see `add-interactivity` skill)
 - Camera control is read-only outside of VirtualCamera and CameraModeArea — you cannot directly move the player's camera
-
-For component field details, see `context/components-reference.md`.

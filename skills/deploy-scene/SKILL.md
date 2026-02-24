@@ -84,16 +84,37 @@ npx @dcl/sdk-commands deploy
 }
 ```
 
-## Permissions
+### Spawn Points
 
-Some features require permissions in scene.json:
+Configure where players appear when entering the scene:
+
+```json
+{
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": { "x": [1, 5], "y": [0, 0], "z": [2, 4] },
+      "cameraTarget": { "x": 8, "y": 1, "z": 8 }
+    }
+  ]
+}
+```
+
+Position ranges (e.g., `[1, 5]`) spawn players randomly within the range. Use `cameraTarget` to orient the player's camera on spawn.
+
+### Permissions
+
+Declare required permissions in scene.json so the runtime allows restricted actions:
+
 ```json
 {
   "requiredPermissions": [
     "ALLOW_TO_MOVE_PLAYER_INSIDE_SCENE",
     "ALLOW_TO_TRIGGER_AVATAR_EMOTE",
     "ALLOW_MEDIA_HOSTNAMES"
-  ]
+  ],
+  "allowedMediaHostnames": ["video.example.com"]
 }
 ```
 

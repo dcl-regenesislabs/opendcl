@@ -50,8 +50,7 @@ Transform.create(label, { position: Vector3.create(8, 3, 8) })
 TextShape.create(label, {
   text: 'Hello World!',
   fontSize: 24,
-  fontWeight: 'bold',
-  color: Color4.White(),
+  textColor: Color4.White(),
   outlineColor: Color4.Black(),
   outlineWidth: 0.1,
   textAlign: TextAlignMode.TAM_MIDDLE_CENTER
@@ -83,7 +82,7 @@ Transform.create(floatingLabel, { position: Vector3.create(8, 4, 8) })
 TextShape.create(floatingLabel, {
   text: 'NPC Name',
   fontSize: 16,
-  color: Color4.White(),
+  textColor: Color4.White(),
   outlineColor: Color4.Black(),
   outlineWidth: 0.08,
   textAlign: TextAlignMode.TAM_BOTTOM_CENTER
@@ -213,6 +212,52 @@ function lodSystem() {
 engine.addSystem(lodSystem)
 ```
 
+### Per-Node Material Overrides (GltfNodeModifiers)
+
+Override materials on specific nodes within a GLTF model without modifying the model file:
+
+```typescript
+import { GltfNode, GltfNodeState } from '@dcl/sdk/ecs'
+
+// Hide a specific node in a model
+GltfNode.create(entity, { path: 'RootNode/Armor', visible: false })
+
+// Override a node's material
+GltfNode.create(entity, {
+  path: 'RootNode/Helmet',
+  materialOverride: Material.Texture.Common({ src: 'images/custom-skin.png' })
+})
+```
+
+### Avatar Texture
+
+Generate a texture from a player's avatar:
+
+```typescript
+Material.setPbrMaterial(portraitFrame, {
+  texture: Material.Texture.Avatar({ userId: '0x...' })
+})
+```
+
+### Texture Modes
+
+Control how textures are filtered and wrapped:
+
+```typescript
+import { TextureFilterMode, TextureWrapMode } from '@dcl/sdk/ecs'
+
+Material.setPbrMaterial(entity, {
+  texture: Material.Texture.Common({
+    src: 'images/pixel-art.png',
+    filterMode: TextureFilterMode.TFM_POINT,    // crisp pixels (no smoothing)
+    wrapMode: TextureWrapMode.TWM_REPEAT        // tile the texture
+  })
+})
+```
+
+Filter modes: `TFM_POINT` (pixelated), `TFM_BILINEAR` (smooth), `TFM_TRILINEAR` (smoothest).
+Wrap modes: `TWM_REPEAT` (tile), `TWM_CLAMP` (stretch edges), `TWM_MIRROR` (mirror tile).
+
 ## Best Practices
 
 - Use `BillboardMode.BM_Y` instead of `BM_ALL` — looks more natural and renders faster
@@ -222,5 +267,3 @@ engine.addSystem(lodSystem)
 - `MTM_ALPHA_TEST` is cheaper than `MTM_ALPHA_BLEND` — use cutout when smooth transparency isn't needed
 - Combine Billboard + TextShape for floating name labels above NPCs or objects
 - Use VisibilityComponent for LOD systems instead of removing/re-adding entities
-
-For more component details, see `context/components-reference.md`.

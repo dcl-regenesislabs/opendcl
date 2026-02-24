@@ -7,28 +7,24 @@ const CONTEXT_DIR = join(import.meta.dirname, "../../context");
 describe("context files", () => {
   it("all required context files exist", async () => {
     const required = [
-      "sdk7-complete-reference.md",
-      "sdk7-examples.md",
+      "sdk7-cheat-sheet.md",
       "components-reference.md",
       "open-source-3d-assets.md",
       "audio-catalog.md",
     ];
 
     for (const file of required) {
-      let exists = true;
-      try {
-        await access(join(CONTEXT_DIR, file));
-      } catch {
-        exists = false;
-      }
-      expect(exists, `Missing context file: ${file}`).toBe(true);
+      await expect(
+        access(join(CONTEXT_DIR, file)),
+        `Missing context file: ${file}`
+      ).resolves.toBeUndefined();
     }
   });
 
   it("context files are valid markdown with content", async () => {
     const files = await readdir(CONTEXT_DIR);
     const mdFiles = files.filter((f) => f.endsWith(".md"));
-    expect(mdFiles.length).toBeGreaterThanOrEqual(5);
+    expect(mdFiles.length).toBeGreaterThanOrEqual(4);
 
     for (const file of mdFiles) {
       const content = await readFile(join(CONTEXT_DIR, file), "utf-8");
@@ -41,24 +37,15 @@ describe("context files", () => {
     }
   });
 
-  it("sdk7-complete-reference.md has expected sections", async () => {
+  it("sdk7-cheat-sheet.md has expected sections", async () => {
     const content = await readFile(
-      join(CONTEXT_DIR, "sdk7-complete-reference.md"),
+      join(CONTEXT_DIR, "sdk7-cheat-sheet.md"),
       "utf-8"
     );
-    expect(content).toContain("Installation");
-    expect(content).toContain("Getting Started");
-    expect(content).toContain("ECS");
-  });
-
-  it("sdk7-examples.md has code examples", async () => {
-    const content = await readFile(
-      join(CONTEXT_DIR, "sdk7-examples.md"),
-      "utf-8"
-    );
-    expect(content).toContain("```typescript");
-    expect(content).toContain("engine");
-    expect(content).toContain("Transform");
+    expect(content).toContain("ECS Core");
+    expect(content).toContain("Imports");
+    expect(content).toContain("scene.json");
+    expect(content).toContain("Custom Components");
   });
 
   it("components-reference.md covers key ECS components", async () => {
@@ -109,10 +96,6 @@ describe("context files", () => {
     // Should have substantial content with model entries
     expect(content.length).toBeGreaterThan(500);
     // Should mention 3D models or GLB
-    expect(
-      content.toLowerCase().includes("3d") ||
-        content.toLowerCase().includes("glb") ||
-        content.toLowerCase().includes("model")
-    ).toBe(true);
+    expect(content).toMatch(/3d|glb|model/i);
   });
 });
