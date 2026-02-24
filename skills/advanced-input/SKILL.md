@@ -235,4 +235,3 @@ engine.addSystem(actionBarSystem)
 - WASD keys (`IA_FORWARD`, etc.) also control player movement — polling them reads the movement state but doesn't override it
 
 For basic pointer events and click handlers, see the `add-interactivity` skill.
-For component field details, see `context/components-reference.md`.

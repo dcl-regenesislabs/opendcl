@@ -46,6 +46,16 @@ describe("prompt templates", () => {
     expect(content).toContain("scene.json");
   });
 
+  it("system.md contains pacing instructions", async () => {
+    const content = await readFile(
+      join(PROMPTS_DIR, "system.md"),
+      "utf-8"
+    );
+    expect(content).toContain("Pacing");
+    expect(content).toContain("one step at a time");
+    expect(content).toContain("Existing scenes");
+  });
+
   it("system.md documents LLM-callable tools", async () => {
     const content = await readFile(
       join(PROMPTS_DIR, "system.md"),

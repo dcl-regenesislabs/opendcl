@@ -4,28 +4,22 @@ import { join } from "node:path";
 
 const SKILLS_DIR = join(import.meta.dirname, "../../../skills");
 
-async function getAllSkillFiles(): Promise<
-  Array<{ name: string; dir: string; path: string; content: string }>
-> {
+interface SkillFile {
+  dir: string;
+  path: string;
+  content: string;
+}
+
+async function getAllSkillFiles(): Promise<SkillFile[]> {
   const dirs = await readdir(SKILLS_DIR, { withFileTypes: true });
-  const skills: Array<{
-    name: string;
-    dir: string;
-    path: string;
-    content: string;
-  }> = [];
+  const skills: SkillFile[] = [];
 
   for (const dir of dirs) {
     if (!dir.isDirectory()) continue;
     const skillPath = join(SKILLS_DIR, dir.name, "SKILL.md");
     try {
       const content = await readFile(skillPath, "utf-8");
-      skills.push({
-        name: dir.name,
-        dir: dir.name,
-        path: skillPath,
-        content,
-      });
+      skills.push({ dir: dir.name, path: skillPath, content });
     } catch {
       // Skip dirs without SKILL.md
     }
@@ -116,6 +110,7 @@ describe("skill loading", () => {
       "advanced-rendering",
       "advanced-input",
       "authoritative-server",
+      "scene-runtime",
     ];
     for (const name of expected) {
       expect(names, `Missing skill: ${name}`).toContain(name);

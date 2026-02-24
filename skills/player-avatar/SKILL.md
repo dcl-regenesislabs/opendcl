@@ -247,6 +247,39 @@ function boundarySystem() {
 engine.addSystem(boundarySystem)
 ```
 
+### Avatar Change Listeners
+
+React to avatar changes in real-time:
+
+```typescript
+import { AvatarEmoteCommand, AvatarBase, AvatarEquippedData } from '@dcl/sdk/ecs'
+
+// Detect when any player triggers an emote
+AvatarEmoteCommand.onChange(engine.PlayerEntity, (cmd) => {
+  if (cmd) console.log('Emote played:', cmd.emoteUrn)
+})
+
+// Detect avatar appearance changes (wearables, skin color, etc.)
+AvatarBase.onChange(engine.PlayerEntity, (base) => {
+  if (base) console.log('Avatar name:', base.name)
+})
+
+// Detect equipment changes
+AvatarEquippedData.onChange(engine.PlayerEntity, (equipped) => {
+  if (equipped) console.log('Wearables changed:', equipped.wearableUrns)
+})
+```
+
+### Additional Anchor Points
+
+Beyond the commonly used anchor points, the full list includes:
+
+- `AvatarAnchorPointType.AAPT_POSITION` — avatar feet position
+- `AvatarAnchorPointType.AAPT_NAME_TAG` — above the name tag
+- `AvatarAnchorPointType.AAPT_LEFT_HAND` / `AAPT_RIGHT_HAND`
+- `AvatarAnchorPointType.AAPT_HEAD` — head bone
+- `AvatarAnchorPointType.AAPT_NECK` — neck bone
+
 ## Best Practices
 
 - Always check `Transform.has(engine.PlayerEntity)` before reading player data — it may not be ready on the first frame
@@ -256,5 +289,3 @@ engine.addSystem(boundarySystem)
 - Use `AvatarModifierArea` with `AMT_HIDE_AVATARS` for private rooms or puzzle areas
 - Add `excludeIds` to modifier areas when you want specific players (like the scene owner) to remain visible
 - Teleporting the player works within scene bounds — respect parcel limits
-
-For component field details, see `context/components-reference.md`.

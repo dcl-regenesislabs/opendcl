@@ -28,7 +28,7 @@ The result: **more creators building more scenes, faster.**
 - **Branded header** — on startup, displays a block-character "Decentraland" ASCII art banner with version and working directory. Falls back to a compact text header on narrow terminals
 - **Multi-provider LLM support** — works with Claude, OpenAI, Google, Ollama (free/local), OpenRouter, and more
 - **Scene-aware** — automatically detects your project's `scene.json`, SDK version, and entry points
-- **18 built-in skills** — scaffolding, 3D models, interactivity, UI, animations, multiplayer, authoritative server, audio/video, deployment (Genesis City & Worlds), optimization, smart items, camera control, lighting, player/avatar, NFT/blockchain, advanced rendering, advanced input
+- **19 built-in skills** — scaffolding, 3D models, interactivity, UI, animations, multiplayer, authoritative server, audio/video, deployment (Genesis City & Worlds), optimization, smart items, camera control, lighting, player/avatar, NFT/blockchain, advanced rendering, advanced input, scene runtime
 - **Integrated commands** — `/init` to scaffold, `/preview` to launch the dev server, `/tasks` to manage running processes, `/review` to audit code
 - **TypeScript validation** — catches type errors immediately after writing code
 - **Free asset catalogs** — 2,700+ Creator Hub 3D models, 900+ CC0-licensed models, and 50 audio files the agent proactively suggests when building scenes
@@ -126,6 +126,7 @@ OpenDCL loads domain-specific skills on demand based on what you're asking:
 | `nft-blockchain` | Display NFTs, wallet checks, smart contracts |
 | `advanced-rendering` | Billboards, 3D text, materials, transparency |
 | `advanced-input` | Cursor state, movement restriction, WASD patterns |
+| `scene-runtime` | Async tasks, fetch, timers, realm info, restricted actions, testing |
 
 ## How It Works
 
@@ -134,7 +135,7 @@ OpenDCL is built on [pi-coding-agent](https://github.com/badlogic/pi-mono), the 
 - **System prompt** with SDK7 architecture knowledge (ECS, QuickJS sandbox, parcel constraints)
 - **Extensions** that detect your project, inject context, validate TypeScript, and provide slash commands
 - **Skills** with detailed guides for every common scene development task
-- **Reference docs** (87KB SDK reference, component tables, code examples, 3D asset and audio catalogs)
+- **Reference docs** (SDK cheat sheet, component tables, 3D asset and audio catalogs)
 
 The agent has full access to standard coding tools (read, write, edit, bash, grep, find) and uses them to understand and modify your scene code.
 

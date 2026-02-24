@@ -227,6 +227,76 @@ const HealthBar = () => (
 />
 ```
 
+### Screen Dimensions
+
+Read screen size via `UiCanvasInformation`:
+
+```typescript
+import { UiCanvasInformation } from '@dcl/sdk/ecs'
+
+engine.addSystem(() => {
+  const canvas = UiCanvasInformation.getOrNull(engine.RootEntity)
+  if (canvas) {
+    console.log('Screen:', canvas.width, 'x', canvas.height)
+  }
+})
+```
+
+### Nine-Slice Textures
+
+Use `textureSlices` for scalable UI backgrounds (buttons, panels) that don't stretch corners:
+
+```tsx
+<UiEntity
+  uiTransform={{ width: 200, height: 100 }}
+  uiBackground={{
+    textureMode: 'nine-slices',
+    texture: { src: 'images/panel.png' },
+    textureSlices: { top: 0.1, bottom: 0.1, left: 0.1, right: 0.1 }
+  }}
+/>
+```
+
+### Hover Events
+
+Respond to mouse enter/leave for hover effects:
+
+```tsx
+<UiEntity
+  uiTransform={{ width: 100, height: 40 }}
+  onMouseEnter={() => { isHovered = true }}
+  onMouseLeave={() => { isHovered = false }}
+  uiBackground={{ color: isHovered ? Color4.White() : Color4.Gray() }}
+/>
+```
+
+### Flex Wrap
+
+Allow UI children to wrap to the next line:
+
+```tsx
+<UiEntity uiTransform={{ flexWrap: 'wrap', width: 300 }}>
+  {items.map(item => (
+    <UiEntity key={item.id} uiTransform={{ width: 80, height: 80, margin: 4 }} />
+  ))}
+</UiEntity>
+```
+
+### Dropdown Extras
+
+The `Dropdown` component supports additional props:
+
+```tsx
+<Dropdown
+  options={['Option A', 'Option B', 'Option C']}
+  selectedIndex={selectedIdx}
+  onChange={(idx) => { selectedIdx = idx }}
+  fontSize={14}
+  color={Color4.White()}
+  disabled={false}
+/>
+```
+
 ## Important Notes
 
 - React hooks (`useState`, `useEffect`, etc.) are **NOT** available — use module-level variables

@@ -172,6 +172,66 @@ pointerEventsSystem.onPointerDown(
 )
 ```
 
+### Finding Entities by Name
+
+Look up entities placed in the Creator Hub editor by their display name:
+
+```typescript
+import { engine } from '@dcl/sdk/ecs'
+
+// Returns null if not found — safe for optional lookups
+const door = engine.getEntityOrNullByName('Main Door')
+if (door) {
+  // interact with the door entity
+}
+
+// Throws if not found — use when the entity must exist
+const npc = engine.getEntityByName('Shop NPC')
+```
+
+For type-safe entity names, import the generated `EntityNames` type:
+
+```typescript
+import { EntityNames } from '../node_modules/@dcl/asset-packs/dist/scene-entrypoint'
+
+const entity = engine.getEntityByName<EntityNames>('Main Door')
+```
+
+### Smart Item Events API
+
+Access trigger and action events from asset pack items:
+
+```typescript
+import { getTriggerEvents, getActionEvents } from '@dcl/asset-packs'
+
+const triggerEvents = getTriggerEvents(entity)
+const actionEvents = getActionEvents(entity)
+
+// Listen for a trigger
+triggerEvents.on('onInteract', () => {
+  console.log('Player interacted with item')
+})
+
+// Programmatically fire an action
+actionEvents.emit('open')
+```
+
+### Tags API
+
+Use `Tags` to categorize and query entities:
+
+```typescript
+import { Tags } from '@dcl/asset-packs'
+
+// Iterate named entities with the Name component
+import { Name } from '@dcl/sdk/ecs'
+for (const [entity, name] of engine.getEntitiesWith(Name)) {
+  if (name.value.startsWith('Lamp')) {
+    // do something with all lamp entities
+  }
+}
+```
+
 ## Tips
 
 - Smart items from Creator Hub export as code — you can inspect and modify the generated code

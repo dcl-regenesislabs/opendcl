@@ -231,6 +231,28 @@ For development, use the Sepolia testnet:
 3. Deploy your contracts to Sepolia
 4. Contract addresses differ between mainnet and testnet — use environment checks
 
+### Custom RPC Calls
+
+Use `sendAsync` for low-level Ethereum RPC calls not covered by eth-connect helpers:
+
+```typescript
+import { sendAsync } from '~system/EthereumController'
+
+const result = await sendAsync({ method: 'eth_blockNumber', params: [] })
+console.log('Current block:', result.body)
+```
+
+### Opening URLs and NFT Dialogs
+
+Use restricted actions to open external links and NFT detail views:
+
+```typescript
+import { openExternalUrl, openNftDialog } from '~system/RestrictedActions'
+
+openExternalUrl({ url: 'https://opensea.io/collection/...' })
+openNftDialog({ urn: 'urn:decentraland:ethereum:erc721:0x06012c8cf97BEaD5deAe237070F9587f8E7A266d:558536' })
+```
+
 ## Best Practices
 
 - **Always check `isGuest`** before any blockchain interaction — guest players can't sign transactions
@@ -242,5 +264,3 @@ For development, use the Sepolia testnet:
 - Read operations (view/pure functions) don't require gas; write operations prompt the user to sign
 - Test on Sepolia before deploying to mainnet
 - NFT URNs only work with Ethereum mainnet ERC-721 tokens
-
-For component field details, see `context/components-reference.md`.

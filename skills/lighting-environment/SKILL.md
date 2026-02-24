@@ -205,6 +205,24 @@ LightSource.create(bulb, {
 })
 ```
 
+### Shadow Types
+
+LightSource supports three shadow modes:
+
+- `PBLightSource_ShadowType.ST_NONE` — no shadows (cheapest)
+- `PBLightSource_ShadowType.ST_HARD` — crisp shadows (medium cost)
+- `PBLightSource_ShadowType.ST_SOFT` — smooth, blurred shadows (most expensive)
+
+```typescript
+import { LightSource, PBLightSource_ShadowType } from '@dcl/sdk/ecs'
+
+LightSource.create(spotEntity, {
+  type: LightSourceType.LST_SPOT,
+  intensity: 50,
+  shadow: PBLightSource_ShadowType.ST_SOFT
+})
+```
+
 ## Best Practices
 
 - Stay within the **one light per parcel** budget — plan light placement around scene parcels
@@ -214,5 +232,3 @@ LightSource.create(bulb, {
 - Keep shadow count low (max ~3 visible) — disable `shadow` on lights that don't need it
 - Set `range` on lights to limit their influence and save performance
 - Use `SkyboxTime` for atmosphere — nighttime scenes with point lights create dramatic environments
-
-For component field details, see `context/components-reference.md`.

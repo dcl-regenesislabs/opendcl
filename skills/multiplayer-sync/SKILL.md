@@ -128,6 +128,84 @@ engine.addSystem(() => {
 })
 ```
 
+### Entity Enum IDs
+
+Distinguish predefined entities from player-created ones using `entityEnumId`:
+
+```typescript
+syncEntity(door, [Transform.componentId], 1)   // predefined entity (enum ID 1)
+syncEntity(door2, [Transform.componentId], 2)  // predefined entity (enum ID 2)
+syncEntity(playerBox, [Transform.componentId]) // no enum ID = player-created, lives with the player
+```
+
+Predefined entities (with an `entityEnumId`) persist after the creating player leaves. Player-created entities (no enum ID) are removed when the player disconnects.
+
+### Parent-Child Relationships
+
+Use `parentEntity` to create entity hierarchies that sync correctly:
+
+```typescript
+import { parentEntity, getParent, getChildren } from '@dcl/sdk/ecs'
+
+parentEntity(child, parent)
+const parent = getParent(child)
+const children = getChildren(parent)
+```
+
+### Connection State
+
+Check if the player is connected to the sync room:
+
+```typescript
+import { isStateSynchronized } from '@dcl/sdk/ecs'
+
+engine.addSystem(() => {
+  if (!isStateSynchronized()) return // wait for sync
+  // safe to read/write synced state
+})
+```
+
+### MessageBus
+
+Send custom messages between players (fire-and-forget, no persistence):
+
+```typescript
+import { MessageBus } from '@dcl/sdk/message-bus'
+
+const bus = new MessageBus()
+bus.on('hit', (data: { damage: number }) => {
+  console.log('Took damage:', data.damage)
+})
+bus.emit('hit', { damage: 10 })
+```
+
+### Player Enter/Leave Events
+
+Detect players entering or leaving the scene:
+
+```typescript
+import { onEnterScene, onLeaveScene } from '@dcl/sdk/observables'
+
+onEnterScene.add((player) => {
+  console.log('Player entered:', player.userId)
+})
+onLeaveScene.add((player) => {
+  console.log('Player left:', player.userId)
+})
+```
+
+### Offline Testing
+
+Test multiplayer locally without a server using the offline adapter:
+
+```json
+{
+  "worldConfiguration": {
+    "fixedAdapter": "offline:offline"
+  }
+}
+```
+
 ## Important Notes
 
 - **Entities must be explicitly synced** via `syncEntity(entity, [componentIds])` — pass the `componentId` of each component to sync

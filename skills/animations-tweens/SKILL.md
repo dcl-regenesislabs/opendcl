@@ -163,6 +163,72 @@ function spinSystem(dt: number) {
 engine.addSystem(spinSystem)
 ```
 
+### Tween Helper Methods
+
+Use shorthand helpers instead of creating Tween components manually:
+
+```typescript
+import { Tween, EasingFunction } from '@dcl/sdk/ecs'
+
+// Move
+Tween.createOrReplace(entity, Tween.setMove(
+  Vector3.create(0, 1, 0), Vector3.create(0, 3, 0),
+  { duration: 1500, easingFunction: EasingFunction.EF_EASEINBOUNCE }
+))
+
+// Rotate
+Tween.createOrReplace(entity, Tween.setRotate(
+  Quaternion.fromEulerDegrees(0, 0, 0), Quaternion.fromEulerDegrees(0, 180, 0),
+  { duration: 2000, easingFunction: EasingFunction.EF_EASEOUTQUAD }
+))
+
+// Scale
+Tween.createOrReplace(entity, Tween.setScale(
+  Vector3.One(), Vector3.create(2, 2, 2),
+  { duration: 1000, easingFunction: EasingFunction.EF_LINEAR }
+))
+```
+
+### Yoyo Loop Mode
+
+`TL_YOYO` reverses the tween at each end instead of restarting:
+
+```typescript
+TweenSequence.create(entity, {
+  sequence: [{ duration: 1000, ... }],
+  loop: TweenLoop.TL_YOYO
+})
+```
+
+### Detecting Tween Completion
+
+Use `tweenSystem.tweenCompleted()` to check if a tween finished this frame:
+
+```typescript
+engine.addSystem(() => {
+  if (tweenSystem.tweenCompleted(entity)) {
+    console.log('Tween finished on', entity)
+  }
+})
+```
+
+### Animator Extras
+
+Additional `Animator` features:
+
+```typescript
+// Get a specific clip to modify
+const clip = Animator.getClip(entity, 'Walk')
+
+// shouldReset: restart animation from beginning when re-triggered
+Animator.playSingleAnimation(entity, 'Attack', true) // resets to start
+
+// weight: blend between animations (0.0 to 1.0)
+const anim = Animator.getMutable(entity)
+anim.states[0].weight = 0.5  // blend walk at 50%
+anim.states[1].weight = 0.5  // blend idle at 50%
+```
+
 ## Best Practices
 
 - Use Tweens for simple A-to-B animations (doors, platforms, UI elements)
