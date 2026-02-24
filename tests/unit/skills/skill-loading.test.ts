@@ -116,6 +116,22 @@ describe("skill loading", () => {
     }
   });
 
+  it("skills use {baseDir} prefix for context file references", async () => {
+    const skills = await getAllSkillFiles();
+
+    for (const skill of skills) {
+      // Find all context/foo.md references and capture what precedes them
+      const refs = [...skill.content.matchAll(/(.{0,20})(context\/[\w-]+\.md)/g)];
+
+      for (const [, before, ref] of refs) {
+        expect(
+          before,
+          `${skill.dir}/SKILL.md has bare "${ref}" — use {baseDir}/../../context/filename.md instead`
+        ).toContain("{baseDir}");
+      }
+    }
+  });
+
   it("skills reference only existing context files", async () => {
     const skills = await getAllSkillFiles();
     const contextDir = join(import.meta.dirname, "../../../context");
