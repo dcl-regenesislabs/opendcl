@@ -43,7 +43,7 @@ const extension: ExtensionFactory = (pi) => {
     parameters: Type.Object({}),
     async execute(_id, _params, _signal, _onUpdate, ctx) {
       const result = await initScene(ctx.cwd, pi);
-      if (!result.isError) await ctx.reload();
+      if (!result.isError && 'reload' in ctx) await (ctx as any).reload();
       return { content: [{ type: "text" as const, text: result.message }], details: undefined };
     },
   });
