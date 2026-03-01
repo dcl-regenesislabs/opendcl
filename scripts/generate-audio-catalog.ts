@@ -327,13 +327,21 @@ function main() {
   lines.push("");
   lines.push("**How to use**:");
   lines.push("1. Find a sound below that matches your scene");
-  lines.push('2. Download it: `curl -o sounds/filename.mp3 "URL"`');
   lines.push(
-    "3. Reference it: `AudioSource.create(entity, { audioClipUrl: 'sounds/filename.mp3', playing: true, loop: false })`"
+    '2. Download it — the output path **must** start with `sounds/`:'
+  );
+  lines.push(
+    '   `curl -o sounds/<filename>.mp3 "<URL>"`'
+  );
+  lines.push(
+    "3. Reference it: `AudioSource.create(entity, { audioClipUrl: 'sounds/<filename>.mp3', playing: true, loop: false })`"
   );
   lines.push("");
   lines.push(
-    "> **Important**: `AudioSource` only works with local files. Always download audio into the scene's `sounds/` directory first."
+    '> **Important**: Always download into `sounds/`. Never write to the scene root.'
+  );
+  lines.push(
+    '> Correct: `curl -o sounds/click.mp3 "..."` | Wrong: `curl -o click.mp3 "..."`'
   );
 
   for (const [category, audios] of sortedCategories) {

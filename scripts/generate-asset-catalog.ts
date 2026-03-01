@@ -143,17 +143,23 @@ function main() {
   lines.push("");
   lines.push("**How to use**:");
   lines.push(
-    '1. Find a model below that matches your scene'
+    "1. Find a model below that matches your scene"
   );
   lines.push(
-    '2. Download it: `curl -o models/filename.glb "URL"`'
+    '2. Download it — the output path **must** start with `models/`:'
   );
   lines.push(
-    "3. Reference it: `GltfContainer.create(entity, { src: 'models/filename.glb' })`"
+    '   `curl -o models/<filename>.glb "<URL>"`'
+  );
+  lines.push(
+    "3. Reference it: `GltfContainer.create(entity, { src: 'models/<filename>.glb' })`"
   );
   lines.push("");
   lines.push(
-    "> **Important**: `GltfContainer` only works with local files. Always download models into the scene's `models/` directory first."
+    '> **Important**: Always download into `models/`. Never write to the scene root.'
+  );
+  lines.push(
+    '> Correct: `curl -o models/Sofa_Black.glb "..."` | Wrong: `curl -o Sofa_Black.glb "..."`'
   );
 
   for (const { pack, rows, categories } of packData) {
