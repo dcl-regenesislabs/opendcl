@@ -4,6 +4,8 @@
  * Registers the /setup-ollama command that walks users through
  * model selection and configuration for a free local LLM setup.
  * On session start, nudges users who have no provider configured.
+ *
+ * FEATURE FLAG: Set OPENDCL_ENABLE_OLLAMA_SETUP=1 to enable this command.
  */
 
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
@@ -206,6 +208,14 @@ export function ollamaPull(
 }
 
 const extension: ExtensionFactory = (pi) => {
+  // Feature flag: only register if explicitly enabled
+  const isEnabled = process.env.OPENDCL_ENABLE_OLLAMA_SETUP === "1";
+  
+  if (!isEnabled) {
+    // Extension loaded but not active — no commands registered
+    return;
+  }
+
   pi.on("session_start", async (_event, ctx) => {
     if (!(await isProviderConfigured())) {
       ctx.ui.notify(
