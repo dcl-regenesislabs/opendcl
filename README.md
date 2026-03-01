@@ -46,7 +46,7 @@ npm install -g @dcl-regenesislabs/opendcl
 opendcl
 ```
 
-On first run, type `/setup` to configure a cloud API provider (Anthropic, OpenAI, Google, etc.) or `/setup-ollama` to install [Ollama](https://ollama.com/) and use a free local model.
+On first run, type `/setup` to configure a cloud API provider (Anthropic, OpenAI, Google, etc.).
 
 ### In an Empty Folder
 
@@ -94,7 +94,6 @@ This uses the open [skills](https://github.com/vercel-labs/skills) CLI to copy S
 | Command | Description |
 |---------|-------------|
 | `/setup` | Configure a cloud API provider (Anthropic, OpenAI, Google, etc.) |
-| `/setup-ollama` | Install Ollama and configure a free local LLM model |
 | `/init` | Scaffold a new Decentraland scene in the current directory |
 | `/preview` | Start the Bevy-web preview server and open the scene in browser |
 | `/deploy` | Deploy the scene to Genesis City or a World (auto-detects from scene.json) |
@@ -151,7 +150,6 @@ opendcl/
 │   ├── dcl-preview.ts        # /preview command
 │   ├── dcl-deploy.ts         # /deploy command
 │   ├── dcl-setup.ts          # /setup command (cloud API provider config)
-│   ├── dcl-setup-ollama.ts   # /setup-ollama command (Ollama setup wizard)
 │   ├── dcl-status.ts         # Thinking/streaming status (elapsed time + tokens)
 │   ├── dcl-update-check.ts   # Checks npm for newer OpenDCL versions
 │   ├── dcl-validate.ts       # Post-write TypeScript validation
