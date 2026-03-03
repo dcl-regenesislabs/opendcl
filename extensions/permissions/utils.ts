@@ -5,6 +5,8 @@
 
 import { resolve, relative } from "node:path";
 
+export const OUTSIDE_CWD_REASON = "Accesses path outside working directory";
+
 interface DenylistEntry {
   pattern: RegExp;
   reason: string;
@@ -75,8 +77,20 @@ export function classifyFilePath(filePath: string, projectRoot: string): string 
   const rel = relative(projectRoot, resolved);
 
   if (rel.startsWith("..")) {
-    return "File is outside the project root";
+    return OUTSIDE_CWD_REASON;
   }
 
   return findMatchingReason(SENSITIVE_FILE_PATTERNS, filePath);
+}
+
+/**
+ * Returns a reason string if the file path resolves outside the given cwd,
+ * or null if inside (or empty).
+ */
+export function isOutsideCwd(filePath: string, cwd: string): string | null {
+  if (!filePath) return null;
+  const resolved = resolve(cwd, filePath);
+  const rel = relative(cwd, resolved);
+  if (rel.startsWith("..")) return OUTSIDE_CWD_REASON;
+  return null;
 }
