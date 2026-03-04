@@ -34,6 +34,10 @@ removeEntityWithChildren(engine, entity)
 
 // Components — CRUD
 Transform.create(entity, { position: Vector3.create(8, 1, 8) })
+// ⚠️ NEVER pass undefined values in Transform fields — the SDK serializer crashes
+// reading .x on undefined. If a field is optional, omit the key entirely:
+//   BAD:  Transform.create(e, { position, rotation })  // rotation may be undefined
+//   GOOD: Transform.create(e, rotation ? { position, rotation } : { position })
 const t = Transform.get(entity)           // read-only, throws if missing
 const t = Transform.getMutable(entity)     // mutable reference
 const t = Transform.getOrNull(entity)      // read-only, returns null if missing

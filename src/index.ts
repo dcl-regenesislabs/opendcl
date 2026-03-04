@@ -60,6 +60,7 @@ const extensions = [
   "dcl-tasks.ts",
   "dcl-asset-path.ts",
   "dcl-screenshot.ts",
+  "dcl-editor-save.ts",
 ];
 
 // Conditionally load dcl-setup-ollama (hidden by default, enable with ENABLE_OLLAMA_SETUP=true)

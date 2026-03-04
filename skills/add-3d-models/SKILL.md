@@ -60,6 +60,22 @@ MeshCollider.setBox(model) // Box collider
 MeshCollider.setSphere(model) // Sphere collider
 ```
 
+## ⚠️ Important: Never Pass `undefined` in Transform Fields
+
+The SDK serializer crashes if any Transform field (`position`, `rotation`, `scale`) is present but `undefined`. When writing helper functions with optional parameters, **omit the key entirely** instead of passing `undefined`:
+
+```typescript
+// ❌ BAD — if rotation is undefined, SDK crashes reading .x on undefined
+function addModel(pos: Vector3, rot?: Quaternion) {
+  Transform.create(e, { position: pos, rotation: rot })
+}
+
+// ✅ GOOD — only include rotation when it has a value
+function addModel(pos: Vector3, rot?: Quaternion) {
+  Transform.create(e, rot ? { position: pos, rotation: rot } : { position: pos })
+}
+```
+
 ## Common Model Operations
 
 ### Scaling
