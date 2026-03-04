@@ -11,6 +11,7 @@ import { Type } from "@sinclair/typebox";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileExists, findSceneRoot } from "./scene-utils.js";
+import { getPendingEditorChanges } from "./dcl-editor-save.js";
 
 const WORLDS_CONTENT_SERVER = "https://worlds-content-server.decentraland.org";
 const BEVY_BASE = "https://decentraland.zone/bevy-web";
@@ -100,6 +101,19 @@ const extension: ExtensionFactory = (pi) => {
   pi.registerCommand("deploy", {
     description: "Deploy the scene to Genesis City or a World",
     handler: async (_args, ctx) => {
+      // Check for pending editor changes before deploying
+      const pendingCount = await getPendingEditorChanges(ctx.cwd);
+      if (pendingCount > 0) {
+        const proceed = await ctx.ui.confirm(
+          "Pending Editor Changes",
+          `There are ${pendingCount} unapplied editor change(s). The deployed scene won't include them. Run /save-editor first, or deploy anyway?`
+        );
+        if (!proceed) {
+          ctx.ui.notify("Deploy cancelled. Run /save-editor to apply changes first.", "info");
+          return;
+        }
+      }
+
       ctx.ui.notify("Deploying scene...", "info");
       const result = await deployScene(ctx.cwd, pi);
       ctx.ui.notify(result.message, result.isError ? "error" : "info");

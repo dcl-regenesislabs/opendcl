@@ -53,7 +53,6 @@ if (!args.includes("--system-prompt")) {
 
 // Load extensions
 const extDir = join(packageDir, "extensions");
-
 // Headless mode: only load extensions needed for non-interactive agent operation
 // (e.g., inside a sandboxed web service). Skips UI, preview, screenshot, and
 // interactive extensions that require a terminal or spawned processes.
@@ -76,6 +75,7 @@ const extensions = headless
       "dcl-tasks.ts",
       "dcl-asset-path.ts",
       "dcl-screenshot.ts",
+      "dcl-editor-save.ts",
     ];
 
 // Conditionally load dcl-setup-ollama (hidden by default, enable with ENABLE_OLLAMA_SETUP=true)

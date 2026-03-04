@@ -1,0 +1,7 @@
+# Everything is ignored except the editor module files and skill docs
+*
+!.gitignore
+!SKILL.md
+!src/
+!src/__editor/
+!src/__editor/**

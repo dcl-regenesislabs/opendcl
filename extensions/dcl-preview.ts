@@ -13,6 +13,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { processes } from "./process-registry.js";
 import { fileExists, findSceneRoot } from "./scene-utils.js";
 import { updateStatus } from "./dcl-tasks.js";
+import { getPendingEditorChanges } from "./dcl-editor-save.js";
 
 export function selectPreviewUrl(
   output: string,
@@ -145,6 +146,15 @@ const extension: ExtensionFactory = (pi) => {
   pi.registerCommand("preview", {
     description: "Start the Decentraland preview server",
     handler: async (_args, ctx) => {
+      // Notify about pending editor changes (non-blocking)
+      const pendingCount = await getPendingEditorChanges(ctx.cwd);
+      if (pendingCount > 0) {
+        ctx.ui.notify(
+          `${pendingCount} pending editor change(s) found. Run /save-editor to apply them to source code.`,
+          "warning"
+        );
+      }
+
       const result = await startPreviewServer(ctx.cwd, ctx);
       ctx.ui.notify(result.message, result.isError ? "error" : "info");
     },
