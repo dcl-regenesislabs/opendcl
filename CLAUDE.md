@@ -69,7 +69,7 @@ Key lifecycle events: `session_start`, `before_agent_start`, `tool_call`, `tool_
 | `dcl-status.ts` | Shows elapsed time + output token count in spinner during LLM inference | `turn_start` + `message_update` + `turn_end` + `agent_end` |
 | `dcl-tasks.ts` | `/tasks` → interactive process manager | `registerCommand` |
 | `process-registry.ts` | Shared `Map<string, BackgroundProcess>` singleton (via globalThis) | Module export |
-| `permissions/index.ts` | Confirms dangerous bash & file write ops | `tool_call` + `registerFlag` |
+| `permissions/index.ts` | Allowlist-based permission gate for bash & file writes | `tool_call` + `registerFlag` |
 
 ## Skills (18)
 
