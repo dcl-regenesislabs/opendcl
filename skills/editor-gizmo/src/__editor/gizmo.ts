@@ -15,6 +15,7 @@ import {
 import { Vector3, Quaternion, Color4, Color3 } from '@dcl/sdk/math'
 import {
   Axis,
+  MAX_PARENT_DEPTH,
   state,
   editorEntities,
   selectableInfoMap,
@@ -26,6 +27,7 @@ import {
   handleArrowMap,
   setGizmoClickConsumed,
 } from './state'
+import { getActiveCameraTransform } from './camera'
 // startDrag is injected via setStartDragHandler to avoid circular dependency with drag.ts
 let _startDrag: ((axis: Axis) => void) | undefined
 export function setStartDragHandler(fn: (axis: Axis) => void) { _startDrag = fn }
@@ -41,6 +43,12 @@ const HANDLE_RADIUS = 0.18
 const RING_RADIUS = 1.0
 const RING_THICKNESS = 0.05
 const RING_COLLIDER_THICKNESS = 0.2
+
+// Gizmo scales with camera distance — this factor controls apparent size
+// At 10m distance, gizmo scale = 10 * 0.12 = 1.2 (roughly 1.5m arrows)
+const GIZMO_SCALE_FACTOR = 0.12
+const GIZMO_MIN_SCALE = 0.4
+const GIZMO_MAX_SCALE = 5.0
 
 const AXIS_COLORS: Record<Axis, { c4: Color4; c3: Color3 }> = {
   x: { c4: Color4.create(0.95, 0.15, 0.15, 1), c3: Color3.create(0.95, 0.15, 0.15) },
@@ -63,11 +71,40 @@ const DISC_EMISSIVE_HOVER = 1.5
 
 // ---- Public ----
 
+/** Compute world position of an entity by walking up the parent chain.
+ *  Accounts for parent scale: childWorldPos = parentPos + parentRot * (parentScale * childLocalPos) */
+function getWorldPosition(entity: Entity): Vector3 {
+  const t = Transform.get(entity)
+  let worldPos = Vector3.create(t.position.x, t.position.y, t.position.z)
+
+  const info = selectableInfoMap.get(entity)
+  let parentId = info?.parentEntity
+  let depth = 0
+
+  while (parentId && depth < MAX_PARENT_DEPTH) {
+    const pe = parentId as Entity
+    if (!Transform.has(pe)) break
+    const pt = Transform.get(pe)
+    // Scale the position by parent's scale, then rotate, then translate
+    const scaled = Vector3.create(
+      worldPos.x * pt.scale.x,
+      worldPos.y * pt.scale.y,
+      worldPos.z * pt.scale.z,
+    )
+    worldPos = Vector3.add(pt.position, Vector3.rotate(scaled, pt.rotation))
+    const parentInfo = selectableInfoMap.get(pe)
+    parentId = parentInfo?.parentEntity
+    depth++
+  }
+
+  return worldPos
+}
+
 export function getGizmoCenter(entity: Entity): Vector3 {
-  const pos = Transform.get(entity).position
+  const worldPos = getWorldPosition(entity)
   const info = selectableInfoMap.get(entity)
   const offset = info?.centerOffset ?? Vector3.Zero()
-  return Vector3.create(pos.x + offset.x, pos.y + offset.y, pos.z + offset.z)
+  return Vector3.create(worldPos.x + offset.x, worldPos.y + offset.y, worldPos.z + offset.z)
 }
 
 export function createGizmo() {
@@ -114,29 +151,48 @@ export function gizmoFollowSystem() {
   if (!Transform.has(state.selectedEntity)) return
 
   const entityT = Transform.get(state.selectedEntity)
-  const info = selectableInfoMap.get(state.selectedEntity)
-  const offset = info?.centerOffset ?? Vector3.Zero()
   const g = Transform.getMutable(gizmoRoot)
 
+  const center = getGizmoCenter(state.selectedEntity)
+  g.position.x = center.x
+  g.position.y = center.y
+  g.position.z = center.z
+
   if (state.gizmoMode === 'rotate') {
-    const rotatedOffset = Vector3.rotate(offset, entityT.rotation)
-    g.position.x = entityT.position.x + rotatedOffset.x
-    g.position.y = entityT.position.y + rotatedOffset.y
-    g.position.z = entityT.position.z + rotatedOffset.z
     g.rotation.x = entityT.rotation.x
     g.rotation.y = entityT.rotation.y
     g.rotation.z = entityT.rotation.z
     g.rotation.w = entityT.rotation.w
   } else {
-    const center = getGizmoCenter(state.selectedEntity)
-    g.position.x = center.x
-    g.position.y = center.y
-    g.position.z = center.z
     g.rotation.x = 0
     g.rotation.y = 0
     g.rotation.z = 0
     g.rotation.w = 1
   }
+
+  const gizmoPos = center
+
+  // Scale gizmo: max of camera-distance-based and entity-size-based
+  // 1) Camera distance → constant screen size
+  const camT = getActiveCameraTransform()
+  const dx = camT.position.x - gizmoPos.x
+  const dy = camT.position.y - gizmoPos.y
+  const dz = camT.position.z - gizmoPos.z
+  const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+  const distScale = dist * GIZMO_SCALE_FACTOR
+
+  // 2) Entity size → arrows must extend beyond the mesh
+  const sc = entityT.scale
+  const maxDim = Math.max(Math.abs(sc.x), Math.abs(sc.y), Math.abs(sc.z))
+  // Arrow total length is ~1.5 units at scale 1, we want arrows to extend ~50% beyond the mesh radius
+  // meshRadius ≈ maxDim * 0.5 (for primitives), arrow reaches gizmoScale * 1.5
+  // gizmoScale * 1.5 > maxDim * 0.5 * 1.5 → gizmoScale > maxDim * 0.5
+  const sizeScale = maxDim * 0.55
+
+  const s = Math.min(GIZMO_MAX_SCALE, Math.max(GIZMO_MIN_SCALE, distScale, sizeScale))
+  g.scale.x = s
+  g.scale.y = s
+  g.scale.z = s
 }
 
 // ---- Translate arrows ----
@@ -196,11 +252,11 @@ function createArrow(axis: Axis, root: Entity) {
   handleArrowMap.set(handle, [shaft, tip])
 
   pointerEventsSystem.onPointerDown(
-    { entity: handle, opts: { button: InputAction.IA_POINTER, hoverText: `Move ${axis.toUpperCase()}`, maxDistance: 30 } },
+    { entity: handle, opts: { button: InputAction.IA_POINTER, hoverText: `Move ${axis.toUpperCase()}`, maxDistance: 100 } },
     () => { setGizmoClickConsumed(true); _startDrag?.(axis) }
   )
 
-  pointerEventsSystem.onPointerHoverEnter({ entity: handle }, () => {
+  pointerEventsSystem.onPointerHoverEnter({ entity: handle, opts: { maxDistance: 100 } }, () => {
     for (const [h, parts] of handleArrowMap) {
       const a = handleAxisMap.get(h)
       if (!a) continue
@@ -208,7 +264,7 @@ function createArrow(axis: Axis, root: Entity) {
     }
   })
 
-  pointerEventsSystem.onPointerHoverLeave({ entity: handle }, () => {
+  pointerEventsSystem.onPointerHoverLeave({ entity: handle, opts: { maxDistance: 100 } }, () => {
     if (state.isDragging && state.dragAxis === axis) return
     for (const [h, parts] of handleArrowMap) {
       const a = handleAxisMap.get(h)
@@ -265,11 +321,11 @@ function createRotationHandle(axis: Axis, root: Entity) {
   handleDiscMap.set(handle, disc)
 
   pointerEventsSystem.onPointerDown(
-    { entity: handle, opts: { button: InputAction.IA_POINTER, hoverText: `Rotate ${axis.toUpperCase()}`, maxDistance: 30 } },
+    { entity: handle, opts: { button: InputAction.IA_POINTER, hoverText: `Rotate ${axis.toUpperCase()}`, maxDistance: 100 } },
     () => { setGizmoClickConsumed(true); _startDrag?.(axis) }
   )
 
-  pointerEventsSystem.onPointerHoverEnter({ entity: handle }, () => {
+  pointerEventsSystem.onPointerHoverEnter({ entity: handle, opts: { maxDistance: 100 } }, () => {
     for (const [h, d] of handleDiscMap) {
       const a = handleAxisMap.get(h)
       if (!a) continue
@@ -277,7 +333,7 @@ function createRotationHandle(axis: Axis, root: Entity) {
     }
   })
 
-  pointerEventsSystem.onPointerHoverLeave({ entity: handle }, () => {
+  pointerEventsSystem.onPointerHoverLeave({ entity: handle, opts: { maxDistance: 100 } }, () => {
     if (state.isDragging && state.dragAxis === axis) return
     for (const [h, d] of handleDiscMap) {
       const a = handleAxisMap.get(h)

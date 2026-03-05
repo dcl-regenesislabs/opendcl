@@ -1,20 +1,21 @@
 /** Select/deselect entities, highlight, collider management. */
 
 import {
-  engine,
   Entity,
   Transform,
   MeshCollider,
   Material,
+  MaterialTransparencyMode,
   GltfContainer,
+  GltfNodeModifiers,
   ColliderLayer,
 } from '@dcl/sdk/ecs'
 import { Color4, Color3 } from '@dcl/sdk/math'
 import { state, selectableInfoMap, originalMaterials } from './state'
 import { createGizmo, destroyGizmo } from './gizmo'
-import { createSelectionIndicator, destroySelectionIndicator } from './indicator'
 
 const HIGHLIGHT_EMISSIVE = 0.6
+const HIGHLIGHT_ALPHA = 0.35
 
 function disableCollider(entity: Entity) {
   if (MeshCollider.has(entity)) {
@@ -51,18 +52,48 @@ function restoreCollider(entity: Entity) {
 }
 
 function highlight(entity: Entity) {
+  // GLB models: use GltfNodeModifiers with empty path to make all nodes semi-transparent
+  if (GltfContainer.has(entity)) {
+    GltfNodeModifiers.createOrReplace(entity, {
+      modifiers: [{
+        path: '',
+        material: {
+          material: {
+            $case: 'pbr' as const,
+            pbr: {
+              albedoColor: Color4.create(1, 1, 1, HIGHLIGHT_ALPHA),
+              transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND,
+              metallic: 0.1,
+              roughness: 0.5,
+            }
+          }
+        }
+      }]
+    })
+    return
+  }
+
+  // Primitives: override Material directly
   const m = originalMaterials.get(entity)
   if (!m) return
   Material.setPbrMaterial(entity, {
-    albedoColor: Color4.create(m.r, m.g, m.b, m.a),
+    albedoColor: Color4.create(m.r, m.g, m.b, HIGHLIGHT_ALPHA),
     emissiveColor: Color3.create(m.r * 0.4, m.g * 0.4, m.b * 0.4),
     emissiveIntensity: HIGHLIGHT_EMISSIVE,
     metallic: 0.1,
     roughness: 0.4,
+    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND,
   })
 }
 
 function unhighlight(entity: Entity) {
+  // GLB models: remove the modifier
+  if (GltfContainer.has(entity) && GltfNodeModifiers.has(entity)) {
+    GltfNodeModifiers.deleteFrom(entity)
+    return
+  }
+
+  // Primitives: restore original material
   const m = originalMaterials.get(entity)
   if (!m) return
   Material.setPbrMaterial(entity, {
@@ -82,7 +113,6 @@ export function selectEntity(entity: Entity) {
     unhighlight(state.selectedEntity)
     restoreCollider(state.selectedEntity)
     destroyGizmo()
-    destroySelectionIndicator()
   }
 
   const info = selectableInfoMap.get(entity)
@@ -93,7 +123,6 @@ export function selectEntity(entity: Entity) {
   highlight(entity)
   disableCollider(entity)
   createGizmo()
-  createSelectionIndicator(entity, info)
   console.log(`Selected: ${info.name}`)
 }
 
@@ -102,7 +131,6 @@ export function deselectEntity() {
     unhighlight(state.selectedEntity)
     restoreCollider(state.selectedEntity)
     destroyGizmo()
-    destroySelectionIndicator()
     state.selectedEntity = undefined
     state.selectedName = ''
   }

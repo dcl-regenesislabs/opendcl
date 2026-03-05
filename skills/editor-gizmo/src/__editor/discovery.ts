@@ -108,6 +108,14 @@ export function registerEntity(entity: Entity) {
     } catch {}
   }
 
+  // Read parent entity from Transform
+  let parentEntity: number | undefined
+  const t = Transform.get(entity)
+  const rawParent = t.parent
+  if (rawParent !== undefined && rawParent !== 0 && rawParent !== (entity as number)) {
+    parentEntity = rawParent as number
+  }
+
   const info: SelectableInfo = {
     name,
     centerOffset,
@@ -118,6 +126,7 @@ export function registerEntity(entity: Entity) {
     originalInvisibleMask,
     src: GltfContainer.has(entity) ? GltfContainer.get(entity).src : undefined,
     meshType: !isModel ? colliderShape : undefined,
+    parentEntity,
   }
 
   selectableInfoMap.set(entity, info)
@@ -126,7 +135,7 @@ export function registerEntity(entity: Entity) {
   pointerEventsSystem.onPointerDown(
     {
       entity,
-      opts: { button: InputAction.IA_POINTER, hoverText: `Select ${name}`, maxDistance: 30 },
+      opts: { button: InputAction.IA_POINTER, hoverText: `Select ${name}`, maxDistance: 100 },
     },
     () => {
       if (state.isDragging || gizmoClickConsumed) return

@@ -1,10 +1,13 @@
 /** Editor version — used by the editor-gizmo skill to detect outdated files */
-export const EDITOR_VERSION = '0.3.0'
+export const EDITOR_VERSION = '0.4.0'
 
 import { Entity } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 
 export type Axis = 'x' | 'y' | 'z'
+
+/** Maximum depth for parent chain walking (prevents infinite loops) */
+export const MAX_PARENT_DEPTH = 16
 export type GizmoMode = 'translate' | 'rotate'
 
 /** Per-entity info computed during auto-discovery */
@@ -22,6 +25,8 @@ export interface SelectableInfo {
   src?: string
   /** Mesh type (for primitives) */
   meshType?: 'box' | 'sphere' | 'cylinder'
+  /** Parent entity if this entity is a child */
+  parentEntity?: number
 }
 
 export interface EditorState {
@@ -32,7 +37,8 @@ export interface EditorState {
   dragAxis: Axis
 
   // Translate drag
-  dragStartPos: { x: number; y: number; z: number }
+  dragStartPos: { x: number; y: number; z: number }       // local position
+  dragStartWorldPos: { x: number; y: number; z: number }   // world position (for plane intersection)
   dragStartHit: { x: number; y: number; z: number }
   dragPlaneNormal: { x: number; y: number; z: number }
 
@@ -56,6 +62,7 @@ export const state: EditorState = {
   isDragging: false,
   dragAxis: 'x',
   dragStartPos: Vector3.Zero(),
+  dragStartWorldPos: Vector3.Zero(),
   dragStartHit: Vector3.Zero(),
   dragPlaneNormal: Vector3.Up(),
   dragStartRot: Quaternion.Identity(),
@@ -68,7 +75,7 @@ export const state: EditorState = {
 
 // ---- Entity tracking ----
 
-/** Entities created by the editor (gizmo, indicators, ground) — skipped by discovery */
+/** Entities created by the editor (gizmo, ground plane) — skipped by discovery */
 export const editorEntities = new Set<Entity>()
 
 /** Discovered scene entities → their info */
@@ -83,8 +90,6 @@ export const gizmoEntities: Entity[] = []
 
 export let gizmoRoot: Entity | undefined
 export function setGizmoRoot(e: Entity | undefined) { gizmoRoot = e }
-
-export const selectionIndicatorEntities: Entity[] = []
 
 export const handleAxisMap = new Map<Entity, Axis>()
 export const handleDiscMap = new Map<Entity, Entity>()
