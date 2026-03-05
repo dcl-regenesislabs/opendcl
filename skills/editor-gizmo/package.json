@@ -1,0 +1,17 @@
+{
+  "name": "gizmo-prototype-v2",
+  "version": "1.0.0",
+  "description": "Gizmo prototype with ray-plane intersection drag",
+  "scripts": {
+    "start": "sdk-commands start",
+    "build": "sdk-commands build",
+    "server-logs": "sdk-commands sdk-server-logs"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "7.20.5-22639691829.commit-b96024f",
+    "@dcl/js-runtime": "7.20.5-22639691829.commit-b96024f"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
