@@ -27,7 +27,7 @@ The editor currently only works with **auth-server scenes** (`"authoritativeMult
 
 ### Step 0: Check if editor is already installed (and up-to-date)
 
-If `src/__editor/state.ts` exists, read the first line and look for `EDITOR_VERSION`. Compare it with the version in `{baseDir}/editor-files/state.ts`. If the versions match, skip Step 1 — the files are current. If they differ (or `src/__editor/` doesn't exist), proceed with Step 1 to install or update.
+If `src/__editor/state.ts` exists, read the first line and look for `EDITOR_VERSION`. Compare it with the version in `{baseDir}/src/__editor/state.ts`. If the versions match, skip Step 1 — the files are current. If they differ (or `src/__editor/` doesn't exist), proceed with Step 1 to install or update.
 
 ### Step 1: Copy editor files into the scene
 
@@ -121,20 +121,10 @@ The editor auto-saves entity transforms to the preview server. The full pipeline
 3. Server debounce-writes to `src/__editor/editor-scene.json` on disk (1s delay)
 4. On scene reload, editor fetches `GET /editor/changes` from server memory to restore positions
 
-### Applying to source code (user-initiated)
-1. User runs **`/save-editor`** in the CLI
-2. CLI moves `editor-scene.json` → `editor-scene.json.bkp` (atomic backup)
-3. Agent reads the backup, patches `Transform.create()` calls in source code
-   - ⚠️ **Never pass `undefined` Transform fields** — if a rotation is all zeros or identity, **omit the rotation key entirely** rather than passing `undefined`. The SDK serializer crashes reading `.x` on `undefined`.
-4. On success, agent deletes the `.bkp` file
-5. On failure, `.bkp` is restored to `editor-scene.json`
-
-### Safety checks
-- **On `/deploy`**: Warns if there are unapplied editor changes — prompts to run `/save-editor` first
-- **On `/preview`**: Notifies if pending changes exist
-- **On first user message**: If `editor-scene.json` (or `.bkp` from an interrupted apply) exists, prompts user to apply (uses `before_agent_start` event so the terminal prompt works correctly)
-
 ### Data format (`editor-scene.json`)
+
+The file contains raw quaternion rotations for lossless restore:
+
 ```json
 {
   "barrel_1": {
@@ -149,7 +139,126 @@ The editor auto-saves entity transforms to the preview server. The full pipeline
 }
 ```
 
-Raw quaternion is stored for lossless restore. The CLI agent converts to euler for human-readable code: `Quaternion.fromEulerDegrees(0, 90, 0)`.
+## Applying Editor Changes to Source Code
+
+When the user asks to apply editor changes (or says "save editor", "apply editor changes", etc.), follow this process:
+
+### Step 1: Create a backup
+
+Move the changes file to a backup before modifying any source code:
+
+```bash
+mv src/__editor/editor-scene.json src/__editor/editor-scene.json.bkp
+```
+
+This is atomic — if anything goes wrong, the `.bkp` file still has the data.
+
+If `editor-scene.json.bkp` already exists (interrupted previous apply), skip this step and work from the existing `.bkp`.
+
+### Step 2: Read the changes
+
+Read `src/__editor/editor-scene.json.bkp`. Each key is an entity name (matching the `Name` component), and the value contains the new `Transform` data with position, rotation (raw quaternion), and scale.
+
+### Step 3: Convert quaternions to euler angles
+
+The JSON stores rotations as raw quaternions `{ x, y, z, w }`. Convert to euler degrees for human-readable code using this formula:
+
+```
+sinRoll  = 2 * (w*x + y*z)
+cosRoll  = 1 - 2 * (x*x + y*y)
+euler.x  = atan2(sinRoll, cosRoll) * 180/π
+
+sinPitch = 2 * (w*y - z*x)
+euler.y  = |sinPitch| >= 1 ? sign(sinPitch) * 90 : asin(sinPitch) * 180/π
+
+sinYaw   = 2 * (w*z + x*y)
+cosYaw   = 1 - 2 * (y*y + z*z)
+euler.z  = atan2(sinYaw, cosYaw) * 180/π
+```
+
+Round all values to 2 decimal places.
+
+### Step 4: Patch Transform.create() calls in source code
+
+For each entity in the changes file:
+
+1. **Find the entity** in the source code by its `Name` component value (e.g., `Name.create(entity, { value: 'barrel_1' })`)
+2. **Update the `Transform.create()` call** for that entity with the new position and rotation
+
+**Position format:**
+```typescript
+position: Vector3.create(5.2, 0, 15)
+```
+
+**Rotation format** (converted from quaternion to euler):
+```typescript
+rotation: Quaternion.fromEulerDegrees(0, 90, 0)
+```
+
+### Critical rules
+
+- ⚠️ **Never pass `undefined` to any Transform field** — the SDK serializer crashes reading `.x` on `undefined`
+- **If rotation is identity** (euler 0, 0, 0): **omit the rotation key entirely** from the `Transform.create()` call, don't set it to `undefined`
+- **If scale is unchanged** (1, 1, 1): you can omit it, but if it was already in the code, keep it
+- **Preserve existing code structure** — only change the position/rotation values, don't reformat or restructure
+
+### Step 5: Clean up
+
+After **all** changes are successfully applied to the source code:
+
+```bash
+rm src/__editor/editor-scene.json.bkp
+```
+
+### If something goes wrong
+
+If the apply fails partway through, restore the backup:
+
+```bash
+mv src/__editor/editor-scene.json.bkp src/__editor/editor-scene.json
+```
+
+### Full example
+
+Given this in `editor-scene.json.bkp`:
+```json
+{
+  "barrel_1": {
+    "components": {
+      "Transform": {
+        "position": { "x": 5.2, "y": 0, "z": 15 },
+        "rotation": { "x": 0, "y": 0.707, "z": 0, "w": 0.707 },
+        "scale": { "x": 1, "y": 1, "z": 1 }
+      }
+    }
+  },
+  "red_box": {
+    "components": {
+      "Transform": {
+        "position": { "x": 8, "y": 2.5, "z": 10 },
+        "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+        "scale": { "x": 1, "y": 1, "z": 1 }
+      }
+    }
+  }
+}
+```
+
+The source code changes would be:
+
+```typescript
+// barrel_1: position changed, rotation = 90° around Y
+Transform.create(barrel, { position: Vector3.create(5.2, 0, 15), rotation: Quaternion.fromEulerDegrees(0, 90, 0) })
+
+// red_box: position changed, rotation is identity → omit rotation key
+Transform.create(redBox, { position: Vector3.create(8, 2.5, 10) })
+```
+
+Then delete `src/__editor/editor-scene.json.bkp`.
+
+### Safety checks
+- **Before deploy**: Check if `src/__editor/editor-scene.json` or `src/__editor/editor-scene.json.bkp` exists with content. If so, warn the user that there are unapplied editor changes and suggest applying them first.
+- **On session start**: If either file exists, ask the user if they want to apply changes.
 
 ## How the Editor Auto-Discovers Entities
 

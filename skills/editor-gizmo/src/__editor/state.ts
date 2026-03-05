@@ -1,5 +1,5 @@
 /** Editor version — used by the editor-gizmo skill to detect outdated files */
-export const EDITOR_VERSION = '0.2.0'
+export const EDITOR_VERSION = '0.3.0'
 
 import { Entity } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
@@ -14,8 +14,6 @@ export interface SelectableInfo {
   boundsSize: { x: number; y: number; z: number }
   isModel: boolean
   colliderShape: 'box' | 'sphere' | 'cylinder'
-  /** Whether we added a MeshCollider (vs it already existing) */
-  addedCollider: boolean
   /** Original GltfContainer visible mesh collision mask (to restore on deselect) */
   originalVisibleMask?: number
   /** Original GltfContainer invisible mesh collision mask */
@@ -46,6 +44,9 @@ export interface EditorState {
   // WebSocket connection
   wsConnected: boolean
   pendingChanges: number
+
+  // Editor camera
+  editorCamActive: boolean
 }
 
 export const state: EditorState = {
@@ -62,6 +63,7 @@ export const state: EditorState = {
   dragRotCenter: Vector3.Zero(),
   wsConnected: false,
   pendingChanges: 0,
+  editorCamActive: false,
 }
 
 // ---- Entity tracking ----
