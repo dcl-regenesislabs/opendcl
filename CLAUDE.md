@@ -70,14 +70,15 @@ Key lifecycle events: `session_start`, `before_agent_start`, `tool_call`, `tool_
 | `dcl-tasks.ts` | `/tasks` → interactive process manager | `registerCommand` |
 | `dcl-screenshot.ts` | `screenshot` LLM tool → captures preview via headless Chrome; persistent browser, user consent, Bevy-Web GPU flags | `registerTool` + `session_shutdown` |
 | `process-registry.ts` | Shared `Map<string, BackgroundProcess>` singleton (via globalThis) | Module export |
+| `dcl-editor-save.ts` | `/save-editor` → applies visual editor changes to source | `registerCommand` + `before_agent_start` |
 | `permissions/index.ts` | Confirms dangerous bash & file write ops | `tool_call` + `registerFlag` |
 
-## Skills (20)
+## Skills (21)
 
 create-scene, add-3d-models, add-interactivity, build-ui, animations-tweens,
 multiplayer-sync, authoritative-server, audio-video, deploy-scene, deploy-worlds, optimize-scene,
 camera-control, lighting-environment, player-avatar, nft-blockchain, advanced-rendering, advanced-input, scene-runtime,
-visual-feedback, game-design
+visual-feedback, game-design, editor-gizmo
 
 Adding a skill = creating `skills/<name>/SKILL.md`. No code changes needed.
 

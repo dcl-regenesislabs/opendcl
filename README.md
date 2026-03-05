@@ -99,6 +99,7 @@ This uses the open [skills](https://github.com/vercel-labs/skills) CLI to copy S
 | `/deploy` | Deploy the scene to Genesis City or a World (auto-detects from scene.json) |
 | `/tasks` | Interactively manage running background processes (preview server, etc.) |
 | `/review` | Review scene code for quality, performance, and SDK7 best practices |
+| `/save-editor` | Apply pending visual editor changes to scene source code |
 | `/explain <concept>` | Explain a Decentraland SDK7 concept (e.g., `/explain tweens`) |
 
 The agent also has a `screenshot` tool it can call automatically to see the running preview. On first use it asks for your permission to open a headless browser. The browser stays open for the entire session — no repeated logins.
@@ -129,6 +130,7 @@ OpenDCL loads domain-specific skills on demand based on what you're asking:
 | `scene-runtime` | Async tasks, fetch, timers, realm info, restricted actions, testing |
 | `visual-feedback` | Use the screenshot tool to see your scene, verify changes, iterate visually |
 | `game-design` | Plan game architecture, scene limits, state management, MVP planning |
+| `editor-gizmo` | Use a visual in-scene editor with translate/rotate gizmos |
 
 ## How It Works
 
@@ -159,6 +161,7 @@ opendcl/
 │   ├── dcl-validate.ts       # Post-write TypeScript validation
 │   ├── dcl-screenshot.ts      # screenshot tool (headless Chrome, persistent browser)
 │   ├── dcl-tasks.ts          # /tasks command (process manager)
+│   ├── dcl-editor-save.ts    # /save-editor command (apply visual editor changes)
 │   ├── process-registry.ts   # Shared background process registry
 │   └── permissions/           # Permission gate for dangerous operations
 ├── skills/                   # 20 SKILL.md files (domain expertise)
