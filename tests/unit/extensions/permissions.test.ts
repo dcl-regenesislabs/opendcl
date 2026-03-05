@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { classifyBashCommand, classifyFilePath } from "../../../extensions/permissions/utils.js";
+import { classifyBashCommand, classifyFilePath, isOutsideCwd } from "../../../extensions/permissions/utils.js";
 
 describe("permissions utils", () => {
   describe("classifyBashCommand (allowlist model)", () => {
@@ -249,8 +249,8 @@ describe("permissions utils", () => {
       ["package.json", "package manifest"],
       ["tsconfig.json", "TypeScript config"],
       [".git/config", "git internal"],
-      ["../../etc/passwd", "outside project root"],
-      ["/etc/passwd", "outside project root"],
+      ["../../etc/passwd", "outside working directory"],
+      ["/etc/passwd", "outside working directory"],
     ];
 
     it.each(sensitive)("%s → returns reason", (filePath) => {
@@ -288,6 +288,38 @@ describe("permissions utils", () => {
 
     it("reason for .git/ mentions git", () => {
       expect(classifyFilePath(".git/config", projectRoot)!.toLowerCase()).toContain("git");
+    });
+  });
+
+  describe("isOutsideCwd", () => {
+    const cwd = "/home/user/project";
+
+    const outside: [string, string][] = [
+      ["../../etc/passwd", "relative traversal"],
+      ["/etc/passwd", "absolute outside path"],
+      ["/tmp/file.txt", "absolute outside path"],
+      ["../sibling/file.ts", "relative sibling"],
+    ];
+
+    it.each(outside)("%s → returns reason (%s)", (filePath) => {
+      const reason = isOutsideCwd(filePath, cwd);
+      expect(reason).toBeTypeOf("string");
+      expect(reason!.toLowerCase()).toContain("outside");
+    });
+
+    const inside = [
+      "src/index.ts",
+      "./src/index.ts",
+      "README.md",
+      "a/b/c/d/e/f/deeply-nested.ts",
+    ];
+
+    it.each(inside.map((p) => [p]))("%s → returns null", (filePath) => {
+      expect(isOutsideCwd(filePath, cwd)).toBeNull();
+    });
+
+    it("empty string → returns null", () => {
+      expect(isOutsideCwd("", cwd)).toBeNull();
     });
   });
 });
