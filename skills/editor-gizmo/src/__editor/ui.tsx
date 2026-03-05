@@ -24,7 +24,8 @@ const EditorUI = () => {
   const pos = getPos()
   const rot = getRot()
   const hasSelection = state.selectedEntity !== undefined
-  const modeLabel = state.gizmoMode === 'translate' ? 'Move' : 'Rotate'
+  const gizmoLabel = state.gizmoMode === 'translate' ? 'Move' : 'Rotate'
+  const modeLabel = state.editorCamActive ? `EditorCam · ${gizmoLabel}` : gizmoLabel
   const entityCount = selectableInfoMap.size
   const statusText = state.wsConnected
     ? (state.pendingChanges > 0 ? `● ${state.pendingChanges} unsaved` : '● connected')
@@ -61,7 +62,10 @@ const EditorUI = () => {
           />
         </UiEntity>
         <Label
-          value="E: Move/Rotate | F: deselect"
+          value={state.editorCamActive
+            ? 'WASD: pan | Space/Shift: up/down | 2/3: zoom | F: focus | 1: exit'
+            : 'E: Move/Rotate | F: deselect | 1: editor cam'
+          }
           fontSize={11}
           color={Color4.create(0.4, 0.4, 0.5, 1)}
           uiTransform={{ width: '100%', height: 16 }}
