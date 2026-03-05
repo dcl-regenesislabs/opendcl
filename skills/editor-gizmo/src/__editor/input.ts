@@ -1,10 +1,11 @@
-/** Key bindings, mode toggle, gizmo click flag. */
+/** Key bindings, mode toggle, gizmo click flag, undo/redo. */
 
 import { inputSystem, InputAction, PointerEventType } from '@dcl/sdk/ecs'
 import { state, gizmoClickConsumed, setGizmoClickConsumed } from './state'
 import { createGizmo } from './gizmo'
 import { deselectEntity } from './selection'
 import { toggleEditorCamera, deactivateEditorCamera, focusSelectedEntity } from './camera'
+import { undo, redo } from './history'
 
 export function modeToggleSystem() {
   if (inputSystem.isTriggered(InputAction.IA_PRIMARY, PointerEventType.PET_DOWN)) {
@@ -27,6 +28,16 @@ export function modeToggleSystem() {
 
   if (inputSystem.isTriggered(InputAction.IA_ACTION_3, PointerEventType.PET_DOWN)) {
     toggleEditorCamera()
+  }
+
+  // 4 = undo, Shift+4 = redo
+  if (inputSystem.isTriggered(InputAction.IA_ACTION_6, PointerEventType.PET_DOWN)) {
+    if (state.isDragging) return
+    if (inputSystem.isPressed(InputAction.IA_WALK)) {
+      redo()
+    } else {
+      undo()
+    }
   }
 }
 
