@@ -65,6 +65,8 @@ const WELCOME_BUTTON_POS = { x: 0.237, y: 0.583 };
 // ── Chrome flags for Bevy-Web (WebGPU via Metal) ──────────────────────────
 
 const CHROME_FLAGS = [
+  // The local dev server (localhost) serves assets and WASM from different ports/origins.
+  // Without these flags, CORS blocks the renderer from loading scene content.
   "--disable-web-security",
   "--allow-insecure-localhost",
   "--disable-features=PrivateNetworkAccessPermissionPrompt",
@@ -94,12 +96,13 @@ async function executeActions(page: Page, actions: Action[]): Promise<void> {
         break;
 
       case "key":
+        if (!action.key) throw new Error('key action requires a "key" parameter');
         if (action.holdMs) {
-          await page.keyboard.down(action.key ?? "");
+          await page.keyboard.down(action.key);
           await page.waitForTimeout(action.holdMs);
-          await page.keyboard.up(action.key ?? "");
+          await page.keyboard.up(action.key);
         } else {
-          await page.keyboard.press(action.key ?? "");
+          await page.keyboard.press(action.key);
         }
         break;
 
@@ -285,11 +288,19 @@ const extension: ExtensionFactory = (pi) => {
     const page = await instance.newPage({ viewport: { width: 1280, height: 720 } });
     await page.goto(previewUrl, { waitUntil: "domcontentloaded", timeout: 60_000 });
 
-    // Enter scene (welcome screen + asset loading)
+    // Enter scene (welcome screen + asset loading).
+    // Set persistentPage only after success — if enterScene throws, the page
+    // won't be cached and the next call will start fresh instead of reusing
+    // a page that never entered the scene.
     if (!sceneEntered) {
       onUpdate?.("Entering scene (dismissing welcome screen, loading assets)...");
-      await enterScene(page);
-      sceneEntered = true;
+      try {
+        await enterScene(page);
+        sceneEntered = true;
+      } catch (err) {
+        try { await page.close(); } catch { /* ignore */ }
+        throw err;
+      }
     }
 
     persistentPage = page;

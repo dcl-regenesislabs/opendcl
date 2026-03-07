@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createMockPi } from "../../helpers/mock-pi.js";
+import { createMockPi, createMockContext } from "../../helpers/mock-pi.js";
 
 const EXTENSIONS_DIR = "../../../extensions";
 
@@ -38,5 +38,18 @@ describe("dcl-screenshot extension", () => {
     await mod.default(pi);
 
     expect(records.commands).toHaveLength(0);
+  });
+
+  it("returns 'no preview' message when preview is not running", async () => {
+    const { pi, records } = createMockPi();
+    const mod = await import(`${EXTENSIONS_DIR}/dcl-screenshot.js`);
+    await mod.default(pi);
+
+    const tool = records.tools.find((t: any) => t.name === "screenshot") as any;
+    const ctx = createMockContext();
+    const result = await tool.execute("test-id", {}, undefined, undefined, ctx);
+
+    expect(result.content).toHaveLength(1);
+    expect(result.content[0].text).toContain("No preview server running");
   });
 });
