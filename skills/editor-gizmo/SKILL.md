@@ -37,12 +37,23 @@ Copy the pre-built editor files into the scene's `src/__editor/` directory:
 mkdir -p src/__editor && cp -rf {baseDir}/src/__editor/* src/__editor/
 ```
 
-This creates:
+This creates a self-contained editor directory:
 ```
 src/__editor/
-├── index.ts   — Main editor logic + enableEditor() export
-├── state.ts   — Shared state and types
-└── ui.tsx     — Editor UI overlay
+├── index.ts       — Entry point + enableEditor() export
+├── state.ts       — Shared state and types
+├── messages.ts    — Message schemas (client ↔ server)
+├── server.ts      — Auth-server (locks, sync, persistence)
+├── persistence.ts — Client-side message senders
+├── selection.ts   — Select/deselect + highlight
+├── discovery.ts   — Auto-discover scene entities
+├── gizmo.ts       — Translate/rotate gizmo handles
+├── drag.ts        — Drag system (ray-plane intersection)
+├── camera.ts      — Editor camera (orbit, WASD pan)
+├── input.ts       — Key bindings (E, F, 1-4)
+├── history.ts     — Undo/redo stack
+├── math-utils.ts  — Vector/quaternion helpers
+└── ui.tsx         — Toolbar + hierarchy + properties panel
 ```
 
 ### Step 2: Add Name components to all scene entities
@@ -71,12 +82,12 @@ In the scene's `src/index.ts` (or wherever `export function main()` is defined):
 import { enableEditor } from './__editor'
 ```
 
-2. Add this call at the **end** of `main()`, after all entities are created:
+2. Add this call in `main()`, after all entities are created but **before** any `if (isServer()) { ... return }` guard:
 ```typescript
 enableEditor()
 ```
 
-The `enableEditor()` call must be **after** all entity creation so that the discovery system finds everything on its first frame. The editor automatically skips initialization on the server side.
+**Important**: `enableEditor()` handles `isServer()` branching internally. On the server it starts the editor's sync/lock/persistence system. On the client it sets up the UI and gizmos. If the scene has its own `if (isServer()) { server(); return }` early-exit, `enableEditor()` must be called **before** that guard — otherwise the editor's server never starts.
 
 **Full example:**
 ```typescript
@@ -255,6 +266,18 @@ Transform.create(redBox, { position: Vector3.create(8, 2.5, 10) })
 ```
 
 Then delete `src/__editor/editor-scene.json.bkp`.
+
+## Applying Editor Changes — Composite + Code
+
+A single `editor-scene.json` can contain entities from both TypeScript code and `main.composite`. The `/save-editor` command handles both automatically:
+
+1. **Composite entities** (`assets/scene/main.composite`) are patched **deterministically** by the extension — no AI needed. It matches entity names via `core-schema::Name`, updates `core::Transform` with raw quaternions, and preserves `parent` fields.
+
+2. **Code entities** (TypeScript) are handed to the AI agent. The `.bkp` file is rewritten to contain only the remaining code entities. Follow the "Applying Editor Changes to Source Code" section above.
+
+3. If all entities were composite, the `.bkp` is deleted automatically — done.
+
+The agent only needs to handle TypeScript patching. The composite patching is fully automated.
 
 ### Safety checks
 - **Before deploy**: Check if `src/__editor/editor-scene.json` or `src/__editor/editor-scene.json.bkp` exists with content. If so, warn the user that there are unapplied editor changes and suggest applying them first.

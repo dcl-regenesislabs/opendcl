@@ -23,7 +23,7 @@ import {
   gizmoClickConsumed,
 } from './state'
 import { selectEntity } from './selection'
-import { applyOverrides } from './persistence'
+
 
 /** Built-in entities to never register */
 export const SKIP_ENTITIES = new Set<Entity>()
@@ -130,7 +130,6 @@ export function registerEntity(entity: Entity) {
   }
 
   selectableInfoMap.set(entity, info)
-  applyOverrides(entity)
 
   pointerEventsSystem.onPointerDown(
     {
@@ -146,13 +145,9 @@ export function registerEntity(entity: Entity) {
 
 export function discoverySystem() {
   for (const [entity] of engine.getEntitiesWith(Transform, MeshRenderer)) {
-    if (!selectableInfoMap.has(entity) && !editorEntities.has(entity) && !SKIP_ENTITIES.has(entity)) {
-      registerEntity(entity)
-    }
+    registerEntity(entity)
   }
   for (const [entity] of engine.getEntitiesWith(Transform, GltfContainer)) {
-    if (!selectableInfoMap.has(entity) && !editorEntities.has(entity) && !SKIP_ENTITIES.has(entity)) {
-      registerEntity(entity)
-    }
+    registerEntity(entity)
   }
 }

@@ -2,8 +2,11 @@
   "ecs7": true,
   "runtimeVersion": "7",
   "display": {
-    "title": "Gizmo Prototype v2",
-    "description": "Ray-plane intersection drag approach"
+    "title": "In-World Editor",
+    "description": "Scene editor with auth-server persistence and admin locks"
+  },
+  "worldConfiguration": {
+    "name": "editor-gizmo-test"
   },
   "scene": {
     "parcels": [

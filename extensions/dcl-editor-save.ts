@@ -2,17 +2,18 @@
  * DCL Editor Save Extension
  *
  * Provides `/save-editor` command and startup prompt for pending editor changes.
- * The actual patching logic is in the editor-gizmo skill — this extension just
- * detects changes, creates the backup, and tells the agent to apply them.
+ * Composite entities (main.composite) are patched deterministically here.
+ * Code entities (TypeScript) are handed to the AI agent via the editor-gizmo skill.
  */
 
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
-import { readFile, rename } from "node:fs/promises";
+import { readFile, writeFile, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { fileExists, findSceneRoot } from "./scene-utils.js";
 
 const EDITOR_FILE = "src/__editor/editor-scene.json";
 const BACKUP_FILE = "src/__editor/editor-scene.json.bkp";
+const COMPOSITE_FILE = "assets/scene/main.composite";
 
 /** Check if there are pending editor changes (either main file or interrupted backup) */
 async function findPendingChanges(
@@ -65,21 +66,182 @@ async function createBackup(sceneRoot: string): Promise<boolean> {
   }
 }
 
+// ── Composite patching ──────────────────────────────────
+
+interface EditorTransform {
+  components: {
+    Transform: {
+      position: { x: number; y: number; z: number };
+      rotation: { x: number; y: number; z: number; w: number };
+      scale: { x: number; y: number; z: number };
+    };
+  };
+}
+
+type EditorChanges = Record<string, EditorTransform>;
+
+interface CompositeComponent {
+  name: string;
+  jsonSchema: unknown;
+  data: Record<string, { json: Record<string, unknown> }>;
+}
+
+interface CompositeFile {
+  version: number;
+  components: CompositeComponent[];
+}
+
+/**
+ * Apply editor changes to main.composite. Returns the set of entity names
+ * that were found and patched in the composite (so they can be excluded
+ * from the AI-driven TypeScript patching).
+ */
+async function applyCompositeChanges(
+  sceneRoot: string,
+  changes: EditorChanges
+): Promise<{ patched: Set<string>; errors: string[] }> {
+  const patched = new Set<string>();
+  const errors: string[] = [];
+
+  const compositePath = join(sceneRoot, COMPOSITE_FILE);
+  if (!(await fileExists(compositePath))) {
+    return { patched, errors };
+  }
+
+  let composite: CompositeFile;
+  try {
+    const raw = await readFile(compositePath, "utf-8");
+    composite = JSON.parse(raw);
+  } catch (e) {
+    errors.push(`Failed to parse ${COMPOSITE_FILE}: ${e}`);
+    return { patched, errors };
+  }
+
+  // Build name → entity ID map from core-schema::Name
+  const nameComp = composite.components.find(
+    (c) => c.name === "core-schema::Name"
+  );
+  if (!nameComp) {
+    return { patched, errors }; // No names in composite — nothing to match
+  }
+
+  const nameToId = new Map<string, string>();
+  for (const [entityId, entry] of Object.entries(nameComp.data)) {
+    const name = entry?.json?.value as string | undefined;
+    if (name) nameToId.set(name, entityId);
+  }
+
+  // Find core::Transform component
+  const transformComp = composite.components.find(
+    (c) => c.name === "core::Transform"
+  );
+  if (!transformComp) {
+    errors.push("No core::Transform component found in composite");
+    return { patched, errors };
+  }
+
+  // Patch matching entities
+  for (const [entityName, change] of Object.entries(changes)) {
+    const entityId = nameToId.get(entityName);
+    if (!entityId) continue; // Not a composite entity
+
+    const existing = transformComp.data[entityId];
+    if (!existing) {
+      errors.push(`Entity "${entityName}" (id ${entityId}) has no transform in composite`);
+      continue;
+    }
+
+    const t = change.components.Transform;
+    existing.json.position = { x: t.position.x, y: t.position.y, z: t.position.z };
+    existing.json.rotation = { x: t.rotation.x, y: t.rotation.y, z: t.rotation.z, w: t.rotation.w };
+    existing.json.scale = { x: t.scale.x, y: t.scale.y, z: t.scale.z };
+    // parent is preserved — we only touch position/rotation/scale
+
+    patched.add(entityName);
+  }
+
+  if (patched.size > 0) {
+    try {
+      await writeFile(compositePath, JSON.stringify(composite, null, 2) + "\n", "utf-8");
+    } catch (e) {
+      errors.push(`Failed to write ${COMPOSITE_FILE}: ${e}`);
+      return { patched: new Set(), errors };
+    }
+  }
+
+  return { patched, errors };
+}
+
+// ── Extension ───────────────────────────────────────────
+
 const extension: ExtensionFactory = (pi) => {
-  function sendApplyRequest(count: number): void {
+  function sendCodeApplyRequest(codeEntityNames: string[]): void {
     pi.sendMessage(
       {
         customType: "editor-save",
         content: [
-          `The user has ${count} pending editor change(s) to apply.`,
-          `Read the editor-gizmo skill for the full apply process.`,
+          `There are ${codeEntityNames.length} code entity change(s) to apply to TypeScript source files.`,
+          `Read the editor-gizmo skill for the apply process.`,
           `The changes are in: src/__editor/editor-scene.json.bkp`,
           `Read that file, then follow the "Applying Editor Changes to Source Code" section of the skill.`,
+          `Only apply these entities (the rest were already patched in main.composite):`,
+          codeEntityNames.map(n => `  - "${n}"`).join("\n"),
+          `After applying all changes, delete src/__editor/editor-scene.json.bkp`,
         ].join("\n"),
         display: true,
       },
       { triggerTurn: true, deliverAs: "nextTurn" }
     );
+  }
+
+  /**
+   * Apply all pending changes:
+   * 1. Composite entities → patched deterministically here
+   * 2. Code entities → handed to the AI agent (reads from same .bkp)
+   * Both can effectively happen in parallel — composite is instant,
+   * AI reads the .bkp file which stays untouched.
+   */
+  async function applyAllChanges(
+    sceneRoot: string,
+    changesPath: string,
+    ctx: { ui: { notify: (msg: string, type?: string) => void } }
+  ): Promise<void> {
+    let changes: EditorChanges;
+    try {
+      const raw = await readFile(changesPath, "utf-8");
+      changes = JSON.parse(raw);
+    } catch {
+      ctx.ui.notify("Failed to read editor changes file.", "error");
+      return;
+    }
+
+    const totalCount = Object.keys(changes).length;
+    if (totalCount === 0) {
+      ctx.ui.notify("Editor changes file is empty.", "warning");
+      return;
+    }
+
+    // Apply composite changes (deterministic, instant)
+    const { patched, errors } = await applyCompositeChanges(sceneRoot, changes);
+    for (const err of errors) {
+      ctx.ui.notify(err, "warning");
+    }
+    if (patched.size > 0) {
+      ctx.ui.notify(
+        `Patched ${patched.size} composite ${patched.size === 1 ? 'entity' : 'entities'} in main.composite.`,
+        "info"
+      );
+    }
+
+    // Remaining code entities → AI agent
+    const codeEntityNames = Object.keys(changes).filter(n => !patched.has(n));
+    if (codeEntityNames.length > 0) {
+      sendCodeApplyRequest(codeEntityNames);
+    } else {
+      // All composite — clean up
+      try { await unlink(changesPath); } catch { /* already gone */ }
+      ctx.ui.notify("All editor changes applied!", "info");
+    }
   }
 
   pi.registerCommand("save-editor", {
@@ -112,11 +274,8 @@ const extension: ExtensionFactory = (pi) => {
         }
       }
 
-      ctx.ui.notify(
-        `Applying ${count} editor change(s) to source code...`,
-        "info"
-      );
-      sendApplyRequest(count);
+      const bkpPath = join(sceneRoot, BACKUP_FILE);
+      await applyAllChanges(sceneRoot, bkpPath, ctx);
     },
   });
 
@@ -148,7 +307,9 @@ const extension: ExtensionFactory = (pi) => {
     if (!pending.isBackup) {
       await createBackup(sceneRoot);
     }
-    sendApplyRequest(count);
+
+    const bkpPath = join(sceneRoot, BACKUP_FILE);
+    await applyAllChanges(sceneRoot, bkpPath, ctx);
   });
 };
 
@@ -167,5 +328,5 @@ export async function getPendingEditorChanges(
   const pending = await findPendingChanges(sceneRoot);
   if (!pending) return 0;
 
-  return await countChanges(pending.path);
+  return countChanges(pending.path);
 }

@@ -170,14 +170,12 @@ export function gizmoFollowSystem() {
     g.rotation.w = 1
   }
 
-  const gizmoPos = center
-
   // Scale gizmo: max of camera-distance-based and entity-size-based
   // 1) Camera distance → constant screen size
   const camT = getActiveCameraTransform()
-  const dx = camT.position.x - gizmoPos.x
-  const dy = camT.position.y - gizmoPos.y
-  const dz = camT.position.z - gizmoPos.z
+  const dx = camT.position.x - center.x
+  const dy = camT.position.y - center.y
+  const dz = camT.position.z - center.z
   const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
   const distScale = dist * GIZMO_SCALE_FACTOR
 
