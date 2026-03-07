@@ -433,7 +433,7 @@ Movement speed is ~6m/s. Camera always faces north in headless mode.`,
         }
 
         onUpdate("Capturing screenshot...");
-        const buffer = await page.screenshot({ type: "png" });
+        const buffer = await page.screenshot({ type: "png", timeout: 30_000 });
         const base64 = buffer.toString("base64");
 
         return {
