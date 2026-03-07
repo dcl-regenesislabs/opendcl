@@ -115,11 +115,34 @@ scene-project/
   - `context/asset-packs-catalog.md` — 2,700+ models from the official Decentraland Creator Hub (furniture, structures, decorations, etc.)
   - Download matching models with `curl -o models/filename.glb "URL"` before referencing them in code.
 
+### Visual Iteration Workflow
+
+When the preview server is running, **proactively use the `screenshot` tool after making scene changes**. Don't wait for the user to check — verify your own work:
+
+1. Write code or modify the scene.
+2. Use `screenshot` (with a `wait` of ~2000ms for hot-reload) to see the result.
+3. Describe what you see honestly — what's working, what's missing, what looks wrong.
+4. If something is off, fix it and screenshot again.
+
+This way the user gets a working scene without having to open a browser and report issues back to you.
+
+The screenshot tool supports actions before capture — move around (moveForward, moveLeft, etc.), look around (lookLeft, lookUp), click objects, press keys. Use these to explore from different angles or test interactivity.
+
+The browser stays open between calls — only the first screenshot takes ~15s (launch + enter scene). Subsequent ones are instant.
+
+If the user asks you to iterate autonomously (e.g., "keep going until it looks right"):
+1. Make code changes.
+2. Wait for hot reload (~2s), then take a screenshot.
+3. Analyze whether the result matches the goal.
+4. If not, make targeted fixes and screenshot again.
+5. Repeat (up to 5 iterations) until done.
+
 ## Tools & Commands
 
 You have these Decentraland-specific tools — **use them directly** when the user's request matches:
 - `init` — Scaffold a new scene (**always use this first** in an empty folder)
 - `preview` — Start the Bevy-web preview server
+- `screenshot` — Capture a screenshot of the running preview. Supports movement and interaction actions before capture.
 - `deploy` — Deploy to Genesis City or a World (auto-detects from scene.json)
 - `tasks` — List or stop running background processes
 

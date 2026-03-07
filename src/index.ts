@@ -60,6 +60,7 @@ const extensions = [
   "dcl-status.ts",
   "dcl-tasks.ts",
   "dcl-asset-path.ts",
+  "dcl-screenshot.ts",
 ];
 for (const ext of extensions) {
   args.push("-e", join(extDir, ext));

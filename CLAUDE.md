@@ -68,14 +68,16 @@ Key lifecycle events: `session_start`, `before_agent_start`, `tool_call`, `tool_
 | `dcl-setup-ollama.ts` | `/setup-ollama` → Ollama install + model config; prompts on startup if no provider configured | `registerCommand` + `session_start` |
 | `dcl-status.ts` | Shows elapsed time + output token count in spinner during LLM inference | `turn_start` + `message_update` + `turn_end` + `agent_end` |
 | `dcl-tasks.ts` | `/tasks` → interactive process manager | `registerCommand` |
+| `dcl-screenshot.ts` | `screenshot` LLM tool → captures preview via headless Chrome; persistent browser, user consent, Bevy-Web GPU flags | `registerTool` + `session_shutdown` |
 | `process-registry.ts` | Shared `Map<string, BackgroundProcess>` singleton (via globalThis) | Module export |
 | `permissions/index.ts` | Confirms dangerous bash & file write ops | `tool_call` + `registerFlag` |
 
-## Skills (18)
+## Skills (19)
 
 create-scene, add-3d-models, add-interactivity, build-ui, animations-tweens,
 multiplayer-sync, authoritative-server, audio-video, deploy-scene, deploy-worlds, optimize-scene,
-camera-control, lighting-environment, player-avatar, nft-blockchain, advanced-rendering, advanced-input, scene-runtime
+camera-control, lighting-environment, player-avatar, nft-blockchain, advanced-rendering, advanced-input, scene-runtime,
+visual-feedback
 
 Adding a skill = creating `skills/<name>/SKILL.md`. No code changes needed.
 
