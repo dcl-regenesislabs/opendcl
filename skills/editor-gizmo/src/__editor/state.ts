@@ -1,33 +1,32 @@
-/** Editor version — used by the editor-gizmo skill to detect outdated files */
-export const EDITOR_VERSION = '0.4.0'
+/** Shared editor state — the single source of truth for all editor modules. */
 
 import { Entity } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 
-export type Axis = 'x' | 'y' | 'z'
+export const EDITOR_VERSION = '0.5.0'
 
-/** Maximum depth for parent chain walking (prevents infinite loops) */
-export const MAX_PARENT_DEPTH = 16
+export type Axis = 'x' | 'y' | 'z'
 export type GizmoMode = 'translate' | 'rotate'
 
-/** Per-entity info computed during auto-discovery */
+/** Maximum depth for parent chain walking (prevents infinite loops). */
+export const MAX_PARENT_DEPTH = 16
+
+// ── Per-entity info (populated by discovery) ────────────
+
 export interface SelectableInfo {
   name: string
   centerOffset: { x: number; y: number; z: number }
   boundsSize: { x: number; y: number; z: number }
   isModel: boolean
   colliderShape: 'box' | 'sphere' | 'cylinder'
-  /** Original GltfContainer visible mesh collision mask (to restore on deselect) */
   originalVisibleMask?: number
-  /** Original GltfContainer invisible mesh collision mask */
   originalInvisibleMask?: number
-  /** GltfContainer src path (for models) */
   src?: string
-  /** Mesh type (for primitives) */
   meshType?: 'box' | 'sphere' | 'cylinder'
-  /** Parent entity if this entity is a child */
   parentEntity?: number
 }
+
+// ── Editor state ────────────────────────────────────────
 
 export interface EditorState {
   selectedEntity: Entity | undefined
@@ -37,8 +36,8 @@ export interface EditorState {
   dragAxis: Axis
 
   // Translate drag
-  dragStartPos: { x: number; y: number; z: number }       // local position
-  dragStartWorldPos: { x: number; y: number; z: number }   // world position (for plane intersection)
+  dragStartPos: { x: number; y: number; z: number }
+  dragStartWorldPos: { x: number; y: number; z: number }
   dragStartHit: { x: number; y: number; z: number }
   dragPlaneNormal: { x: number; y: number; z: number }
 
@@ -47,12 +46,11 @@ export interface EditorState {
   dragStartAngle: number
   dragRotCenter: { x: number; y: number; z: number }
 
-  // WebSocket connection
-  wsConnected: boolean
-  pendingChanges: number
-
-  // Editor camera
+  // Camera
   editorCamActive: boolean
+
+  // Player identity (set by server on editorEnable)
+  myAddress: string
 }
 
 export const state: EditorState = {
@@ -68,23 +66,40 @@ export const state: EditorState = {
   dragStartRot: Quaternion.Identity(),
   dragStartAngle: 0,
   dragRotCenter: Vector3.Zero(),
-  wsConnected: false,
-  pendingChanges: 0,
   editorCamActive: false,
+  myAddress: '',
 }
 
-// ---- Entity tracking ----
+// ── Lock management ─────────────────────────────────────
 
-/** Entities created by the editor (gizmo, ground plane) — skipped by discovery */
+/** entityName → wallet address of lock holder */
+export const lockMap = new Map<string, string>()
+
+export function setLock(entityName: string, lockedBy: string) {
+  lockMap.set(entityName, lockedBy)
+}
+
+export function clearLock(entityName: string) {
+  lockMap.delete(entityName)
+}
+
+export function isLockedByOther(entityName: string, myAddress: string): boolean {
+  const holder = lockMap.get(entityName)
+  return holder !== undefined && holder !== myAddress
+}
+
+// ── Entity tracking ─────────────────────────────────────
+
+/** Entities created by the editor (gizmo, ground plane) — skipped by discovery. */
 export const editorEntities = new Set<Entity>()
 
-/** Discovered scene entities → their info */
+/** Discovered scene entities → their info. */
 export const selectableInfoMap = new Map<Entity, SelectableInfo>()
 
-/** Original material colors for primitive highlight/unhighlight */
+/** Original material colors for primitive highlight/unhighlight. */
 export const originalMaterials = new Map<Entity, { r: number; g: number; b: number; a: number }>()
 
-// ---- Gizmo entities ----
+// ── Gizmo entities ──────────────────────────────────────
 
 export const gizmoEntities: Entity[] = []
 
@@ -95,7 +110,7 @@ export const handleAxisMap = new Map<Entity, Axis>()
 export const handleDiscMap = new Map<Entity, Entity>()
 export const handleArrowMap = new Map<Entity, Entity[]>()
 
-// ---- Click consumption flag ----
+// ── Click consumption flag ──────────────────────────────
 
 export let gizmoClickConsumed = false
 export function setGizmoClickConsumed(v: boolean) { gizmoClickConsumed = v }

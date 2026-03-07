@@ -1,11 +1,12 @@
 import { Entity, Transform } from '@dcl/sdk/ecs'
 import { Color4, Quaternion } from '@dcl/sdk/math'
 import ReactEcs, { ReactEcsRenderer, UiEntity, Label } from '@dcl/sdk/react-ecs'
-import { state, selectableInfoMap } from './state'
+import { state, selectableInfoMap, lockMap } from './state'
 import { undoCount, redoCount, undo, redo } from './history'
 import { createGizmo } from './gizmo'
 import { toggleEditorCamera, focusSelectedEntity } from './camera'
 import { selectEntity, deselectEntity } from './selection'
+import { requestReset } from './persistence'
 
 // ── Icons ───────────────────────────────────────────────
 
@@ -19,6 +20,8 @@ const IC = {
   focus:    'https://www.iconsdb.com/icons/download/white/location-48.png',
   model:    'https://www.iconsdb.com/icons/download/white/box-48.png',
   mesh:     'https://www.iconsdb.com/icons/download/white/puzzle-48.png',
+  lock:     'https://www.iconsdb.com/icons/download/white/lock-48.png',
+  reset:    'https://www.iconsdb.com/icons/download/white/refresh-48.png',
 }
 
 // ── Theme ───────────────────────────────────────────────
@@ -88,12 +91,19 @@ function rot3() {
 
 function TBtn(id: string, icon: string, key: string, active: boolean, disabled: boolean, fn: () => void) {
   const h = hovered === id
-  const bg = disabled ? T.btnDefault
-    : active && h ? T.btnActiveH
-    : active ? T.btnActive
-    : h ? T.btnHover
-    : T.btnDefault
-  const op = disabled ? 0.18 : active ? 1.0 : h ? 0.85 : 0.48
+
+  let bg: Color4
+  if (disabled) bg = T.btnDefault
+  else if (active && h) bg = T.btnActiveH
+  else if (active) bg = T.btnActive
+  else if (h) bg = T.btnHover
+  else bg = T.btnDefault
+
+  let op: number
+  if (disabled) op = 0.18
+  else if (active) op = 1.0
+  else if (h) op = 0.85
+  else op = 0.48
 
   return (
     <UiEntity
@@ -141,7 +151,7 @@ function Toolbar(sel: boolean) {
           {TBtn('foc', IC.focus, 'F', false, !sel, () => { if (!state.editorCamActive) toggleEditorCamera(); focusSelectedEntity() })}
           {Sep()}
           <UiEntity uiTransform={{ width: 8, height: 8, margin: { left: 3, right: 2 }, alignSelf: 'center' }}
-            uiBackground={{ color: state.wsConnected ? (state.pendingChanges > 0 ? T.statusWarn : T.statusOk) : T.statusOff }} />
+            uiBackground={{ color: T.statusOk }} />
         </UiEntity>
       </UiEntity>
     </UiEntity>
@@ -230,15 +240,21 @@ function RightPanel(sel: boolean) {
     const isSel = state.selectedEntity === node.e
     const isHov = hierHov === eid
     const globalIdx = hierScroll + i
+    const locked = lockMap.has(node.name) && !isSel
 
     let bg: Color4
     if (isSel) bg = T.rowSelected
+    else if (locked) bg = Color4.create(0.18, 0.13, 0.12, 1)
     else if (isHov) bg = T.rowHover
     else bg = globalIdx % 2 === 0 ? T.rowEven : T.rowOdd
 
-    const textCol = isSel ? T.textBright : isHov ? T.textMed : T.textDim
+    let textCol: Color4
+    if (locked) textCol = T.textDisabled
+    else if (isSel) textCol = T.textBright
+    else if (isHov) textCol = T.textMed
+    else textCol = T.textDim
     const leftPad = 8 + node.depth * 10
-    const maxChars = Math.max(8, 18 - node.depth * 2)
+    const maxChars = Math.max(8, locked ? 14 : 18 - node.depth * 2)
     const label = node.name.length > maxChars ? node.name.substring(0, maxChars - 1) + '..' : node.name
 
     hierRows.push(
@@ -254,8 +270,8 @@ function RightPanel(sel: boolean) {
           uiTransform={{ width: 12, height: 12, margin: { right: 4 } }}
           uiBackground={{
             textureMode: 'stretch',
-            texture: { src: node.isModel ? IC.model : IC.mesh },
-            color: Color4.create(1, 1, 1, isSel ? 0.7 : 0.3),
+            texture: { src: locked ? IC.lock : node.isModel ? IC.model : IC.mesh },
+            color: Color4.create(1, 1, 1, locked ? 0.4 : isSel ? 0.7 : 0.3),
           }}
         />
         <Label value={label} fontSize={9} color={textCol} uiTransform={{ height: 14 }} />
@@ -349,12 +365,38 @@ function RightPanel(sel: boolean) {
           </UiEntity>
 
           {/* Rotation */}
-          <UiEntity uiTransform={{ width: '100%', padding: { left: 10, right: 6, top: 4, bottom: 8 }, flexDirection: 'column' }}>
+          <UiEntity uiTransform={{ width: '100%', padding: { left: 10, right: 6, top: 4, bottom: 4 }, flexDirection: 'column' }}>
             <Label value="Rotation" fontSize={8} color={T.textDim} uiTransform={{ height: 11, margin: { bottom: 2 } }} />
             <UiEntity uiTransform={{ flexDirection: 'row', width: '100%', height: 18 }}>
               {ValField('X', rot.x, T.xAxis)}
               {ValField('Y', rot.y, T.yAxis)}
               {ValField('Z', rot.z, T.zAxis)}
+            </UiEntity>
+          </UiEntity>
+
+          {/* Reset to code-defined transform */}
+          <UiEntity
+            uiTransform={{
+              width: '100%',
+              height: 26,
+              padding: { left: 10, right: 10, bottom: 6 },
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              flexDirection: 'row',
+            }}
+          >
+            <UiEntity
+              uiTransform={{ height: 20, padding: { left: 6, right: 6 }, flexDirection: 'row', alignItems: 'center' }}
+              uiBackground={{ color: hovered === 'reset' ? Color4.create(0.4, 0.2, 0.2, 1) : T.btnDefault }}
+              onMouseEnter={() => { hovered = 'reset' }}
+              onMouseLeave={() => { if (hovered === 'reset') hovered = null }}
+              onMouseDown={() => { if (state.selectedName) requestReset(state.selectedName) }}
+            >
+              <UiEntity
+                uiTransform={{ width: 10, height: 10, margin: { right: 4 } }}
+                uiBackground={{ textureMode: 'stretch', texture: { src: IC.reset }, color: Color4.create(1, 1, 1, 0.6) }}
+              />
+              <Label value="Reset" fontSize={8} color={T.textMed} uiTransform={{ height: 10 }} />
             </UiEntity>
           </UiEntity>
         </UiEntity>
@@ -384,7 +426,7 @@ function ValField(label: string, value: string, color: Color4) {
 
 // ── Main UI ─────────────────────────────────────────────
 
-const EditorUI = () => {
+function EditorUI() {
   const sel = state.selectedEntity !== undefined
 
   return (
