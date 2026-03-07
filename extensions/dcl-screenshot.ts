@@ -18,8 +18,6 @@
  */
 
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
-import { existsSync } from "node:fs";
-import { execSync } from "node:child_process";
 import { Type } from "@sinclair/typebox";
 import { processes } from "./process-registry.js";
 
@@ -77,47 +75,6 @@ const CHROME_FLAGS = [
   "--use-gl=angle",
   "--use-angle=metal",
 ];
-
-// ── Find system Chrome ────────────────────────────────────────────────────
-
-function findSystemChrome(): string | null {
-  if (process.platform === "darwin") {
-    const paths = [
-      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-      "/Applications/Chromium.app/Contents/MacOS/Chromium",
-      "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
-    ];
-    for (const p of paths) {
-      if (existsSync(p)) return p;
-    }
-  } else if (process.platform === "win32") {
-    const envPaths = [
-      process.env.ProgramFiles,
-      process.env["ProgramFiles(x86)"],
-      process.env.LOCALAPPDATA,
-    ].filter(Boolean) as string[];
-    const subPaths = [
-      "Google\\Chrome\\Application\\chrome.exe",
-      "BraveSoftware\\Brave-Browser\\Application\\brave.exe",
-    ];
-    for (const base of envPaths) {
-      for (const sub of subPaths) {
-        const p = `${base}\\${sub}`;
-        if (existsSync(p)) return p;
-      }
-    }
-  } else {
-    for (const cmd of ["google-chrome", "chromium", "chromium-browser"]) {
-      try {
-        const result = execSync(`which ${cmd}`, { encoding: "utf-8" }).trim();
-        if (result) return result;
-      } catch {
-        // not found
-      }
-    }
-  }
-  return null;
-}
 
 // ── Viewport helpers ──────────────────────────────────────────────────────
 
@@ -223,16 +180,9 @@ const extension: ExtensionFactory = (pi) => {
   async function launchBrowser(): Promise<Browser> {
     if (browser?.isConnected()) return browser;
 
-    const executablePath = findSystemChrome();
-    if (!executablePath) {
-      throw new Error(
-        "No Chrome/Chromium found. Install Google Chrome or run: npx playwright install chromium",
-      );
-    }
-
     const pw = await import("playwright-core");
     browser = await pw.chromium.launch({
-      executablePath,
+      channel: "chrome",
       headless: true,
       args: CHROME_FLAGS,
     });
