@@ -11,8 +11,9 @@ import {
   ColliderLayer,
 } from '@dcl/sdk/ecs'
 import { Color4, Color3 } from '@dcl/sdk/math'
-import { state, selectableInfoMap, originalMaterials } from './state'
+import { state, selectableInfoMap, originalMaterials, isLockedByOther } from './state'
 import { createGizmo, destroyGizmo } from './gizmo'
+import { requestLock, requestUnlock } from './persistence'
 
 const HIGHLIGHT_EMISSIVE = 0.6
 const HIGHLIGHT_ALPHA = 0.35
@@ -109,29 +110,38 @@ export function selectEntity(entity: Entity) {
     return
   }
 
-  if (state.selectedEntity !== undefined) {
-    unhighlight(state.selectedEntity)
-    restoreCollider(state.selectedEntity)
-    destroyGizmo()
-  }
-
   const info = selectableInfoMap.get(entity)
   if (!info) return
+
+  // Check if entity is locked by another admin
+  if (isLockedByOther(info.name, state.myAddress)) {
+    console.log(`[editor] "${info.name}" is locked by another admin`)
+    return
+  }
+
+  // Deselect previous
+  if (state.selectedEntity !== undefined) {
+    deselectEntity()
+  }
 
   state.selectedEntity = entity
   state.selectedName = info.name
   highlight(entity)
   disableCollider(entity)
   createGizmo()
-  console.log(`Selected: ${info.name}`)
+  requestLock(info.name)
+  console.log(`[editor] selected: ${info.name}`)
 }
 
 export function deselectEntity() {
-  if (state.selectedEntity !== undefined) {
-    unhighlight(state.selectedEntity)
-    restoreCollider(state.selectedEntity)
-    destroyGizmo()
-    state.selectedEntity = undefined
-    state.selectedName = ''
-  }
+  if (state.selectedEntity === undefined) return
+
+  const info = selectableInfoMap.get(state.selectedEntity)
+  unhighlight(state.selectedEntity)
+  restoreCollider(state.selectedEntity)
+  destroyGizmo()
+  if (info) requestUnlock(info.name)
+
+  state.selectedEntity = undefined
+  state.selectedName = ''
 }

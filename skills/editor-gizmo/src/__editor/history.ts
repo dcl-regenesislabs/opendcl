@@ -17,10 +17,9 @@ interface HistoryEntry {
 }
 
 const stack: HistoryEntry[] = []
-let cursor = -1  // points to the last applied entry
+let cursor = -1
 const MAX_HISTORY = 50
 
-/** Capture current transform as a snapshot. */
 export function captureTransform(entity: Entity): TransformSnapshot {
   const t = Transform.get(entity)
   return {
@@ -33,74 +32,56 @@ export function captureTransform(entity: Entity): TransformSnapshot {
 function applySnapshot(entity: Entity, snap: TransformSnapshot) {
   if (!Transform.has(entity)) return
   const t = Transform.getMutable(entity)
-  t.position.x = snap.x
-  t.position.y = snap.y
-  t.position.z = snap.z
-  t.rotation.x = snap.rx
-  t.rotation.y = snap.ry
-  t.rotation.z = snap.rz
-  t.rotation.w = snap.rw
-  t.scale.x = snap.sx
-  t.scale.y = snap.sy
-  t.scale.z = snap.sz
+  t.position.x = snap.x;  t.position.y = snap.y;  t.position.z = snap.z
+  t.rotation.x = snap.rx; t.rotation.y = snap.ry; t.rotation.z = snap.rz; t.rotation.w = snap.rw
+  t.scale.x = snap.sx;    t.scale.y = snap.sy;    t.scale.z = snap.sz
 }
 
-/** Push a before/after pair onto the history stack. Called from endDrag. */
 export function pushHistory(entity: Entity, before: TransformSnapshot, after: TransformSnapshot) {
-  // Discard any redo entries ahead of cursor
   stack.length = cursor + 1
-
   stack.push({ entity, before, after })
   cursor = stack.length - 1
-
-  // Cap history size
   if (stack.length > MAX_HISTORY) {
     stack.shift()
     cursor--
   }
 }
 
-/** Undo the last change. Returns true if successful. */
 export function undo(): boolean {
   if (cursor < 0) return false
-
   const entry = stack[cursor]
-  applySnapshot(entry.entity, entry.before)
-  sendEntityUpdate(entry.entity)
 
-  const info = selectableInfoMap.get(entry.entity)
-  console.log(`[editor] undo ${info?.name ?? 'entity'} (${historySize()} left)`)
+  // Only allow undo on the currently selected (locked) entity
+  if (entry.entity !== state.selectedEntity) {
+    console.log('[editor] undo skipped — entity not selected')
+    return false
+  }
 
   cursor--
+  applySnapshot(entry.entity, entry.before)
+  sendEntityUpdate(entry.entity)
+  const info = selectableInfoMap.get(entry.entity)
+  console.log(`[editor] undo ${info?.name ?? 'entity'}`)
   return true
 }
 
-/** Redo the last undone change. Returns true if successful. */
 export function redo(): boolean {
   if (cursor >= stack.length - 1) return false
+  const next = stack[cursor + 1]
+
+  // Only allow redo on the currently selected (locked) entity
+  if (next.entity !== state.selectedEntity) {
+    console.log('[editor] redo skipped — entity not selected')
+    return false
+  }
 
   cursor++
-  const entry = stack[cursor]
-  applySnapshot(entry.entity, entry.after)
-  sendEntityUpdate(entry.entity)
-
-  const info = selectableInfoMap.get(entry.entity)
+  applySnapshot(next.entity, next.after)
+  sendEntityUpdate(next.entity)
+  const info = selectableInfoMap.get(next.entity)
   console.log(`[editor] redo ${info?.name ?? 'entity'}`)
-
   return true
 }
 
-/** Number of undoable entries. */
-export function undoCount(): number {
-  return cursor + 1
-}
-
-/** Number of redoable entries. */
-export function redoCount(): number {
-  return stack.length - 1 - cursor
-}
-
-/** Total entries for display. */
-export function historySize(): number {
-  return stack.length
-}
+export function undoCount(): number { return cursor + 1 }
+export function redoCount(): number { return stack.length - 1 - cursor }

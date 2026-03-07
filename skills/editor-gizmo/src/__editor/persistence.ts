@@ -1,137 +1,38 @@
-/** WebSocket persistence, override loading, entity update sending. */
+/**
+ * Persistence — sends commits/locks/resets to the auth-server via messages.
+ */
 
-import { engine, Entity, Transform, executeTask } from '@dcl/sdk/ecs'
-import { getRealm } from '~system/Runtime'
-import { state, selectableInfoMap } from './state'
+import { Entity, Transform } from '@dcl/sdk/ecs'
+import { selectableInfoMap } from './state'
 import { round } from './math-utils'
+import { editorRoom } from './messages'
 
-// ============================================================
-// WebSocket — auto-send changes to preview server
-// ============================================================
-
-let editorWs: WebSocket | null = null
-
+/** Send the current transform of an entity to the server for persistence. */
 export function sendEntityUpdate(entity: Entity) {
-  if (!editorWs || editorWs.readyState !== WebSocket.OPEN) return
   if (!Transform.has(entity)) return
-
   const info = selectableInfoMap.get(entity)
   if (!info) return
 
   const t = Transform.get(entity)
-
-  const msg = {
-    type: 'editor-update',
-    name: info.name,
-    components: {
-      Transform: {
-        position: { x: round(t.position.x), y: round(t.position.y), z: round(t.position.z) },
-        rotation: { x: round(t.rotation.x, 4), y: round(t.rotation.y, 4), z: round(t.rotation.z, 4), w: round(t.rotation.w, 4) },
-        scale: { x: round(t.scale.x), y: round(t.scale.y), z: round(t.scale.z) },
-      },
-    },
-  }
-
-  editorWs.send(JSON.stringify(msg))
-  state.pendingChanges++
-}
-
-export function connectEditorWs() {
-  executeTask(async () => {
-    try {
-      const realm = await getRealm({})
-      const baseUrl = realm.realmInfo?.baseUrl
-      if (!baseUrl) {
-        console.log('[editor] no realm baseUrl — running without persistence')
-        return
-      }
-
-      const wsUrl = baseUrl.replace(/^http/, 'ws')
-      console.log(`[editor] connecting to ${wsUrl}`)
-
-      editorWs = new WebSocket(wsUrl)
-
-      editorWs.onopen = () => {
-        state.wsConnected = true
-        console.log('[editor] ws connected')
-      }
-
-      editorWs.onclose = () => {
-        state.wsConnected = false
-        editorWs = null
-      }
-
-      editorWs.onerror = () => {
-        // Error is followed by close
-      }
-    } catch (err) {
-      console.log(`[editor] ws connect failed: ${err}`)
-    }
+  editorRoom.send('editorCommit', {
+    entityName: info.name,
+    px: round(t.position.x), py: round(t.position.y), pz: round(t.position.z),
+    rx: round(t.rotation.x, 4), ry: round(t.rotation.y, 4), rz: round(t.rotation.z, 4), rw: round(t.rotation.w, 4),
+    sx: round(t.scale.x), sy: round(t.scale.y), sz: round(t.scale.z),
   })
 }
 
-// ============================================================
-// Override loading
-// ============================================================
-
-interface ComponentOverrides {
-  Transform?: {
-    position?: { x: number; y: number; z: number }
-    rotation?: { x: number; y: number; z: number; w: number }
-    scale?: { x: number; y: number; z: number }
-  }
-}
-const pendingOverrides = new Map<string, ComponentOverrides>()
-
-export function loadEditorOverrides() {
-  executeTask(async () => {
-    try {
-      const realm = await getRealm({})
-      const baseUrl = realm.realmInfo?.baseUrl
-      if (!baseUrl) return
-
-      const response = await fetch(`${baseUrl}/editor/changes`)
-      if (!response.ok) return
-
-      const text = await response.text()
-      const data = JSON.parse(text) as Record<string, { components?: ComponentOverrides }>
-      let count = 0
-      for (const [name, entry] of Object.entries(data)) {
-        if (entry.components) {
-          pendingOverrides.set(name, entry.components)
-          count++
-        }
-      }
-      if (count > 0) {
-        console.log(`[editor] loaded ${count} overrides from server`)
-        for (const [entity] of selectableInfoMap) {
-          applyOverrides(entity)
-        }
-      }
-    } catch {
-      // Server not reachable — no overrides to apply
-    }
-  })
+/** Request a lock on an entity. */
+export function requestLock(entityName: string) {
+  editorRoom.send('editorLock', { entityName })
 }
 
-export function applyOverrides(entity: Entity) {
-  const info = selectableInfoMap.get(entity)
-  if (!info) return
-  const overrides = pendingOverrides.get(info.name)
-  if (!overrides) return
+/** Release a lock on an entity. */
+export function requestUnlock(entityName: string) {
+  editorRoom.send('editorUnlock', { entityName })
+}
 
-  if (overrides.Transform && Transform.has(entity)) {
-    const t = Transform.getMutable(entity)
-    if (overrides.Transform.position) {
-      t.position = overrides.Transform.position
-    }
-    if (overrides.Transform.rotation) {
-      t.rotation = overrides.Transform.rotation
-    }
-    if (overrides.Transform.scale) {
-      t.scale = overrides.Transform.scale
-    }
-  }
-
-  pendingOverrides.delete(info.name)
+/** Request the server to reset an entity to its code-defined transform. */
+export function requestReset(entityName: string) {
+  editorRoom.send('editorReset', { entityName })
 }
