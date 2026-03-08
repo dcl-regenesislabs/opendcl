@@ -1,6 +1,6 @@
 ---
 name: visual-feedback
-description: Use the screenshot tool to see the running Decentraland preview, verify scene changes visually, explore from different angles, and iterate until the scene looks right. Use when the preview is running and you need to check what the scene looks like, debug visual issues, verify placement, or iterate on appearance.
+description: Use the screenshot tool to see the running Decentraland preview and verify scene changes visually. Use when the preview is running and you need to check what the scene looks like after making code changes.
 ---
 
 # Visual Feedback — Seeing Your Scene
@@ -11,12 +11,11 @@ The `screenshot` tool lets you capture what the Decentraland preview looks like 
 
 ## When to Use Screenshots
 
-- **After placing objects** — verify they're positioned correctly, not floating or buried
-- **After changing materials/colors** — confirm the visual result matches intent
-- **After downloading 3D models** — check they loaded and look right
+- **After completing code changes** — verify the final result looks correct
 - **When the user asks "how does it look?"** — show them and describe what you see
-- **When debugging** — "the tree is invisible" → screenshot to see what's actually rendering
-- **When iterating** — code → screenshot → fix → screenshot until it's right
+- **When debugging visual issues** — "the tree is invisible" → screenshot to see what's actually rendering
+
+**Do NOT** use screenshots to explore or navigate the scene. Make all code changes first, then take 1-2 screenshots to verify.
 
 ## Basic Usage
 
@@ -28,7 +27,7 @@ Use the screenshot tool with no actions to capture the current scene view.
 
 The tool returns the image directly — you'll see it and can describe what's visible.
 
-## Movement & Exploration
+## Movement & Camera
 
 The scene camera **always faces north** in headless mode. Movement is relative to compass direction, not camera:
 
@@ -39,22 +38,11 @@ The scene camera **always faces north** in headless mode. Movement is relative t
 | `moveRight` | East (toward right) | D |
 | `moveLeft` | West (toward left) | A |
 
-Movement speed is ~6 meters/second. Default `holdMs` is 500ms (~3 meters).
-
-### Exploring a scene
-
-To see objects from different angles, chain movement actions before capturing:
-
-```
-screenshot with actions:
-1. moveForward (holdMs: 1000) — walk 6m north
-2. moveRight (holdMs: 500) — strafe 3m east
-→ captures screenshot from the new position
-```
+Movement speed is ~6 meters/second. Default `holdMs` is 300ms (~1.8 meters).
 
 ### Camera rotation
 
-Use look actions to rotate the camera view:
+Use look actions to rotate the camera view (arrow key holds):
 
 | Action | Effect |
 |--------|--------|
@@ -63,7 +51,7 @@ Use look actions to rotate the camera view:
 | `lookUp` | Tilt camera up |
 | `lookDown` | Tilt camera down |
 
-Default rotation is 200 pixels of mouse drag. Use `dx`/`dy` for more or less.
+Default rotation hold is 300ms. Use `holdMs` for more or less rotation.
 
 ## Interacting Before Capture
 
@@ -86,27 +74,14 @@ screenshot with actions:
 → captures the overhead editor view
 ```
 
-## Visual Iteration Pattern
+## Workflow
 
-When building or modifying a scene, use this loop:
+1. **Make all code changes** (write to `src/index.ts`)
+2. **Take one screenshot** with `wait: 2000` to let hot-reload settle
+3. **Evaluate** — describe honestly: what works, what's wrong
+4. **Fix if needed** — then take one more screenshot to confirm
 
-1. **Make code changes** (write to `src/index.ts`)
-2. **Wait for hot reload** — use `wait` action with ~2000ms
-3. **Take screenshot** — see what changed
-4. **Evaluate** — describe honestly: what works, what's wrong, what's missing
-5. **Fix and repeat** — up to 5 iterations
-
-Example flow:
-```
-1. Write code to add a red cube at (8, 1, 8)
-2. screenshot with actions: [wait 2000ms]
-   → "I can see a red cube floating 1m above the ground at the center. It looks correct."
-3. Write code to add a blue sphere next to it
-4. screenshot with actions: [wait 2000ms]
-   → "The blue sphere is there but it's intersecting the cube. Let me adjust the position."
-5. Fix the position, screenshot again
-   → "Both objects are now properly placed side by side."
-```
+Keep it to 1-2 screenshots per task. Each screenshot consumes significant tokens.
 
 ## Scene Layout Awareness
 
@@ -114,9 +89,8 @@ Example flow:
 - **Y is up**. Ground level is Y=0.
 - The avatar **spawns near the south-west corner** (low X, low Z).
 - Objects at the **center** of a 1×1 scene are at roughly (8, 0, 8).
-- The **minimap** in the top-left corner shows coordinates and a compass.
 
-For a 2×2 scene (32×32m), center is (16, 0, 16) and the avatar needs to walk ~14m north and east to reach it.
+**WARNING:** If you see empty/gray space, "No scene", or no content — you've walked outside the scene boundaries. STOP moving. Keep movements small (holdMs: 300).
 
 ## Troubleshooting
 
@@ -127,11 +101,12 @@ For a 2×2 scene (32×32m), center is (16, 0, 16) and the avatar needs to walk ~
 | Objects not visible | They may be behind the camera (south of avatar) — use `moveBack` or `lookLeft`/`lookRight` to find them |
 | Scene looks different after code change | Hot reload takes ~1-2s — add a `wait` action of 2000ms |
 | "No preview server running" | Start it with `/preview` first |
+| Empty/gray space, no scene content | You've left the scene boundaries — stop moving |
 
 ## Tips
 
 - **First screenshot is slow** (~15s) because it launches a browser and enters the scene. After that, screenshots are instant.
 - **The browser persists** across all screenshot calls in the session — no repeated logins.
-- **Don't over-move** — keep `holdMs` values short (300-800ms) to avoid overshooting targets.
+- **Keep movements small** — use `holdMs: 300` (default) to avoid walking out of the scene.
 - **Hot reload** — after writing code, wait ~2s before screenshotting to let the scene update.
 - **Describe honestly** — if something looks wrong, say so. The user trusts your visual assessment.
