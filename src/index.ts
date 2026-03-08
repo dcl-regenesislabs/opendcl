@@ -53,7 +53,6 @@ const extensions = [
   "dcl-init.ts",
   "dcl-deploy.ts",
   "dcl-setup.ts",
-  "dcl-setup-ollama.ts",
   "dcl-validate.ts",
   "dcl-header.ts",
   "dcl-update-check.ts",
@@ -62,6 +61,12 @@ const extensions = [
   "dcl-asset-path.ts",
   "dcl-screenshot.ts",
 ];
+
+// Conditionally load dcl-setup-ollama (hidden by default, enable with ENABLE_OLLAMA_SETUP=true)
+if (process.env.ENABLE_OLLAMA_SETUP === "true") {
+  extensions.push("dcl-setup-ollama.ts");
+}
+
 for (const ext of extensions) {
   args.push("-e", join(extDir, ext));
 }

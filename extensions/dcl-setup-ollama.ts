@@ -209,7 +209,7 @@ const extension: ExtensionFactory = (pi) => {
   pi.on("session_start", async (_event, ctx) => {
     if (!(await isProviderConfigured())) {
       ctx.ui.notify(
-        "Get started by running /setup (cloud providers) or /setup-ollama (free local models)",
+        "Get started by running /setup to configure a cloud provider",
         "warning",
       );
       return;
