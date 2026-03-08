@@ -52,10 +52,8 @@ interface Action {
   ms?: number;
 }
 
-/** Default pixels to drag for look actions. */
-const LOOK_DRAG_PX = 200;
 /** Default duration (ms) to hold movement keys. */
-const MOVE_HOLD_MS = 500;
+const MOVE_HOLD_MS = 300;
 /** Process registry key for the screenshot browser. */
 const PROCESS_NAME = "screenshot-browser";
 /** Relative position of the "Explore as Guest" button on the Bevy-Web renderer welcome canvas.
@@ -123,33 +121,20 @@ async function executeActions(page: Page, actions: Action[]): Promise<void> {
         await page.waitForTimeout(action.ms ?? 1000);
         break;
 
-      // Camera look (mouse drags from center)
+      // Camera look (arrow keys) and WASD movement (key holds)
       case "lookLeft":
       case "lookRight":
       case "lookUp":
-      case "lookDown": {
-        const c = getViewportCenter(page);
-        const px = action.dx ? Math.abs(action.dx) : LOOK_DRAG_PX;
-        const targets: Record<string, { x: number; y: number }> = {
-          lookLeft: { x: c.x - px, y: c.y },
-          lookRight: { x: c.x + px, y: c.y },
-          lookUp: { x: c.x, y: c.y - px },
-          lookDown: { x: c.x, y: c.y + px },
-        };
-        const target = targets[action.type];
-        await page.mouse.move(c.x, c.y);
-        await page.mouse.down();
-        await page.mouse.move(target.x, target.y, { steps: 10 });
-        await page.mouse.up();
-        break;
-      }
-
-      // WASD movement (key holds)
+      case "lookDown":
       case "moveForward":
       case "moveBack":
       case "moveLeft":
       case "moveRight": {
         const keyMap: Record<string, string> = {
+          lookLeft: "ArrowLeft",
+          lookRight: "ArrowRight",
+          lookUp: "ArrowUp",
+          lookDown: "ArrowDown",
           moveForward: "w",
           moveBack: "s",
           moveLeft: "a",
@@ -320,12 +305,15 @@ The browser stays open between calls — only the first screenshot navigates and
 ## Actions (optional, performed before capture)
 Low-level: click (x,y coords), key (press/hold), mouse (relative drag), wait
 High-level helpers:
-- lookLeft / lookRight / lookUp / lookDown — camera rotation (dx/dy pixels, default 200)
-- moveForward / moveBack / moveLeft / moveRight — WASD movement (holdMs duration, default 500ms)
+- lookLeft / lookRight / lookUp / lookDown — arrow key camera rotation (holdMs duration, default 300ms)
+- moveForward / moveBack / moveLeft / moveRight — WASD movement (holdMs duration, default 300ms)
 
-Movement speed is ~6m/s. Camera always faces north in headless mode.`,
+Movement speed is ~6m/s. Each parcel is 16m. Keep movements small (holdMs: 300). Stay within scene boundaries. If you see empty/gray space or no scene content, you've left the scene — stop moving.
+
+IMPORTANT: Use sparingly. Make code changes first, then take 1-2 screenshots to verify. Do not use screenshots to explore the scene.`,
     promptGuidelines: [
-      "After writing scene code with the preview running, proactively use `screenshot` (with wait: 2000 for hot-reload) to verify your changes visually. Don't wait for the user to check.",
+      "Use screenshot sparingly — only to verify the final result after making code changes, not to explore or navigate. Take 1-2 screenshots per task, not after every small change.",
+      "Each screenshot consumes significant tokens. Make all your code changes first, then take one screenshot to verify.",
       "If the screenshot tool fails (no Chrome, browser crash, user declined), continue working normally without vision. Tell the user what happened and suggest they check the preview manually.",
       "Don't retry screenshot more than once if it fails — fall back to asking the user to verify visually.",
     ],
@@ -358,13 +346,13 @@ Movement speed is ~6m/s. Camera always faces north in headless mode.`,
             y: Type.Optional(Type.Number({ description: "Y pixel coordinate for click" })),
             key: Type.Optional(Type.String({ description: "Key to press (for key action)" })),
             holdMs: Type.Optional(
-              Type.Number({ description: "Hold duration in ms (key or movement, default 500ms)" }),
+              Type.Number({ description: "Hold duration in ms (key, movement, or look, default 300ms)" }),
             ),
             dx: Type.Optional(
-              Type.Number({ description: "Relative X pixels (mouse drag or look, default 200)" }),
+              Type.Number({ description: "Relative X pixels (mouse drag)" }),
             ),
             dy: Type.Optional(
-              Type.Number({ description: "Relative Y pixels (mouse drag or look, default 200)" }),
+              Type.Number({ description: "Relative Y pixels (mouse drag)" }),
             ),
             ms: Type.Optional(
               Type.Number({ description: "Wait duration in ms (for wait action)" }),
