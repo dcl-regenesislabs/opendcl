@@ -8,6 +8,8 @@ import { toggleEditorCamera, deactivateEditorCamera, focusSelectedEntity } from 
 import { undo, redo } from './history'
 
 export function modeToggleSystem() {
+  if (!state.editorActive) return
+
   if (inputSystem.isTriggered(InputAction.IA_PRIMARY, PointerEventType.PET_DOWN)) {
     if (state.isDragging) return
     state.gizmoMode = state.gizmoMode === 'translate' ? 'rotate' : 'translate'

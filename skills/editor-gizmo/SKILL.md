@@ -1,6 +1,6 @@
 ---
 name: editor-gizmo
-description: Enable editor mode in a Decentraland scene with translate/rotate gizmos. Adds click-to-select, drag-to-move arrows, drag-to-rotate discs, wireframe selection box, and UI overlay. Auto-discovers all scene entities. Use when user wants to enable editor mode, add gizmos, edit the scene interactively, or tweak object positions and rotations in preview.
+description: Enable editor mode in a Decentraland scene with translate/rotate gizmos. Adds click-to-select, drag-to-move arrows, drag-to-rotate rings, plane handles, wireframe selection box, and UI overlay. Admin-gated with toggle button. Auto-discovers all scene entities. Use when user wants to enable editor mode, add gizmos, edit the scene interactively, or tweak object positions and rotations in preview.
 ---
 
 # Visual Editor Gizmo
@@ -9,15 +9,20 @@ Add an in-scene visual editor that lets users click objects to select them, then
 
 ## How It Works
 
+- **Admin gating**: Only admin wallets can edit. Non-admins see zero UI. Configured via `ADMIN_WALLETS` env var (comma-separated). In preview, everyone is admin.
+- **Editor toggle**: Admins see a toggle button to activate/deactivate the editor. Starts OFF by default.
 - **Auto-discovery**: Finds all entities with `Transform` + `MeshRenderer` or `GltfContainer`
 - **Click to select**: Shows a wireframe bounding box and spawns the gizmo
-- **Translate mode**: 3 colored arrows (R/G/B = X/Y/Z) — drag to move along an axis
-- **Rotate mode**: 3 colored discs — drag to rotate around an axis
+- **Translate mode**: 3 colored arrows (R/G/B = X/Y/Z) — drag to move along a world axis. 3 plane handles (XZ/XY/YZ) for 2-axis constrained movement.
+- **Rotate mode**: 3 colored ring outlines — drag to rotate around a world axis
+- **World-aligned gizmos**: Arrows and rings always point along world X/Y/Z, regardless of entity or parent rotation. Drag deltas are converted to local space for child entities.
 - **E key**: Toggle between Move and Rotate
 - **F key** or **click ground**: Deselect
-- **Auto-save**: Changes are sent to the preview server via WebSocket on every drag end
-- **Hover feedback**: Hovered arrow/disc highlights, stays highlighted during drag
+- **Undo/redo**: Key 4 = undo, Shift+4 = redo. Per-entity history stack with UI buttons.
+- **Auto-save**: Changes are persisted via auth-server (Storage in deployed, WebSocket in preview)
+- **Hover feedback**: Hovered arrow/ring highlights, stays highlighted during drag
 - **Ray-plane intersection**: Accurate dragging regardless of camera angle
+- **Per-frame server discovery**: Server discovers new entities every frame — GLTF child nodes that spawn late are automatically picked up, protected, and patched with saved overrides
 
 ## Prerequisites
 
@@ -319,7 +324,7 @@ The editor doesn't modify any existing scene code or entities — it only adds i
 ## Technical Details
 
 ### Collider Management
-When an object is selected, the editor removes its `MeshCollider` and zeros out `GltfContainer` collision masks so that clicks pass through to the gizmo handles behind/inside the model. On deselect, colliders are fully restored.
+When an object is selected, the editor strips only the `CL_POINTER` collision layer — `CL_PHYSICS` is preserved so the camera collision doesn't jump. On deselect, colliders are fully restored.
 
 ### Drag Mechanism
 Uses ray-plane intersection for both translate and rotate:

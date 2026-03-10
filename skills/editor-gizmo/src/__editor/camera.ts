@@ -18,6 +18,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 import { state, editorEntities, selectableInfoMap, gizmoClickConsumed } from './state'
+import { copyVec3, copyQuat } from './math-utils'
 
 // ============================================================
 // Editor Camera
@@ -73,13 +74,8 @@ function updateEditorCamera() {
   const camRot = Quaternion.lookRotation(forward)
 
   const t = Transform.getMutable(editorCamEntity)
-  t.position.x = camPos.x
-  t.position.y = camPos.y
-  t.position.z = camPos.z
-  t.rotation.x = camRot.x
-  t.rotation.y = camRot.y
-  t.rotation.z = camRot.z
-  t.rotation.w = camRot.w
+  copyVec3(t.position, camPos)
+  copyQuat(t.rotation, camRot)
 }
 
 export function activateEditorCamera() {
@@ -149,7 +145,7 @@ function getCamForward(): Vector3 {
 }
 
 export function editorCameraSystem(dt: number) {
-  if (!state.editorCamActive) return
+  if (!state.editorActive || !state.editorCamActive) return
 
   let changed = false
   const right = getCamRight()
@@ -227,13 +223,8 @@ export function lockCamera() {
   if (!Transform.has(engine.CameraEntity)) return
   const camT = Transform.get(engine.CameraEntity)
   const lockT = Transform.getMutable(lockCamEntity)
-  lockT.position.x = camT.position.x
-  lockT.position.y = camT.position.y
-  lockT.position.z = camT.position.z
-  lockT.rotation.x = camT.rotation.x
-  lockT.rotation.y = camT.rotation.y
-  lockT.rotation.z = camT.rotation.z
-  lockT.rotation.w = camT.rotation.w
+  copyVec3(lockT.position, camT.position)
+  copyQuat(lockT.rotation, camT.rotation)
   MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = lockCamEntity
 }
 

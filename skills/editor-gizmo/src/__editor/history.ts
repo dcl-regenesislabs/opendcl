@@ -3,9 +3,10 @@
 import { Entity, Transform } from '@dcl/sdk/ecs'
 import { state, selectableInfoMap } from './state'
 import { sendEntityUpdate } from './persistence'
+import { applyFlatTransform } from './math-utils'
 
 export interface TransformSnapshot {
-  x: number; y: number; z: number
+  px: number; py: number; pz: number
   rx: number; ry: number; rz: number; rw: number
   sx: number; sy: number; sz: number
 }
@@ -23,7 +24,7 @@ const MAX_HISTORY = 50
 export function captureTransform(entity: Entity): TransformSnapshot {
   const t = Transform.get(entity)
   return {
-    x: t.position.x, y: t.position.y, z: t.position.z,
+    px: t.position.x, py: t.position.y, pz: t.position.z,
     rx: t.rotation.x, ry: t.rotation.y, rz: t.rotation.z, rw: t.rotation.w,
     sx: t.scale.x, sy: t.scale.y, sz: t.scale.z,
   }
@@ -32,9 +33,7 @@ export function captureTransform(entity: Entity): TransformSnapshot {
 function applySnapshot(entity: Entity, snap: TransformSnapshot) {
   if (!Transform.has(entity)) return
   const t = Transform.getMutable(entity)
-  t.position.x = snap.x;  t.position.y = snap.y;  t.position.z = snap.z
-  t.rotation.x = snap.rx; t.rotation.y = snap.ry; t.rotation.z = snap.rz; t.rotation.w = snap.rw
-  t.scale.x = snap.sx;    t.scale.y = snap.sy;    t.scale.z = snap.sz
+  applyFlatTransform(t, snap)
 }
 
 export function pushHistory(entity: Entity, before: TransformSnapshot, after: TransformSnapshot) {
