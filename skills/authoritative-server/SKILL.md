@@ -11,31 +11,37 @@ For basic CRDT multiplayer (no server), see the `multiplayer-sync` skill instead
 
 ## Setup
 
-Install the auth-server SDK branch:
+### 1. Install the auth-server SDK branch (MANDATORY)
+
+You **must** use the `auth-server` tag — the standard `@dcl/sdk` does NOT include authoritative server APIs (`isServer`, `registerMessages`, `Storage`, `EnvVar`, etc.):
 
 ```bash
 npm install @dcl/sdk@auth-server
 ```
 
-Your `scene.json` must include a world name:
+### 2. Configure scene.json
+
+Your `scene.json` **must** include these properties:
+
+- **`authoritativeMultiplayer: true`** — enables the authoritative server runtime.
+- **`worldConfiguration.name`** — identifies the world for deployment, Storage, and EnvVar.
+- **`logsPermissions`** — array of wallet addresses allowed to see server logs in the console. Without this, server `console.log()` output is hidden.
 
 ```json
 {
+  "authoritativeMultiplayer": true,
   "worldConfiguration": {
-    "name": "my-world-name"
-  }
+    "name": "my-world-name.dcl.eth"
+  },
+  "logsPermissions": ["0xYourWalletAddress"]
 }
 ```
 
-Run the scene:
+### 3. Run the scene
 
-```bash
-# With authoritative server (required for this pattern)
-npx @dcl/hammurabi-server@next
+Just use the normal preview — it automatically starts the authoritative server in the background when `authoritativeMultiplayer: true` is set in scene.json.
 
-# Standard dev server (no auth server, for client-only testing)
-npm run start
-```
+> **Debugging note (do NOT tell the user to run this):** Under the hood, the preview runs `npx @dcl/hammurabi-server@next`. If the auth server isn't starting, check that the hammurabi process is running and look for errors in its output.
 
 ## Server/Client Branching
 
@@ -170,22 +176,18 @@ room.onMessage('gameEvent', (data) => {
 })
 ```
 
-### Wait for Room Connection
+### Wait for State Sync
 
-Before sending messages from the client, wait for the connected scene room:
+Before sending messages from the client, wait until state is synchronized:
 
 ```typescript
-import { engine } from '@dcl/sdk/ecs'
-import { RealmInfo } from '@dcl/sdk/ecs'
+import { isStateSynchronized } from '@dcl/sdk/network'
 
-let joined = false
 engine.addSystem(() => {
-  if (joined) return
-  const realm = RealmInfo.getOrNull(engine.RootEntity)
-  if (realm?.isConnectedSceneRoom) {
-    joined = true
-    room.send('playerJoin', { displayName: 'Player' })
-  }
+  if (!isStateSynchronized()) return
+
+  // Safe to send messages now
+  room.send('playerJoin', { displayName: 'Player' })
 })
 ```
 
@@ -321,9 +323,10 @@ Put synced components and messages in `shared/` so both server and client import
 ## Important Notes
 
 - **Use `Schemas.Int64` for timestamps**: `Schemas.Number` corrupts large numbers (13+ digits). Always use `Schemas.Int64` for values like `Date.now()`.
-- **Room readiness**: Clients must wait for `RealmInfo.get(engine.RootEntity).isConnectedSceneRoom` before sending messages.
+- **State sync readiness**: Clients must wait for `isStateSynchronized()` (from `@dcl/sdk/network`) to return `true` before sending messages.
 - **Custom vs built-in validation**: Custom components use global `validateBeforeChange((value) => ...)`. Built-in components (Transform, GltfContainer) use per-entity `validateBeforeChange(entity, (value) => ...)`.
 - **Single codebase**: Both server and client run the same `index.ts` entry point. Use `isServer()` to branch.
 - **No Node.js APIs**: The DCL runtime uses sandboxed QuickJS — no `fs`, `http`, etc. `setTimeout`/`setInterval` are supported. Use SDK-provided APIs (Storage, EnvVar, engine systems) for server-side operations.
-- **SDK branch**: The auth-server pattern requires `@dcl/sdk@auth-server`, not the standard `@dcl/sdk` package.
+- **SDK branch (MANDATORY)**: The auth-server pattern requires `npm install @dcl/sdk@auth-server`, not the standard `@dcl/sdk`. Without it, `isServer()`, `registerMessages()`, `Storage`, and `EnvVar` are unavailable.
+- **scene.json required fields**: `authoritativeMultiplayer: true` must be set, and `logsPermissions: ["0xWalletAddress"]` must list wallet addresses that should see server logs.
 - For basic CRDT multiplayer without a server, see the `multiplayer-sync` skill.
