@@ -9,15 +9,19 @@ import {
   GltfContainer,
   GltfNodeModifiers,
   ColliderLayer,
+  PointerEvents,
+  pointerEventsSystem,
+  InputAction,
 } from '@dcl/sdk/ecs'
 import { Color4, Color3 } from '@dcl/sdk/math'
-import { state, selectableInfoMap, originalMaterials, isLockedByOther } from './state'
+import { state, selectableInfoMap, originalMaterials, isLockedByOther, gizmoClickConsumed } from './state'
 import { createGizmo, destroyGizmo } from './gizmo'
 import { requestLock, requestUnlock } from './persistence'
 
 const HIGHLIGHT_EMISSIVE = 0.6
 const HIGHLIGHT_ALPHA = 0.35
 
+/** Remove all collision so clicks pass through to gizmo handles behind the entity. */
 function disableCollider(entity: Entity) {
   if (MeshCollider.has(entity)) {
     MeshCollider.deleteFrom(entity)
@@ -126,6 +130,9 @@ export function selectEntity(entity: Entity) {
 
   state.selectedEntity = entity
   state.selectedName = info.name
+  // Remove pointer events completely so model doesn't intercept gizmo clicks
+  pointerEventsSystem.removeOnPointerDown(entity)
+  if (PointerEvents.has(entity)) PointerEvents.deleteFrom(entity)
   highlight(entity)
   disableCollider(entity)
   createGizmo()
@@ -136,11 +143,23 @@ export function selectEntity(entity: Entity) {
 export function deselectEntity() {
   if (state.selectedEntity === undefined) return
 
-  const info = selectableInfoMap.get(state.selectedEntity)
-  unhighlight(state.selectedEntity)
-  restoreCollider(state.selectedEntity)
+  const entity = state.selectedEntity
+  const info = selectableInfoMap.get(entity)
+  unhighlight(entity)
+  restoreCollider(entity)
   destroyGizmo()
-  if (info) requestUnlock(info.name)
+
+  // Restore pointer event so entity is clickable again
+  if (info) {
+    pointerEventsSystem.onPointerDown(
+      { entity, opts: { button: InputAction.IA_POINTER, hoverText: `Select ${info.name}`, maxDistance: 100 } },
+      () => {
+        if (!state.editorActive || state.isDragging || gizmoClickConsumed) return
+        selectEntity(entity)
+      }
+    )
+    requestUnlock(info.name)
+  }
 
   state.selectedEntity = undefined
   state.selectedName = ''

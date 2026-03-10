@@ -36,6 +36,7 @@ export interface EditorState {
   dragAxis: Axis
 
   // Translate drag
+  dragPlaneMode: Axis | undefined  // when set, drag on plane perpendicular to this axis
   dragStartPos: { x: number; y: number; z: number }
   dragStartWorldPos: { x: number; y: number; z: number }
   dragStartHit: { x: number; y: number; z: number }
@@ -51,6 +52,21 @@ export interface EditorState {
 
   // Player identity (set by server on editorEnable)
   myAddress: string
+
+  // Admin + editor toggle
+  isAdmin: boolean
+  editorActive: boolean
+
+  // Previous layout (from prior deploy)
+  previousAvailable: boolean
+  previousEntityCount: number
+
+  // Connection state
+  connectionState: 'syncing' | 'connected' | 'disconnected'
+
+  // Snapshot toggle (enable/disable applying overrides)
+  snapshotEnabled: boolean
+  snapshotCount: number
 }
 
 export const state: EditorState = {
@@ -58,6 +74,7 @@ export const state: EditorState = {
   selectedName: '',
   gizmoMode: 'translate',
   isDragging: false,
+  dragPlaneMode: undefined,
   dragAxis: 'x',
   dragStartPos: Vector3.Zero(),
   dragStartWorldPos: Vector3.Zero(),
@@ -68,6 +85,13 @@ export const state: EditorState = {
   dragRotCenter: Vector3.Zero(),
   editorCamActive: false,
   myAddress: '',
+  isAdmin: false,
+  editorActive: false,
+  previousAvailable: false,
+  previousEntityCount: 0,
+  connectionState: 'syncing',
+  snapshotEnabled: true,
+  snapshotCount: 0,
 }
 
 // ── Lock management ─────────────────────────────────────
@@ -109,6 +133,19 @@ export function setGizmoRoot(e: Entity | undefined) { gizmoRoot = e }
 export const handleAxisMap = new Map<Entity, Axis>()
 export const handleDiscMap = new Map<Entity, Entity>()
 export const handleArrowMap = new Map<Entity, Entity[]>()
+
+// ── Editor toggle callback ──────────────────────────────
+
+/** Set by index.ts to handle toggle cleanup (deselect, camera off, etc.) */
+let _onToggle: (() => void) | undefined
+export function setToggleHandler(fn: () => void) { _onToggle = fn }
+
+/** Toggle the editor on/off. Safe to call from UI — no circular deps. */
+export function toggleEditorActive() {
+  if (!state.isAdmin) return
+  if (_onToggle) _onToggle()
+  else state.editorActive = !state.editorActive
+}
 
 // ── Click consumption flag ──────────────────────────────
 

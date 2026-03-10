@@ -1,69 +1,76 @@
 import { Entity, Transform } from '@dcl/sdk/ecs'
 import { Color4, Quaternion } from '@dcl/sdk/math'
 import ReactEcs, { ReactEcsRenderer, UiEntity, Label } from '@dcl/sdk/react-ecs'
-import { state, selectableInfoMap, lockMap } from './state'
+import { state, selectableInfoMap, lockMap, toggleEditorActive } from './state'
 import { undoCount, redoCount, undo, redo } from './history'
 import { createGizmo } from './gizmo'
 import { toggleEditorCamera, focusSelectedEntity } from './camera'
 import { selectEntity, deselectEntity } from './selection'
-import { requestReset } from './persistence'
+import { requestReset, requestResetAll, requestLoadPrevious, requestDismissPrevious, requestSetSnapshot } from './persistence'
 
-// ── Icons ───────────────────────────────────────────────
-
-const IC = {
-  deselect: 'https://www.iconsdb.com/icons/download/white/cursor-48.png',
-  move:     'https://www.iconsdb.com/icons/download/white/expand-48.png',
-  rotate:   'https://www.iconsdb.com/icons/download/white/rotate-48.png',
-  undo:     'https://www.iconsdb.com/icons/download/white/undo-48.png',
-  redo:     'https://www.iconsdb.com/icons/download/white/redo-48.png',
-  camera:   'https://www.iconsdb.com/icons/download/white/camera-48.png',
-  focus:    'https://www.iconsdb.com/icons/download/white/location-48.png',
-  model:    'https://www.iconsdb.com/icons/download/white/box-48.png',
-  mesh:     'https://www.iconsdb.com/icons/download/white/puzzle-48.png',
-  lock:     'https://www.iconsdb.com/icons/download/white/lock-48.png',
-  reset:    'https://www.iconsdb.com/icons/download/white/refresh-48.png',
-}
+// ── Icons (Unicode) ─────────────────────────────────────
+// Using unicode glyphs instead of external URLs for reliability
 
 // ── Theme ───────────────────────────────────────────────
 
-// Dark green-tinted palette inspired by Creator Hub
-const T = {
-  bg:          Color4.create(0.12, 0.14, 0.13, 0.96),
-  bgDark:      Color4.create(0.09, 0.11, 0.10, 0.98),
-  border:      Color4.create(0.20, 0.24, 0.22, 0.50),
-  headerBg:    Color4.create(0.14, 0.17, 0.15, 1),
-  btnDefault:  Color4.create(0.16, 0.19, 0.17, 0.9),
-  btnHover:    Color4.create(0.22, 0.27, 0.24, 1),
-  btnActive:   Color4.create(0.20, 0.38, 0.32, 1),
-  btnActiveH:  Color4.create(0.24, 0.46, 0.38, 1),
-  sep:         Color4.create(0.26, 0.30, 0.28, 0.35),
-  rowEven:     Color4.create(0.11, 0.13, 0.12, 1),
-  rowOdd:      Color4.create(0.13, 0.15, 0.14, 1),
-  rowHover:    Color4.create(0.18, 0.22, 0.20, 1),
-  rowSelected: Color4.create(0.20, 0.38, 0.32, 1),
-  textDim:     Color4.create(0.42, 0.48, 0.45, 1),
-  textMed:     Color4.create(0.60, 0.68, 0.64, 1),
-  textBright:  Color4.create(0.88, 0.92, 0.90, 1),
-  textDisabled:Color4.create(0.28, 0.32, 0.30, 1),
-  accent:      Color4.create(0.30, 0.75, 0.55, 1),
+const C = {
+  // Backgrounds
+  panel:       Color4.create(0.10, 0.10, 0.12, 0.94),
+  panelBorder: Color4.create(0.22, 0.22, 0.26, 0.60),
+  header:      Color4.create(0.13, 0.13, 0.15, 1),
+  bar:         Color4.create(0.10, 0.10, 0.12, 0.92),
+  barBorder:   Color4.create(0.22, 0.22, 0.26, 0.50),
+
+  // Buttons
+  btn:         Color4.create(0.18, 0.18, 0.21, 0.90),
+  btnHover:    Color4.create(0.26, 0.26, 0.30, 1),
+  btnActive:   Color4.create(0.22, 0.42, 0.58, 1),
+  btnActiveH:  Color4.create(0.28, 0.50, 0.66, 1),
+  btnDanger:   Color4.create(0.50, 0.22, 0.22, 1),
+  btnDangerH:  Color4.create(0.60, 0.28, 0.28, 1),
+  btnSuccess:  Color4.create(0.20, 0.48, 0.38, 1),
+  btnSuccessH: Color4.create(0.26, 0.56, 0.44, 1),
+
+  // Rows
+  rowA:        Color4.create(0.11, 0.11, 0.13, 1),
+  rowB:        Color4.create(0.13, 0.13, 0.15, 1),
+  rowHover:    Color4.create(0.20, 0.20, 0.24, 1),
+  rowSel:      Color4.create(0.22, 0.42, 0.58, 0.70),
+  rowLocked:   Color4.create(0.20, 0.14, 0.14, 1),
+
+  // Separators
+  sep:         Color4.create(0.28, 0.28, 0.32, 0.40),
+
+  // Text
+  text:        Color4.create(0.90, 0.90, 0.92, 1),
+  textMid:     Color4.create(0.62, 0.62, 0.66, 1),
+  textDim:     Color4.create(0.40, 0.40, 0.44, 1),
+  textOff:     Color4.create(0.30, 0.30, 0.34, 1),
+
+  // Semantic
+  accent:      Color4.create(0.35, 0.70, 0.90, 1),
+  ok:          Color4.create(0.30, 0.78, 0.48, 1),
+  warn:        Color4.create(1.0, 0.80, 0.25, 1),
+  err:         Color4.create(0.85, 0.35, 0.35, 1),
+  off:         Color4.create(0.50, 0.50, 0.54, 1),
+
+  // Axes
   xAxis:       Color4.create(0.95, 0.40, 0.40, 1),
   yAxis:       Color4.create(0.40, 0.90, 0.40, 1),
   zAxis:       Color4.create(0.40, 0.55, 0.95, 1),
-  statusOk:    Color4.create(0.30, 0.80, 0.45, 1),
-  statusWarn:  Color4.create(1.0, 0.80, 0.20, 1),
-  statusOff:   Color4.create(0.55, 0.28, 0.28, 1),
+
+  // Transparent
+  none:        Color4.create(0, 0, 0, 0),
 }
 
 // ── Sizes ───────────────────────────────────────────────
 
-const BTN = 34
-const ICON_SZ = 18
-const SEP_GAP = 6
-const PANEL_W = 190
-const ROW_H = 22
-const MAX_ROWS = 20
+const TOOL_SZ = 32
+const PANEL_W = 200
+const ROW_H = 24
+const MAX_ROWS = 18
 
-// ── Interaction State ───────────────────────────────────
+// ── Interaction ─────────────────────────────────────────
 
 let hovered: string | null = null
 let hierScroll = 0
@@ -76,7 +83,7 @@ function pos3() {
     const p = Transform.get(state.selectedEntity).position
     return { x: p.x.toFixed(2), y: p.y.toFixed(2), z: p.z.toFixed(2) }
   }
-  return { x: '-', y: '-', z: '-' }
+  return { x: '—', y: '—', z: '—' }
 }
 
 function rot3() {
@@ -84,90 +91,104 @@ function rot3() {
     const e = Quaternion.toEulerAngles(Transform.get(state.selectedEntity).rotation)
     return { x: e.x.toFixed(1), y: e.y.toFixed(1), z: e.z.toFixed(1) }
   }
-  return { x: '-', y: '-', z: '-' }
+  return { x: '—', y: '—', z: '—' }
 }
 
-// ── Toolbar Button ──────────────────────────────────────
+function isHov(id: string) { return hovered === id }
+function setHov(id: string) { hovered = id }
+function clearHov(id: string) { if (hovered === id) hovered = null }
 
-function TBtn(id: string, icon: string, key: string, active: boolean, disabled: boolean, fn: () => void) {
-  const h = hovered === id
+// ── Tool Button ─────────────────────────────────────────
 
-  let bg: Color4
-  if (disabled) bg = T.btnDefault
-  else if (active && h) bg = T.btnActiveH
-  else if (active) bg = T.btnActive
-  else if (h) bg = T.btnHover
-  else bg = T.btnDefault
-
-  let op: number
-  if (disabled) op = 0.18
-  else if (active) op = 1.0
-  else if (h) op = 0.85
-  else op = 0.48
+function Tool(id: string, label: string, active: boolean, disabled: boolean, fn: () => void) {
+  const h = isHov(id)
+  const bg = disabled ? C.btn
+    : active && h ? C.btnActiveH
+    : active ? C.btnActive
+    : h ? C.btnHover
+    : C.btn
+  const col = disabled ? C.textOff : active ? C.text : h ? C.textMid : C.textDim
 
   return (
     <UiEntity
-      uiTransform={{ width: BTN, height: BTN, margin: { left: 2, right: 2 }, justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}
+      uiTransform={{
+        width: TOOL_SZ, height: TOOL_SZ,
+        margin: { left: 1, right: 1 },
+        justifyContent: 'center', alignItems: 'center',
+      }}
       uiBackground={{ color: bg }}
-      onMouseEnter={() => { hovered = id }}
-      onMouseLeave={() => { if (hovered === id) hovered = null }}
+      onMouseEnter={() => setHov(id)}
+      onMouseLeave={() => clearHov(id)}
       onMouseDown={() => { if (!disabled) fn() }}
     >
-      <UiEntity
-        uiTransform={{ width: ICON_SZ, height: ICON_SZ }}
-        uiBackground={{ textureMode: 'stretch', texture: { src: icon }, color: Color4.create(1, 1, 1, op) }}
-      />
-      <Label value={key} fontSize={7} color={active ? T.textMed : T.textDim} uiTransform={{ height: 9 }} textAlign="middle-center" />
+      <Label value={label} fontSize={14} color={col} uiTransform={{ height: 18 }} textAlign="middle-center" />
     </UiEntity>
   )
 }
 
-function Sep() {
-  return <UiEntity uiTransform={{ width: 1, height: BTN - 12, margin: { left: SEP_GAP, right: SEP_GAP }, alignSelf: 'center' }} uiBackground={{ color: T.sep }} />
+function ToolSep() {
+  return (
+    <UiEntity
+      uiTransform={{ width: 1, height: TOOL_SZ - 10, margin: { left: 4, right: 4 }, alignSelf: 'center' }}
+      uiBackground={{ color: C.sep }}
+    />
+  )
 }
 
 // ── Toolbar ─────────────────────────────────────────────
 
 function Toolbar(sel: boolean) {
+  const mode = state.gizmoMode
   return (
     <UiEntity
       uiTransform={{
         positionType: 'absolute',
-        position: { top: 6 },
-        width: '100%', height: 48,
-        justifyContent: 'center', alignItems: 'flex-start',
+        position: { top: 8 },
+        width: '100%',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
       }}
     >
-      <UiEntity uiTransform={{ padding: 1, flexDirection: 'row', alignItems: 'center' }} uiBackground={{ color: T.border }}>
-        <UiEntity uiTransform={{ padding: { left: 6, right: 6, top: 3, bottom: 3 }, flexDirection: 'row', alignItems: 'center' }} uiBackground={{ color: T.bg }}>
-          {TBtn('desel', IC.deselect, 'F', !sel, false, () => { if (sel) deselectEntity() })}
-          {TBtn('move', IC.move, 'E', sel && state.gizmoMode === 'translate', !sel, () => { state.gizmoMode = 'translate'; if (sel) createGizmo() })}
-          {TBtn('rot', IC.rotate, 'E', sel && state.gizmoMode === 'rotate', !sel, () => { state.gizmoMode = 'rotate'; if (sel) createGizmo() })}
-          {Sep()}
-          {TBtn('undo', IC.undo, '4', false, undoCount() === 0, () => { undo() })}
-          {TBtn('redo', IC.redo, 'Sh4', false, redoCount() === 0, () => { redo() })}
-          {Sep()}
-          {TBtn('cam', IC.camera, '1', state.editorCamActive, false, () => { toggleEditorCamera() })}
-          {TBtn('foc', IC.focus, 'F', false, !sel, () => { if (!state.editorCamActive) toggleEditorCamera(); focusSelectedEntity() })}
-          {Sep()}
-          <UiEntity uiTransform={{ width: 8, height: 8, margin: { left: 3, right: 2 }, alignSelf: 'center' }}
-            uiBackground={{ color: T.statusOk }} />
+      <UiEntity
+        uiTransform={{ padding: 1, flexDirection: 'row', alignItems: 'center' }}
+        uiBackground={{ color: C.panelBorder }}
+      >
+        <UiEntity
+          uiTransform={{
+            padding: { left: 4, right: 4, top: 3, bottom: 3 },
+            flexDirection: 'row', alignItems: 'center',
+          }}
+          uiBackground={{ color: C.panel }}
+        >
+          {/* Selection */}
+          {Tool('sel', '⊙', !sel, false, () => { if (sel) deselectEntity() })}
+          {Tool('mov', '✥', sel && mode === 'translate', !sel, () => { state.gizmoMode = 'translate'; if (sel) createGizmo() })}
+          {Tool('rot', '↻', sel && mode === 'rotate', !sel, () => { state.gizmoMode = 'rotate'; if (sel) createGizmo() })}
+
+          {ToolSep()}
+
+          {/* Undo / Redo */}
+          {Tool('und', '↶', false, undoCount() === 0, () => undo())}
+          {Tool('red', '↷', false, redoCount() === 0, () => redo())}
+
+          {ToolSep()}
+
+          {/* Camera */}
+          {Tool('cam', '◉', state.editorCamActive, false, () => toggleEditorCamera())}
+          {Tool('foc', '◎', false, !sel, () => {
+            if (!state.editorCamActive) toggleEditorCamera()
+            focusSelectedEntity()
+          })}
         </UiEntity>
       </UiEntity>
     </UiEntity>
   )
 }
 
-// ── Tree Builder ────────────────────────────────────────
+// ── Tree ────────────────────────────────────────────────
 
-interface TreeRow {
-  e: Entity
-  name: string
-  isModel: boolean
-  depth: number
-}
+interface TreeRow { e: Entity; name: string; isModel: boolean; depth: number }
 
-/** Build a flattened, depth-first, alphabetically sorted hierarchy list. */
 function buildTree(): TreeRow[] {
   const names = new Map<number, { name: string; isModel: boolean }>()
   const childrenOf = new Map<number, number[]>()
@@ -176,7 +197,6 @@ function buildTree(): TreeRow[] {
   for (const [entity, info] of selectableInfoMap) {
     const id = entity as number
     names.set(id, { name: info.name, isModel: info.isModel })
-
     const pid = info.parentEntity
     if (pid !== undefined && selectableInfoMap.has(pid as Entity)) {
       const kids = childrenOf.get(pid)
@@ -187,7 +207,7 @@ function buildTree(): TreeRow[] {
     }
   }
 
-  const byName = (a: number, b: number): number => {
+  const byName = (a: number, b: number) => {
     const na = names.get(a)!.name.toLowerCase()
     const nb = names.get(b)!.name.toLowerCase()
     return na < nb ? -1 : na > nb ? 1 : 0
@@ -208,7 +228,7 @@ function buildTree(): TreeRow[] {
   return flat
 }
 
-// ── Right Panel (Hierarchy + Properties) ────────────────
+// ── Right Panel ─────────────────────────────────────────
 
 function RightPanel(sel: boolean) {
   const flat = buildTree()
@@ -216,7 +236,6 @@ function RightPanel(sel: boolean) {
   const maxScr = Math.max(0, total - MAX_ROWS)
   hierScroll = Math.max(0, Math.min(hierScroll, maxScr))
 
-  // Auto-scroll to keep selected entity visible
   if (sel) {
     const selIdx = flat.findIndex(n => n.e === state.selectedEntity)
     if (selIdx >= 0) {
@@ -225,201 +244,316 @@ function RightPanel(sel: boolean) {
     }
   }
 
-  const pos = pos3()
-  const rot = rot3()
-  const visibleCount = Math.min(MAX_ROWS, total - hierScroll)
+  const vis = Math.min(MAX_ROWS, total - hierScroll)
   const canUp = hierScroll > 0
   const canDown = hierScroll < maxScr
 
-  // Build row elements in a for-loop (not .map() — DCL React-ECS renders .map() in reverse)
-  // Uses entity ID as key for stable rendering order
-  const hierRows: ReactEcs.JSX.Element[] = []
-  for (let i = 0; i < visibleCount; i++) {
+  const rows: ReactEcs.JSX.Element[] = []
+  for (let i = 0; i < vis; i++) {
     const node = flat[hierScroll + i]
     const eid = node.e as number
     const isSel = state.selectedEntity === node.e
-    const isHov = hierHov === eid
-    const globalIdx = hierScroll + i
+    const isH = hierHov === eid
+    const gi = hierScroll + i
     const locked = lockMap.has(node.name) && !isSel
 
-    let bg: Color4
-    if (isSel) bg = T.rowSelected
-    else if (locked) bg = Color4.create(0.18, 0.13, 0.12, 1)
-    else if (isHov) bg = T.rowHover
-    else bg = globalIdx % 2 === 0 ? T.rowEven : T.rowOdd
+    const bg = isSel ? C.rowSel : locked ? C.rowLocked : isH ? C.rowHover : gi % 2 === 0 ? C.rowA : C.rowB
+    const col = locked ? C.textOff : isSel ? C.text : isH ? C.textMid : C.textDim
+    const pad = 10 + node.depth * 12
+    const maxC = Math.max(6, 20 - node.depth * 2)
+    const lbl = node.name.length > maxC ? node.name.substring(0, maxC - 1) + '…' : node.name
+    const icon = locked ? '🔒' : node.isModel ? '▣' : '◇'
 
-    let textCol: Color4
-    if (locked) textCol = T.textDisabled
-    else if (isSel) textCol = T.textBright
-    else if (isHov) textCol = T.textMed
-    else textCol = T.textDim
-    const leftPad = 8 + node.depth * 10
-    const maxChars = Math.max(8, locked ? 14 : 18 - node.depth * 2)
-    const label = node.name.length > maxChars ? node.name.substring(0, maxChars - 1) + '..' : node.name
-
-    hierRows.push(
+    rows.push(
       <UiEntity
         key={eid}
-        uiTransform={{ width: '100%', height: ROW_H, padding: { left: leftPad, right: 4 }, alignItems: 'center', flexDirection: 'row' }}
+        uiTransform={{
+          width: '100%', height: ROW_H,
+          padding: { left: pad, right: 6 },
+          alignItems: 'center', flexDirection: 'row',
+        }}
         uiBackground={{ color: bg }}
         onMouseEnter={() => { hierHov = eid }}
         onMouseLeave={() => { if (hierHov === eid) hierHov = null }}
-        onMouseDown={() => { selectEntity(eid as Entity) }}
+        onMouseDown={() => selectEntity(eid as Entity)}
       >
-        <UiEntity
-          uiTransform={{ width: 12, height: 12, margin: { right: 4 } }}
-          uiBackground={{
-            textureMode: 'stretch',
-            texture: { src: locked ? IC.lock : node.isModel ? IC.model : IC.mesh },
-            color: Color4.create(1, 1, 1, locked ? 0.4 : isSel ? 0.7 : 0.3),
-          }}
-        />
-        <Label value={label} fontSize={9} color={textCol} uiTransform={{ height: 14 }} />
+        <Label value={icon} fontSize={10} color={Color4.create(col.r, col.g, col.b, 0.6)} uiTransform={{ width: 16, height: 14 }} textAlign="middle-center" />
+        <Label value={lbl} fontSize={10} color={col} uiTransform={{ height: 14, margin: { left: 2 } }} />
       </UiEntity>
     )
   }
+
+  const pos = pos3()
+  const rot = rot3()
 
   return (
     <UiEntity
       uiTransform={{
         positionType: 'absolute',
-        position: { top: 6, right: 6 },
+        position: { top: 8, right: 8 },
         flexDirection: 'column',
       }}
     >
-      {/* ── Hierarchy Panel ──────────────────── */}
+      {/* Hierarchy */}
       <UiEntity
         uiTransform={{ width: PANEL_W, flexDirection: 'column', padding: 1 }}
-        uiBackground={{ color: T.border }}
+        uiBackground={{ color: C.panelBorder }}
       >
-        <UiEntity uiTransform={{ width: '100%', flexDirection: 'column' }} uiBackground={{ color: T.bgDark }}>
+        <UiEntity uiTransform={{ width: '100%', flexDirection: 'column' }} uiBackground={{ color: C.panel }}>
           {/* Header */}
           <UiEntity
-            uiTransform={{ width: '100%', height: 26, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: { left: 10, right: 10 } }}
-            uiBackground={{ color: T.headerBg }}
-          >
-            <Label value="HIERARCHY" fontSize={9} color={T.textMed} uiTransform={{ height: 12 }} />
-            <Label value={`${total}`} fontSize={9} color={T.textDim} uiTransform={{ height: 12 }} />
-          </UiEntity>
-
-          {/* Scroll Up */}
-          <UiEntity
-            uiTransform={{ width: '100%', height: canUp ? 16 : 0, justifyContent: 'center', alignItems: 'center', display: canUp ? 'flex' : 'none' }}
-            uiBackground={{ color: T.headerBg }}
-            onMouseDown={() => { hierScroll = Math.max(0, hierScroll - 5) }}
-          >
-            <Label value="^ ^ ^" fontSize={8} color={T.textDim} uiTransform={{ height: 10 }} textAlign="middle-center" />
-          </UiEntity>
-
-          {/* Rows container — fixed height */}
-          <UiEntity
-            uiTransform={{ width: '100%', height: MAX_ROWS * ROW_H, flexDirection: 'column', overflow: 'hidden' }}
-          >
-            {hierRows}
-          </UiEntity>
-
-          {/* Scroll Down */}
-          <UiEntity
-            uiTransform={{ width: '100%', height: canDown ? 16 : 0, justifyContent: 'center', alignItems: 'center', display: canDown ? 'flex' : 'none' }}
-            uiBackground={{ color: T.headerBg }}
-            onMouseDown={() => { hierScroll = Math.min(maxScr, hierScroll + 5) }}
-          >
-            <Label value="v v v" fontSize={8} color={T.textDim} uiTransform={{ height: 10 }} textAlign="middle-center" />
-          </UiEntity>
-        </UiEntity>
-      </UiEntity>
-
-      {/* ── Properties Panel (separate) ──────── */}
-      <UiEntity
-        uiTransform={{
-          width: PANEL_W,
-          flexDirection: 'column',
-          padding: 1,
-          margin: { top: 4 },
-          display: sel ? 'flex' : 'none',
-        }}
-        uiBackground={{ color: T.border }}
-      >
-        <UiEntity uiTransform={{ width: '100%', flexDirection: 'column' }} uiBackground={{ color: T.bgDark }}>
-          {/* Properties header */}
-          <UiEntity
-            uiTransform={{ width: '100%', height: 24, padding: { left: 10, right: 10 }, alignItems: 'center' }}
-            uiBackground={{ color: T.headerBg }}
-          >
-            <Label value="TRANSFORM" fontSize={9} color={T.textMed} uiTransform={{ height: 12 }} />
-          </UiEntity>
-
-          {/* Entity name */}
-          <UiEntity uiTransform={{ width: '100%', padding: { left: 10, right: 10, top: 6, bottom: 2 } }}>
-            <Label value={state.selectedName} fontSize={11} color={T.textBright} uiTransform={{ height: 16 }} />
-          </UiEntity>
-
-          {/* Position */}
-          <UiEntity uiTransform={{ width: '100%', padding: { left: 10, right: 6, top: 4 }, flexDirection: 'column' }}>
-            <Label value="Position" fontSize={8} color={T.textDim} uiTransform={{ height: 11, margin: { bottom: 2 } }} />
-            <UiEntity uiTransform={{ flexDirection: 'row', width: '100%', height: 18 }}>
-              {ValField('X', pos.x, T.xAxis)}
-              {ValField('Y', pos.y, T.yAxis)}
-              {ValField('Z', pos.z, T.zAxis)}
-            </UiEntity>
-          </UiEntity>
-
-          {/* Rotation */}
-          <UiEntity uiTransform={{ width: '100%', padding: { left: 10, right: 6, top: 4, bottom: 4 }, flexDirection: 'column' }}>
-            <Label value="Rotation" fontSize={8} color={T.textDim} uiTransform={{ height: 11, margin: { bottom: 2 } }} />
-            <UiEntity uiTransform={{ flexDirection: 'row', width: '100%', height: 18 }}>
-              {ValField('X', rot.x, T.xAxis)}
-              {ValField('Y', rot.y, T.yAxis)}
-              {ValField('Z', rot.z, T.zAxis)}
-            </UiEntity>
-          </UiEntity>
-
-          {/* Reset to code-defined transform */}
-          <UiEntity
             uiTransform={{
-              width: '100%',
-              height: 26,
-              padding: { left: 10, right: 10, bottom: 6 },
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              flexDirection: 'row',
+              width: '100%', height: 28,
+              flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+              padding: { left: 10, right: 10 },
             }}
+            uiBackground={{ color: C.header }}
           >
-            <UiEntity
-              uiTransform={{ height: 20, padding: { left: 6, right: 6 }, flexDirection: 'row', alignItems: 'center' }}
-              uiBackground={{ color: hovered === 'reset' ? Color4.create(0.4, 0.2, 0.2, 1) : T.btnDefault }}
-              onMouseEnter={() => { hovered = 'reset' }}
-              onMouseLeave={() => { if (hovered === 'reset') hovered = null }}
-              onMouseDown={() => { if (state.selectedName) requestReset(state.selectedName) }}
-            >
-              <UiEntity
-                uiTransform={{ width: 10, height: 10, margin: { right: 4 } }}
-                uiBackground={{ textureMode: 'stretch', texture: { src: IC.reset }, color: Color4.create(1, 1, 1, 0.6) }}
-              />
-              <Label value="Reset" fontSize={8} color={T.textMed} uiTransform={{ height: 10 }} />
-            </UiEntity>
+            <Label value="Hierarchy" fontSize={10} color={C.textMid} uiTransform={{ height: 14 }} />
+            <Label value={`${total}`} fontSize={9} color={C.textDim} uiTransform={{ height: 12 }} />
           </UiEntity>
+
+          {/* Scroll up */}
+          {canUp ? (
+            <UiEntity
+              uiTransform={{ width: '100%', height: 18, justifyContent: 'center', alignItems: 'center' }}
+              uiBackground={{ color: C.header }}
+              onMouseDown={() => { hierScroll = Math.max(0, hierScroll - 5) }}
+            >
+              <Label value="▲" fontSize={8} color={C.textDim} uiTransform={{ height: 10 }} textAlign="middle-center" />
+            </UiEntity>
+          ) : null}
+
+          {/* Rows */}
+          <UiEntity uiTransform={{ width: '100%', height: MAX_ROWS * ROW_H, flexDirection: 'column', overflow: 'hidden' }}>
+            {rows}
+          </UiEntity>
+
+          {/* Scroll down */}
+          {canDown ? (
+            <UiEntity
+              uiTransform={{ width: '100%', height: 18, justifyContent: 'center', alignItems: 'center' }}
+              uiBackground={{ color: C.header }}
+              onMouseDown={() => { hierScroll = Math.min(maxScr, hierScroll + 5) }}
+            >
+              <Label value="▼" fontSize={8} color={C.textDim} uiTransform={{ height: 10 }} textAlign="middle-center" />
+            </UiEntity>
+          ) : null}
         </UiEntity>
       </UiEntity>
 
+      {/* Properties */}
+      {sel ? (
+        <UiEntity
+          uiTransform={{ width: PANEL_W, flexDirection: 'column', padding: 1, margin: { top: 4 } }}
+          uiBackground={{ color: C.panelBorder }}
+        >
+          <UiEntity uiTransform={{ width: '100%', flexDirection: 'column' }} uiBackground={{ color: C.panel }}>
+            {/* Header */}
+            <UiEntity
+              uiTransform={{
+                width: '100%', height: 28,
+                padding: { left: 10, right: 10 },
+                flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+              }}
+              uiBackground={{ color: C.header }}
+            >
+              <Label value="Transform" fontSize={10} color={C.textMid} uiTransform={{ height: 14 }} />
+              {/* Reset button in header */}
+              <UiEntity
+                uiTransform={{ height: 20, padding: { left: 6, right: 6 }, alignItems: 'center', justifyContent: 'center' }}
+                uiBackground={{ color: isHov('rst') ? C.btnDangerH : C.btnDanger }}
+                onMouseEnter={() => setHov('rst')}
+                onMouseLeave={() => clearHov('rst')}
+                onMouseDown={() => { if (state.selectedName) requestReset(state.selectedName) }}
+              >
+                <Label value="Reset" fontSize={8} color={C.text} uiTransform={{ height: 10 }} />
+              </UiEntity>
+            </UiEntity>
+
+            {/* Entity name */}
+            <UiEntity uiTransform={{ width: '100%', padding: { left: 10, right: 10, top: 8, bottom: 4 } }}>
+              <Label value={state.selectedName} fontSize={11} color={C.text} uiTransform={{ height: 16 }} />
+            </UiEntity>
+
+            {/* Position */}
+            <UiEntity uiTransform={{ width: '100%', padding: { left: 10, right: 8, top: 4 }, flexDirection: 'column' }}>
+              <Label value="Position" fontSize={8} color={C.textDim} uiTransform={{ height: 12, margin: { bottom: 2 } }} />
+              <UiEntity uiTransform={{ flexDirection: 'row', width: '100%', height: 20 }}>
+                {AxisField('X', pos.x, C.xAxis)}
+                {AxisField('Y', pos.y, C.yAxis)}
+                {AxisField('Z', pos.z, C.zAxis)}
+              </UiEntity>
+            </UiEntity>
+
+            {/* Rotation */}
+            <UiEntity uiTransform={{ width: '100%', padding: { left: 10, right: 8, top: 4, bottom: 8 }, flexDirection: 'column' }}>
+              <Label value="Rotation" fontSize={8} color={C.textDim} uiTransform={{ height: 12, margin: { bottom: 2 } }} />
+              <UiEntity uiTransform={{ flexDirection: 'row', width: '100%', height: 20 }}>
+                {AxisField('X', rot.x, C.xAxis)}
+                {AxisField('Y', rot.y, C.yAxis)}
+                {AxisField('Z', rot.z, C.zAxis)}
+              </UiEntity>
+            </UiEntity>
+          </UiEntity>
+        </UiEntity>
+      ) : null}
     </UiEntity>
   )
 }
 
-/** Labeled value field like Creator Hub: [X 12.34] */
-function ValField(label: string, value: string, color: Color4) {
+function AxisField(label: string, value: string, color: Color4) {
   return (
     <UiEntity
-      uiTransform={{ height: 18, margin: { right: 3 }, flexDirection: 'row', alignItems: 'center', flexGrow: 1 }}
-      uiBackground={{ color: Color4.create(0.08, 0.10, 0.09, 1) }}
+      uiTransform={{ height: 20, margin: { right: 3 }, flexDirection: 'row', alignItems: 'center', flexGrow: 1 }}
+      uiBackground={{ color: Color4.create(0.06, 0.06, 0.08, 1) }}
     >
       <UiEntity
-        uiTransform={{ width: 16, height: 18, justifyContent: 'center', alignItems: 'center' }}
-        uiBackground={{ color: Color4.create(color.r * 0.4, color.g * 0.4, color.b * 0.4, 1) }}
+        uiTransform={{ width: 18, height: 20, justifyContent: 'center', alignItems: 'center' }}
+        uiBackground={{ color: Color4.create(color.r * 0.35, color.g * 0.35, color.b * 0.35, 1) }}
       >
-        <Label value={label} fontSize={8} color={Color4.create(color.r, color.g, color.b, 0.9)} uiTransform={{ height: 10 }} textAlign="middle-center" />
+        <Label value={label} fontSize={9} color={Color4.create(color.r, color.g, color.b, 0.85)} uiTransform={{ height: 12 }} textAlign="middle-center" />
       </UiEntity>
-      <Label value={value} fontSize={9} color={T.textBright} uiTransform={{ height: 14, margin: { left: 4 } }} />
+      <Label value={value} fontSize={9} color={C.text} uiTransform={{ height: 14, margin: { left: 4 } }} />
+    </UiEntity>
+  )
+}
+
+// ── Bottom Status Bar ───────────────────────────────────
+
+function StatusBar() {
+  const cs = state.connectionState
+  const isAdmin = state.isAdmin
+  const on = state.snapshotEnabled
+  const count = state.snapshotCount
+  const edOn = state.editorActive
+
+  // Connection
+  const connDot = cs === 'connected' ? C.ok : cs === 'syncing' ? C.warn : C.err
+  const connText = cs === 'connected' ? 'Connected' : cs === 'syncing' ? 'Syncing…' : 'Disconnected'
+  const connCol = cs === 'connected' ? C.textDim : cs === 'syncing' ? C.warn : C.err
+
+  // Snapshot
+  const snapText = count > 0
+    ? (on ? `Scene: ${count} edits active` : `Scene: default`)
+    : 'Scene: no edits'
+  const snapDot = count === 0 ? C.off : on ? C.ok : C.warn
+  const snapCol = count === 0 ? C.textDim : on ? C.text : C.warn
+
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { bottom: 8, right: 8 },
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          padding: { left: 10, right: 4, top: 4, bottom: 4 },
+        }}
+        uiBackground={{ color: C.bar }}
+      >
+        {/* Connection status */}
+        <UiEntity uiTransform={{ width: 6, height: 6, margin: { right: 5 } }} uiBackground={{ color: connDot }} />
+        <Label value={connText} fontSize={9} color={connCol} uiTransform={{ height: 12 }} />
+
+        {/* Separator */}
+        <UiEntity uiTransform={{ width: 1, height: 12, margin: { left: 10, right: 10 } }} uiBackground={{ color: C.sep }} />
+
+        {/* Snapshot */}
+        {isAdmin ? (
+          <UiEntity
+            uiTransform={{
+              flexDirection: 'row', alignItems: 'center',
+              padding: { left: 6, right: 6, top: 2, bottom: 2 },
+            }}
+            uiBackground={{ color: count > 0 && isHov('snap') ? (on ? C.btnActiveH : C.btnHover) : (count > 0 && on ? C.btnActive : C.none) }}
+            onMouseEnter={() => setHov('snap')}
+            onMouseLeave={() => clearHov('snap')}
+            onMouseDown={count > 0 ? () => requestSetSnapshot(!on) : undefined}
+          >
+            <Label
+              value={on ? '◆' : '◇'}
+              fontSize={8}
+              color={snapDot}
+              uiTransform={{ height: 12, margin: { right: 4 } }}
+            />
+            <Label value={snapText} fontSize={9} color={count > 0 && isHov('snap') ? C.text : snapCol} uiTransform={{ height: 12 }} />
+          </UiEntity>
+        ) : null}
+
+        {isAdmin ? (
+          <UiEntity uiTransform={{ width: 1, height: 12, margin: { left: 10, right: 10 } }} uiBackground={{ color: C.sep }} />
+        ) : null}
+
+        {/* Editor toggle */}
+        {isAdmin ? (
+          <UiEntity
+            uiTransform={{
+              flexDirection: 'row', alignItems: 'center',
+              padding: { left: 6, right: 6, top: 2, bottom: 2 },
+            }}
+            uiBackground={{ color: isHov('edt') ? (edOn ? C.btnActiveH : C.btnHover) : (edOn ? C.btnActive : C.btn) }}
+            onMouseEnter={() => setHov('edt')}
+            onMouseLeave={() => clearHov('edt')}
+            onMouseDown={() => toggleEditorActive()}
+          >
+            <Label value="✏" fontSize={10} color={edOn ? C.text : C.textDim} uiTransform={{ height: 12, margin: { right: 3 } }} />
+            <Label value={edOn ? 'Editor ON' : 'Editor'} fontSize={9} color={edOn ? C.text : C.textDim} uiTransform={{ height: 12 }} />
+          </UiEntity>
+        ) : null}
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+// ── Previous Layout Banner ──────────────────────────────
+
+function PreviousBanner() {
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { bottom: 38, right: 8 },
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          padding: { left: 12, right: 6, top: 5, bottom: 5 },
+        }}
+        uiBackground={{ color: Color4.create(0.14, 0.16, 0.24, 0.96) }}
+      >
+        <Label
+          value={`Previous layout available (${state.previousEntityCount} entities)`}
+          fontSize={10}
+          color={C.text}
+          uiTransform={{ height: 14, margin: { right: 12 } }}
+        />
+        {/* Apply */}
+        <UiEntity
+          uiTransform={{ height: 24, padding: { left: 8, right: 8 }, margin: { right: 4 }, justifyContent: 'center', alignItems: 'center' }}
+          uiBackground={{ color: isHov('pApply') ? C.btnSuccessH : C.btnSuccess }}
+          onMouseEnter={() => setHov('pApply')}
+          onMouseLeave={() => clearHov('pApply')}
+          onMouseDown={() => requestLoadPrevious()}
+        >
+          <Label value="Apply" fontSize={9} color={C.text} uiTransform={{ height: 12 }} />
+        </UiEntity>
+        {/* Dismiss */}
+        <UiEntity
+          uiTransform={{ height: 24, padding: { left: 8, right: 8 }, justifyContent: 'center', alignItems: 'center' }}
+          uiBackground={{ color: isHov('pDismiss') ? C.btnHover : C.btn }}
+          onMouseEnter={() => setHov('pDismiss')}
+          onMouseLeave={() => clearHov('pDismiss')}
+          onMouseDown={() => requestDismissPrevious()}
+        >
+          <Label value="Dismiss" fontSize={9} color={C.textMid} uiTransform={{ height: 12 }} />
+        </UiEntity>
+      </UiEntity>
     </UiEntity>
   )
 }
@@ -427,12 +561,36 @@ function ValField(label: string, value: string, color: Color4) {
 // ── Main UI ─────────────────────────────────────────────
 
 function EditorUI() {
-  const sel = state.selectedEntity !== undefined
+  // Syncing — status bar only
+  if (state.connectionState === 'syncing') {
+    return (
+      <UiEntity uiTransform={{ width: '100%', height: '100%' }}>
+        {StatusBar()}
+      </UiEntity>
+    )
+  }
 
+  // Not admin — nothing
+  if (!state.isAdmin) return <UiEntity uiTransform={{ width: 0, height: 0 }} />
+
+  // Admin, editor off — status bar + previous banner
+  if (!state.editorActive) {
+    return (
+      <UiEntity uiTransform={{ width: '100%', height: '100%' }}>
+        {StatusBar()}
+        {state.previousAvailable ? PreviousBanner() : null}
+      </UiEntity>
+    )
+  }
+
+  // Admin, editor on — full UI
+  const sel = state.selectedEntity !== undefined
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%' }}>
       {Toolbar(sel)}
       {RightPanel(sel)}
+      {StatusBar()}
+      {state.previousAvailable ? PreviousBanner() : null}
     </UiEntity>
   )
 }

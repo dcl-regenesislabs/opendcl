@@ -36,3 +36,23 @@ export function requestUnlock(entityName: string) {
 export function requestReset(entityName: string) {
   editorRoom.send('editorReset', { entityName })
 }
+
+/** Request the server to reset all entities to code defaults. */
+export function requestResetAll() {
+  editorRoom.send('editorResetAll', {})
+}
+
+/** Request the server to load the previous layout from a prior deploy. */
+export function requestLoadPrevious() {
+  editorRoom.send('editorLoadPrevious', {})
+}
+
+/** Dismiss the previous layout (delete it permanently). */
+export function requestDismissPrevious() {
+  editorRoom.send('editorDismissPrevious', {})
+}
+
+/** Toggle snapshot enabled/disabled. */
+export function requestSetSnapshot(enabled: boolean) {
+  editorRoom.send('editorSetSnapshot', { enabled })
+}

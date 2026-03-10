@@ -1,17 +1,7 @@
-# Everything is ignored except the editor module, test scene, and skill docs
+# Only track the skill doc and editor module
 *
 !.gitignore
 !SKILL.md
-!ARCHITECTURE.md
-!PRODUCT.md
-!INWORLD-EDITING.md
 !src/
-!src/index.ts
 !src/__editor/
 !src/__editor/**
-src/__editor/editor-scene.json
-!models/
-!models/**
-!scene.json
-!package.json
-!tsconfig.json

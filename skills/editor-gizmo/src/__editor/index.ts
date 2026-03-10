@@ -13,6 +13,7 @@
 import {
   engine,
   Entity,
+  Name,
   Transform,
   MeshCollider,
   pointerEventsSystem,
@@ -21,13 +22,14 @@ import {
 } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 import { isServer, isStateSyncronized } from '@dcl/sdk/network'
-import { state, editorEntities, gizmoClickConsumed, selectableInfoMap, setLock, clearLock } from './state'
+import { applyFlatTransform } from './math-utils'
+import { state, editorEntities, gizmoClickConsumed, selectableInfoMap, setLock, clearLock, setToggleHandler } from './state'
 import { setupEditorUi } from './ui'
-import { createEditorCamera, createLockCamera, editorCameraSystem } from './camera'
-import { SKIP_ENTITIES, discoverySystem } from './discovery'
+import { createEditorCamera, createLockCamera, deactivateEditorCamera, editorCameraSystem } from './camera'
+import { SKIP_ENTITIES, discoverySystem, removeAllPointerEvents, restoreAllPointerEvents } from './discovery'
 import { deselectEntity } from './selection'
-import { startDrag, dragSystem } from './drag'
-import { gizmoFollowSystem, setStartDragHandler } from './gizmo'
+import { startDrag, startPlaneDrag, dragSystem } from './drag'
+import { gizmoFollowSystem, setStartDragHandler, setStartPlaneDragHandler } from './gizmo'
 import { modeToggleSystem, resetGizmoClickFlag } from './input'
 
 import { editorRoom } from './messages'
@@ -44,18 +46,51 @@ export function enableEditor() {
     return
   }
 
+  setupEditorUi()
   setupMessageListeners()
+  engine.addSystem(pendingOverrideSystem)
   waitForRoomAndRequestAccess()
+}
+
+function handleToggle() {
+  if (state.editorActive) {
+    // Deactivate: deselect, disable editor camera, remove hover hints
+    deselectEntity()
+    if (state.editorCamActive) deactivateEditorCamera()
+    removeAllPointerEvents()
+    state.editorActive = false
+    console.log('[editor] editor OFF')
+  } else {
+    state.editorActive = true
+    restoreAllPointerEvents()
+    console.log('[editor] editor ON')
+  }
 }
 
 // ── Room readiness ──────────────────────────────────────
 
 function waitForRoomAndRequestAccess() {
+  let wasConnected = false
+  let readySent = false
   const system = () => {
-    if (!isStateSyncronized()) return
-    engine.removeSystem(system)
-    console.log('[editor] room connected — requesting access')
-    editorRoom.send('editorReady', {})
+    const synced = isStateSyncronized()
+    if (synced && !readySent) {
+      readySent = true
+      wasConnected = true
+      console.log('[editor] room connected — requesting access')
+      editorRoom.send('editorReady', {})
+    } else if (synced && !wasConnected) {
+      // Reconnected
+      wasConnected = true
+      state.connectionState = 'connected'
+      console.log('[editor] reconnected')
+      editorRoom.send('editorReady', {})
+    } else if (!synced && wasConnected) {
+      // Lost connection
+      wasConnected = false
+      state.connectionState = 'disconnected'
+      console.log('[editor] disconnected')
+    }
   }
   engine.addSystem(system)
 }
@@ -64,8 +99,12 @@ function waitForRoomAndRequestAccess() {
 
 function setupMessageListeners() {
   editorRoom.onMessage('editorEnable', (data) => {
+    state.connectionState = 'connected'
+    state.snapshotEnabled = data.snapshotEnabled ?? true
+    state.snapshotCount = data.snapshotCount ?? 0
     if (data.admin) {
       state.myAddress = data.address
+      state.isAdmin = true
       console.log(`[editor] admin access granted (${data.address.substring(0, 10)}...)`)
       setupClientEditor()
     } else {
@@ -73,29 +112,69 @@ function setupMessageListeners() {
     }
   })
 
+  editorRoom.onMessage('editorSnapshotChanged', (data) => {
+    state.snapshotEnabled = data.enabled
+    state.snapshotCount = data.count
+    console.log(`[editor] snapshot ${data.enabled ? 'enabled' : 'disabled'} (${data.count} entities)`)
+  })
+
   editorRoom.onMessage('editorLocked', (data) => setLock(data.entityName, data.lockedBy))
   editorRoom.onMessage('editorUnlocked', (data) => clearLock(data.entityName))
   editorRoom.onMessage('editorConfirm', (data) => applyConfirmedTransform(data))
+
+  editorRoom.onMessage('editorPreviousAvailable', (data) => {
+    state.previousAvailable = true
+    state.previousEntityCount = data.entityCount
+    console.log(`[editor] previous layout available (${data.entityCount} entities)`)
+  })
+
+  editorRoom.onMessage('editorPreviousCleared', () => {
+    state.previousAvailable = false
+    state.previousEntityCount = 0
+  })
 }
 
-function applyConfirmedTransform(data: {
+interface PendingOverride {
   entityName: string
   px: number; py: number; pz: number
   rx: number; ry: number; rz: number; rw: number
   sx: number; sy: number; sz: number
-}) {
+}
+
+/** Overrides received before entities exist — retried each frame. */
+const pendingOverrides = new Map<string, PendingOverride>()
+
+function applyConfirmedTransform(data: PendingOverride) {
   const entity = findEntityByName(data.entityName)
-  if (!entity || !Transform.has(entity)) return
+  if (!entity) {
+    // Entity doesn't exist yet — queue for retry
+    pendingOverrides.set(data.entityName, data)
+    return
+  }
 
   const t = Transform.getMutable(entity)
-  t.position.x = data.px; t.position.y = data.py; t.position.z = data.pz
-  t.rotation.x = data.rx; t.rotation.y = data.ry; t.rotation.z = data.rz; t.rotation.w = data.rw
-  t.scale.x = data.sx; t.scale.y = data.sy; t.scale.z = data.sz
+  applyFlatTransform(t, data)
+  pendingOverrides.delete(data.entityName)
+}
+
+/** Per-frame system: retries pending overrides for entities that didn't exist yet. */
+function pendingOverrideSystem() {
+  if (pendingOverrides.size === 0) return
+  for (const [name, data] of pendingOverrides) {
+    const entity = findEntityByName(name)
+    if (entity) {
+      const t = Transform.getMutable(entity)
+      applyFlatTransform(t, data)
+      pendingOverrides.delete(name)
+    }
+  }
 }
 
 function findEntityByName(name: string): Entity | undefined {
-  for (const [entity, info] of selectableInfoMap) {
-    if (info.name === name) return entity
+  // Search all entities with Name, not just selectableInfoMap
+  // (editorConfirm must work even when editor is toggled OFF)
+  for (const [entity] of engine.getEntitiesWith(Name, Transform)) {
+    if (Name.get(entity).value === name) return entity
   }
   return undefined
 }
@@ -112,8 +191,10 @@ function setupClientEditor() {
   SKIP_ENTITIES.add(engine.CameraEntity)
   SKIP_ENTITIES.add(engine.PlayerEntity)
 
+  setToggleHandler(handleToggle)
   createDeselectGround()
   setStartDragHandler(startDrag)
+  setStartPlaneDragHandler(startPlaneDrag)
   createEditorCamera()
   createLockCamera()
 
@@ -124,7 +205,6 @@ function setupClientEditor() {
   engine.addSystem(modeToggleSystem)
   engine.addSystem(resetGizmoClickFlag, Number.MAX_SAFE_INTEGER)
 
-  setupEditorUi()
   console.log('[editor] ready — click to select, E toggle Move/Rotate, F deselect')
 }
 
@@ -140,7 +220,7 @@ function createDeselectGround() {
   pointerEventsSystem.onPointerDown(
     { entity: ground, opts: { button: InputAction.IA_POINTER, maxDistance: 100, showFeedback: false } },
     () => {
-      if (state.isDragging || gizmoClickConsumed) return
+      if (!state.editorActive || state.isDragging || gizmoClickConsumed) return
       deselectEntity()
     }
   )
