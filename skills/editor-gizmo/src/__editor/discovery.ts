@@ -137,17 +137,39 @@ export function registerEntity(entity: Entity) {
       opts: { button: InputAction.IA_POINTER, hoverText: `Select ${name}`, maxDistance: 100 },
     },
     () => {
-      if (state.isDragging || gizmoClickConsumed) return
+      if (!state.editorActive || state.isDragging || gizmoClickConsumed) return
       selectEntity(entity)
     }
   )
 }
 
 export function discoverySystem() {
+  if (!state.editorActive) return
+
   for (const [entity] of engine.getEntitiesWith(Transform, MeshRenderer)) {
     registerEntity(entity)
   }
   for (const [entity] of engine.getEntitiesWith(Transform, GltfContainer)) {
     registerEntity(entity)
+  }
+}
+
+/** Remove pointer events from all discovered entities (hides hover text). */
+export function removeAllPointerEvents() {
+  for (const [entity] of selectableInfoMap) {
+    pointerEventsSystem.removeOnPointerDown(entity)
+  }
+}
+
+/** Re-add pointer events on all discovered entities. */
+export function restoreAllPointerEvents() {
+  for (const [entity, info] of selectableInfoMap) {
+    pointerEventsSystem.onPointerDown(
+      { entity, opts: { button: InputAction.IA_POINTER, hoverText: `Select ${info.name}`, maxDistance: 100 } },
+      () => {
+        if (!state.editorActive || state.isDragging || gizmoClickConsumed) return
+        selectEntity(entity)
+      }
+    )
   }
 }
