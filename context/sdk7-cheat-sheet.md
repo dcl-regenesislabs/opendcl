@@ -18,8 +18,8 @@ import ReactEcs, { ReactEcsRenderer, UiEntity, Label, Button, Input, Dropdown } 
 import { movePlayerTo, teleportTo, triggerEmote, changeRealm,
   openExternalUrl, openNftDialog, triggerSceneEmote,
   copyToClipboard } from '~system/RestrictedActions'
-import { getSceneInformation, getRealm, readFile } from '~system/Runtime'
-import { getWorldTime, getExplorerInformation } from '~system/EnvironmentApi'
+import { getSceneInformation, getRealm, readFile, getWorldTime,
+  getExplorerInformation } from '~system/Runtime'
 import { signedFetch, getHeaders } from '~system/SignedFetch'
 import { getPlayer } from '@dcl/sdk/src/players'
 ```
@@ -136,7 +136,7 @@ ColliderLayer.CL_CUSTOM1 … CL_CUSTOM8  // user-defined layers
   "featureToggles": { "voiceChat": "enabled" },
   "worldConfiguration": {
     "name": "my-world.dcl.eth",
-    "skyboxConfig": { "fixedHour": 14.0 }
+    "skyboxConfig": { "fixedTime": 36000 }
   }
 }
 ```

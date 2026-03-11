@@ -1,9 +1,23 @@
 ---
 name: animations-tweens
-description: Animate objects in Decentraland scenes using Animator (GLTF animations), Tween (move/rotate/scale over time), and TweenSequence (chain animations). Use when user wants to animate, move, rotate, spin, slide, or create motion effects.
+description: Animate objects in Decentraland scenes. Play GLTF model animations with Animator, create procedural motion with Tween (move/rotate/scale), and chain sequences with TweenSequence. Use when the user wants to animate, move, rotate, spin, slide, bob, or create motion effects. Do NOT use for audio/video playback (see audio-video).
 ---
 
 # Animations and Tweens in Decentraland
+
+## When to Use Which Animation Approach
+
+| Need | Approach | When |
+|------|----------|------|
+| Play animation baked into a .glb model | `Animator` | Character walks, door opens, flag waves — any animation created in Blender/Maya |
+| Move/rotate/scale an entity smoothly | `Tween` | Sliding doors, floating platforms, growing objects — procedural A-to-B motion |
+| Chain multiple animations in sequence | `TweenSequence` | Patrol paths, multi-step doors, complex choreography |
+| Continuous per-frame control | `engine.addSystem()` | Physics-like motion, following a target, custom easing |
+
+**Decision flow:**
+1. Does the .glb model already have the animation? → `Animator`
+2. Is it a simple move/rotate/scale between two values? → `Tween`
+3. Do you need frame-by-frame control or custom math? → System with `dt`
 
 ## GLTF Animations (Animator)
 
@@ -67,7 +81,7 @@ Tween.create(box, {
     end: Vector3.create(14, 1, 8)
   }),
   duration: 2000,  // milliseconds
-  easingFunction: EasingFunction.EF_EASEINOUTSINE
+  easingFunction: EasingFunction.EF_EASESINE
 })
 ```
 
@@ -100,7 +114,7 @@ Tween.create(box, {
 Chain multiple tweens to play one after another:
 
 ```typescript
-import { TweenSequence } from '@dcl/sdk/ecs'
+import { TweenSequence, TweenLoop } from '@dcl/sdk/ecs'
 
 // First tween
 Tween.create(box, {
@@ -109,7 +123,7 @@ Tween.create(box, {
     end: Vector3.create(14, 1, 8)
   }),
   duration: 2000,
-  easingFunction: EasingFunction.EF_EASEINOUTSINE
+  easingFunction: EasingFunction.EF_EASESINE
 })
 
 // Chain sequence
@@ -122,7 +136,7 @@ TweenSequence.create(box, {
         end: Vector3.create(2, 1, 8)
       }),
       duration: 2000,
-      easingFunction: EasingFunction.EF_EASEINOUTSINE
+      easingFunction: EasingFunction.EF_EASESINE
     }
   ],
   loop: TweenLoop.TL_RESTART // Loop the entire sequence
@@ -133,12 +147,16 @@ TweenSequence.create(box, {
 
 Available easing functions from `EasingFunction`:
 - `EF_LINEAR` — Constant speed
-- `EF_EASEINQUAD` / `EF_EASEOUTQUAD` / `EF_EASEINOUTQUAD` — Quadratic
-- `EF_EASEINSINE` / `EF_EASEOUTSINE` / `EF_EASEINOUTSINE` — Sinusoidal (smooth)
-- `EF_EASEINEXPO` / `EF_EASEOUTEXPO` / `EF_EASEINOUTEXPO` — Exponential
-- `EF_EASEINELASTIC` / `EF_EASEOUTELASTIC` / `EF_EASEINOUTELASTIC` — Elastic bounce
-- `EF_EASEOUTBOUNCE` / `EF_EASEINBOUNCE` / `EF_EASEINOUTBOUNCE` — Bounce effect
-- `EF_EASEINBACK` / `EF_EASEOUTBACK` / `EF_EASEINOUTBACK` — Overshoot
+- `EF_EASEINQUAD` / `EF_EASEOUTQUAD` / `EF_EASEQUAD` — Quadratic
+- `EF_EASEINSINE` / `EF_EASEOUTSINE` / `EF_EASESINE` — Sinusoidal (smooth)
+- `EF_EASEINEXPO` / `EF_EASEOUTEXPO` / `EF_EASEEXPO` — Exponential
+- `EF_EASEINELASTIC` / `EF_EASEOUTELASTIC` / `EF_EASEELASTIC` — Elastic bounce
+- `EF_EASEOUTBOUNCE` / `EF_EASEINBOUNCE` / `EF_EASEBOUNCE` — Bounce effect
+- `EF_EASEINBACK` / `EF_EASEOUTBACK` / `EF_EASEBACK` — Overshoot
+- `EF_EASEINCUBIC` / `EF_EASEOUTCUBIC` / `EF_EASECUBIC` — Cubic
+- `EF_EASEINQUART` / `EF_EASEOUTQUART` / `EF_EASEQUART` — Quartic
+- `EF_EASEINQUINT` / `EF_EASEOUTQUINT` / `EF_EASEQUINT` — Quintic
+- `EF_EASEINCIRC` / `EF_EASEOUTCIRC` / `EF_EASECIRC` — Circular
 
 ## Custom Animation Systems
 
@@ -165,28 +183,28 @@ engine.addSystem(spinSystem)
 
 ### Tween Helper Methods
 
-Use shorthand helpers instead of creating Tween components manually:
+Use shorthand helpers that create or replace the Tween component directly on the entity:
 
 ```typescript
 import { Tween, EasingFunction } from '@dcl/sdk/ecs'
 
-// Move
-Tween.createOrReplace(entity, Tween.setMove(
+// Move — signature: Tween.setMove(entity, start, end, duration, easingFunction?)
+Tween.setMove(entity,
   Vector3.create(0, 1, 0), Vector3.create(0, 3, 0),
-  { duration: 1500, easingFunction: EasingFunction.EF_EASEINBOUNCE }
-))
+  1500, EasingFunction.EF_EASEINBOUNCE
+)
 
-// Rotate
-Tween.createOrReplace(entity, Tween.setRotate(
+// Rotate — signature: Tween.setRotate(entity, start, end, duration, easingFunction?)
+Tween.setRotate(entity,
   Quaternion.fromEulerDegrees(0, 0, 0), Quaternion.fromEulerDegrees(0, 180, 0),
-  { duration: 2000, easingFunction: EasingFunction.EF_EASEOUTQUAD }
-))
+  2000, EasingFunction.EF_EASEOUTQUAD
+)
 
-// Scale
-Tween.createOrReplace(entity, Tween.setScale(
+// Scale — signature: Tween.setScale(entity, start, end, duration, easingFunction?)
+Tween.setScale(entity,
   Vector3.One(), Vector3.create(2, 2, 2),
-  { duration: 1000, easingFunction: EasingFunction.EF_LINEAR }
-))
+  1000, EasingFunction.EF_LINEAR
+)
 ```
 
 ### Yoyo Loop Mode
@@ -228,6 +246,18 @@ const anim = Animator.getMutable(entity)
 anim.states[0].weight = 0.5  // blend walk at 50%
 anim.states[1].weight = 0.5  // blend idle at 50%
 ```
+
+## Troubleshooting
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| GLTF animation not playing | Wrong clip name in `Animator.states` | Open the .glb in a viewer (e.g., Blender) to find exact clip names — they are case-sensitive |
+| Animator component has no effect | Entity missing `GltfContainer` | `Animator` only works on entities that have a loaded GLTF model |
+| Tween doesn't move | Start and end positions are the same | Verify `start` and `end` values differ in `Tween.Mode.Move()` |
+| Tween plays once then stops | No `TweenSequence` with loop | Add `TweenSequence.create(entity, { sequence: [], loop: TweenLoop.TL_YOYO })` for back-and-forth |
+| Animation jitters or stutters | Creating new Tween every frame | Only create Tween once, not inside a system — use `tweenSystem.tweenCompleted()` to chain |
+
+> **Need 3D models to animate?** See the **add-3d-models** skill for loading GLTF models that contain animation clips.
 
 ## Best Practices
 

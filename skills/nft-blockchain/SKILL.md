@@ -1,6 +1,6 @@
 ---
 name: nft-blockchain
-description: Display NFT artwork and interact with blockchain from Decentraland scenes. Show NFTs using NftShape with frame styles, check player wallet with getPlayer, sign messages with signedFetch, interact with smart contracts using eth-connect and createEthereumProvider, and handle MANA transactions. Use when user wants NFTs, blockchain, wallet, smart contracts, Web3, or crypto.
+description: NFT display and blockchain interaction in Decentraland. NftShape (framed NFT artwork), wallet checks (getPlayer, isGuest), signedFetch (authenticated requests), smart contract interaction (eth-connect, createEthereumProvider), and RPC calls. Use when the user wants NFTs, blockchain, wallet, smart contracts, Web3, crypto, or token gating. Do NOT use for player avatar data or emotes (see player-avatar).
 ---
 
 # NFT and Blockchain in Decentraland
@@ -11,7 +11,7 @@ Show an NFT from Ethereum in a decorative frame:
 
 ```typescript
 import { engine, Transform, NftShape, NftFrameType } from '@dcl/sdk/ecs'
-import { Vector3, Color4 } from '@dcl/sdk/math'
+import { Vector3, Quaternion, Color4 } from '@dcl/sdk/math'
 
 const nftFrame = engine.addEntity()
 Transform.create(nftFrame, {
@@ -86,20 +86,27 @@ Always check `isGuest` before attempting any blockchain interaction — guest pl
 Send authenticated requests to a backend, signed with the player's wallet:
 
 ```typescript
-import { signedFetch } from '@dcl/sdk/signed-fetch'
+import { signedFetch } from '~system/SignedFetch'
 
 executeTask(async () => {
   try {
-    const response = await signedFetch('https://example.com/api/action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'claimReward',
-        amount: 100
-      })
+    const response = await signedFetch({
+      url: 'https://example.com/api/action',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'claimReward',
+          amount: 100
+        })
+      }
     })
 
-    const result = await response.json()
+    if (!response.ok) {
+      console.error('HTTP error:', response.status)
+      return
+    }
+    const result = JSON.parse(response.body)
     console.log('Result:', result)
   } catch (error) {
     console.log('Request failed:', error)
@@ -108,26 +115,6 @@ executeTask(async () => {
 ```
 
 `signedFetch` automatically includes a cryptographic signature proving the player's identity. Your backend can verify this signature to authenticate requests.
-
-## MANA Transactions
-
-```typescript
-import { manaUser } from '@dcl/sdk/ethereum'
-
-executeTask(async () => {
-  try {
-    // Check MANA balance
-    const balance = await manaUser.balance()
-    console.log('MANA balance:', balance)
-
-    // Send MANA to another address
-    const result = await manaUser.send('0x123...abc', 100) // 100 MANA
-    console.log('MANA sent:', result)
-  } catch (error) {
-    console.log('MANA transaction failed:', error)
-  }
-})
-```
 
 ## Smart Contract Interaction
 

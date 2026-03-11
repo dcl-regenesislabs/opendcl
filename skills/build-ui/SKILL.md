@@ -1,11 +1,22 @@
 ---
 name: build-ui
-description: Build 2D user interfaces for Decentraland scenes using React-ECS. Create HUDs, menus, health bars, scoreboards, dialogs, buttons, and input forms. Use when user wants to add UI, HUD, buttons, text overlays, menus, or on-screen elements.
+description: Build 2D screen-space UI for Decentraland scenes using React-ECS (JSX). Create HUDs, menus, health bars, scoreboards, dialogs, buttons, inputs, and dropdowns. Use when the user wants screen overlays, on-screen UI, HUD elements, menus, or form inputs. Do NOT use for 3D in-world text (see advanced-rendering) or clickable 3D objects (see add-interactivity).
 ---
 
 # Building UI with React-ECS
 
 Decentraland SDK7 uses a React-like JSX system for 2D UI overlays.
+
+## When to Use Which UI Approach
+
+| Need | Approach | Component |
+|------|----------|-----------|
+| Screen-space HUD, menus, buttons | React-ECS (this skill) | `UiEntity`, `Label`, `Button`, `Input`, `Dropdown` |
+| 3D text floating in the world | TextShape + Billboard | See **advanced-rendering** skill |
+| Open a web page | `openExternalUrl` | See **scene-runtime** skill |
+| Clickable objects in 3D space | Pointer events | See **add-interactivity** skill |
+
+Use React-ECS for any 2D overlay: scoreboards, health bars, dialogs, inventories, settings menus. Use TextShape for labels above NPCs or objects in the 3D world.
 
 ## Setup
 
@@ -293,6 +304,19 @@ The `Dropdown` component supports additional props:
 />
 ```
 
+## Troubleshooting
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| UI not appearing at all | Missing `ReactEcsRenderer.setUiRenderer()` call | Add `ReactEcsRenderer.setUiRenderer(MyUI)` in `main()` or `setupUi()` |
+| UI elements overlapping | Missing `flexDirection` or wrong layout | Set `flexDirection: 'column'` on the parent container |
+| Button clicks not registering | Missing `onMouseDown` handler | Add `onMouseDown={() => { ... }}` to the Button or UiEntity |
+| JSX errors at compile time | File extension is `.ts` instead of `.tsx` | Rename the file to `.tsx` |
+| Multiple UIs fighting | More than one `setUiRenderer` call | Only call `setUiRenderer` once — combine all UI into a single root component |
+| Text not visible | Text color matches background | Set contrasting `color` on Label or `uiText` |
+
+> **World interactions instead of screen UI?** See the **add-interactivity** skill for click handlers and pointer events on 3D objects.
+
 ## Important Notes
 
 - React hooks (`useState`, `useEffect`, etc.) are **NOT** available — use module-level variables
@@ -301,3 +325,5 @@ The `Dropdown` component supports additional props:
 - Use `display: 'none'` in `uiTransform` to hide elements without removing them
 - File extension must be `.tsx` for JSX support
 - Only one `ReactEcsRenderer.setUiRenderer()` call per scene — combine all UI into one root component
+
+For full component props (UiEntity, Label, Button, Input, Dropdown), layout patterns, and responsive design, see `{baseDir}/references/ui-components.md`.

@@ -1,9 +1,21 @@
 ---
 name: add-interactivity
-description: Add click handlers, hover effects, pointer events, triggers, and raycasting to Decentraland scene entities. Use when user wants to make objects clickable, add interactions, detect player proximity, or handle user input.
+description: Add click handlers, hover effects, pointer events, trigger areas, raycasting, and global input to Decentraland scene entities. Use when the user wants to make objects clickable, add hover effects, detect player proximity, handle E/F key actions, or cast rays. Do NOT use for advanced input patterns like movement restriction, cursor lock, or WASD control (see advanced-input). Do NOT use for screen-space UI buttons (see build-ui).
 ---
 
 # Adding Interactivity to Decentraland Scenes
+
+## Decision Tree
+
+| Need | Approach | API |
+|------|----------|-----|
+| Click/hover on a specific entity | Pointer events | `pointerEventsSystem.onPointerDown()` |
+| Detect player entering an area | Trigger area | `TriggerArea` + `triggerAreaEventsSystem` |
+| Poll key state every frame | Global input | `inputSystem.isTriggered()` / `isPressed()` |
+| Detect objects in a direction | Raycasting | `raycastSystem` or `Raycast` component |
+| Read cursor position / lock state | Cursor state | `PointerLock`, `PrimaryPointerInfo` |
+
+---
 
 ## Pointer Events (Click / Hover)
 
@@ -32,15 +44,29 @@ pointerEventsSystem.onPointerDown(
 )
 ```
 
-### Available Input Actions
+### All Input Actions
 ```typescript
-InputAction.IA_POINTER   // Left click / primary
-InputAction.IA_PRIMARY   // E key
-InputAction.IA_SECONDARY // F key
-InputAction.IA_ACTION_3  // Key 1
-InputAction.IA_ACTION_4  // Key 2
-InputAction.IA_ACTION_5  // Key 3
-InputAction.IA_ACTION_6  // Key 4
+InputAction.IA_POINTER    // Left mouse button
+InputAction.IA_PRIMARY    // E key
+InputAction.IA_SECONDARY  // F key
+InputAction.IA_ACTION_3   // 1 key
+InputAction.IA_ACTION_4   // 2 key
+InputAction.IA_ACTION_5   // 3 key
+InputAction.IA_ACTION_6   // 4 key
+InputAction.IA_JUMP       // Space key
+InputAction.IA_FORWARD    // W key
+InputAction.IA_BACKWARD   // S key
+InputAction.IA_LEFT       // A key
+InputAction.IA_RIGHT      // D key
+InputAction.IA_WALK       // Shift key
+```
+
+### All Event Types
+```typescript
+PointerEventType.PET_DOWN         // Button pressed
+PointerEventType.PET_UP           // Button released
+PointerEventType.PET_HOVER_ENTER  // Cursor enters entity
+PointerEventType.PET_HOVER_LEAVE  // Cursor leaves entity
 ```
 
 ### Pointer Up (Release)
@@ -76,6 +102,8 @@ GltfContainer.create(entity, {
   visibleMeshesCollisionMask: ColliderLayer.CL_POINTER
 })
 ```
+
+---
 
 ## Trigger Areas (Proximity Detection)
 
@@ -121,9 +149,66 @@ Transform.create(mover, { position: Vector3.create(8, 0, 8) })
 MeshCollider.setBox(mover, ColliderLayer.CL_CUSTOM1)
 ```
 
+---
+
 ## Raycasting
 
-Cast rays to detect objects in a direction:
+### Raycast Direction Types
+
+Four direction modes are available:
+
+```typescript
+// 1. Local direction — relative to entity rotation
+{ $case: 'localDirection', localDirection: Vector3.Forward() }
+
+// 2. Global direction — world-space, ignores entity rotation
+{ $case: 'globalDirection', globalDirection: Vector3.Down() }
+
+// 3. Global target — aim at a world position
+{ $case: 'globalTarget', globalTarget: Vector3.create(10, 0, 10) }
+
+// 4. Target entity — aim at another entity
+{ $case: 'targetEntity', targetEntity: entityId }
+```
+
+### Callback-Based Raycasting (Recommended)
+
+```typescript
+import { raycastSystem, RaycastQueryType, ColliderLayer } from '@dcl/sdk/ecs'
+
+// Local direction raycast
+raycastSystem.registerLocalDirectionRaycast(
+  { entity: myEntity, opts: { queryType: RaycastQueryType.RQT_HIT_FIRST, direction: Vector3.Forward(), maxDistance: 16, collisionMask: ColliderLayer.CL_POINTER } },
+  (result) => {
+    if (result.hits.length > 0) {
+      console.log('Hit:', result.hits[0].entityId)
+    }
+  }
+)
+
+// Global direction raycast
+raycastSystem.registerGlobalDirectionRaycast(
+  { entity: myEntity, opts: { queryType: RaycastQueryType.RQT_HIT_FIRST, direction: Vector3.Down(), maxDistance: 20 } },
+  (result) => { /* handle hits */ }
+)
+
+// Target position raycast
+raycastSystem.registerGlobalTargetRaycast(
+  { entity: myEntity, opts: { globalTarget: Vector3.create(8, 0, 8), maxDistance: 20 } },
+  (result) => { /* handle result */ }
+)
+
+// Target entity raycast
+raycastSystem.registerTargetEntityRaycast(
+  { entity: sourceEntity, opts: { targetEntity: targetEntity, maxDistance: 15 } },
+  (result) => { /* handle result */ }
+)
+
+// Remove raycast from entity
+raycastSystem.removeRaycasterEntity(myEntity)
+```
+
+### Component-Based Raycasting
 
 ```typescript
 import { engine, Raycast, RaycastResult, RaycastQueryType } from '@dcl/sdk/ecs'
@@ -147,6 +232,27 @@ engine.addSystem(() => {
 })
 ```
 
+### Camera Raycast
+
+Cast a ray from the camera to detect what the player is looking at:
+
+```typescript
+raycastSystem.registerGlobalDirectionRaycast(
+  {
+    entity: engine.CameraEntity,
+    opts: {
+      direction: Vector3.rotate(Vector3.Forward(), Transform.get(engine.CameraEntity).rotation),
+      maxDistance: 16
+    }
+  },
+  (result) => {
+    if (result.hits.length > 0) console.log('Looking at:', result.hits[0].entityId)
+  }
+)
+```
+
+---
+
 ## Global Input Handling
 
 Listen for key presses anywhere (not entity-specific):
@@ -164,8 +270,34 @@ engine.addSystem(() => {
   if (inputSystem.isPressed(InputAction.IA_SECONDARY)) {
     console.log('F key is held!')
   }
+
+  // Entity-specific input via system
+  const clickData = inputSystem.getInputCommand(
+    InputAction.IA_POINTER,
+    PointerEventType.PET_DOWN,
+    myEntity
+  )
+  if (clickData) {
+    console.log('Entity clicked via system:', clickData.hit.entityId)
+  }
 })
 ```
+
+## Cursor State
+
+```typescript
+import { PointerLock, PrimaryPointerInfo } from '@dcl/sdk/ecs'
+
+// Check if cursor is locked
+const isLocked = PointerLock.get(engine.CameraEntity).isPointerLocked
+
+// Get cursor position and world ray
+const pointerInfo = PrimaryPointerInfo.get(engine.RootEntity)
+console.log('Cursor position:', pointerInfo.screenCoordinates)
+console.log('World ray direction:', pointerInfo.worldRayDirection)
+```
+
+---
 
 ## Toggle Pattern (Click to Switch States)
 
@@ -186,33 +318,6 @@ pointerEventsSystem.onPointerDown(
 )
 ```
 
-### Raycast System Helpers
-
-Use `raycastSystem` for convenient raycasting without manual component management:
-
-```typescript
-import { raycastSystem, RaycastQueryType, ColliderLayer } from '@dcl/sdk/ecs'
-
-// Register a continuous local-direction raycast
-raycastSystem.registerLocalDirectionRaycast(
-  { entity: myEntity, opts: { queryType: RaycastQueryType.RQT_HIT_FIRST, direction: Vector3.Forward(), maxDistance: 16, collisionMask: ColliderLayer.CL_POINTER } },
-  (result) => {
-    if (result.hits.length > 0) {
-      console.log('Hit:', result.hits[0].entityId)
-    }
-  }
-)
-
-// Register a global-direction raycast
-raycastSystem.registerGlobalDirectionRaycast(
-  { entity: myEntity, opts: { queryType: RaycastQueryType.RQT_HIT_FIRST, direction: Vector3.Down(), maxDistance: 20 } },
-  (result) => { /* handle hits */ }
-)
-
-// Remove raycast from entity
-raycastSystem.removeRaycasterEntity(myEntity)
-```
-
 ## Best Practices
 
 - Always set `maxDistance` on pointer events (8-16m is typical)
@@ -221,3 +326,7 @@ raycastSystem.removeRaycasterEntity(myEntity)
 - Use `MeshCollider` for invisible trigger surfaces
 - For complex interactions, use a system with state tracking
 - Test interactions in preview — hover text should be visible and clear
+- Set `continuous: false` on raycasts unless you need per-frame results
+- Design for both desktop and mobile — mobile has no keyboard, rely on pointer and on-screen buttons
+
+For the full input action list and advanced patterns, see `{baseDir}/references/input-reference.md`.

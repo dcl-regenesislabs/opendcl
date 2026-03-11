@@ -1,19 +1,24 @@
 ---
 name: optimize-scene
-description: Optimize Decentraland scene performance, reduce entity count, minimize triangle budgets, improve loading times, and stay within scene limits. Use when user wants to optimize, improve performance, fix lag, reduce load time, or check scene limits.
+description: Optimize Decentraland scene performance. Scene limit formulas (triangles, entities, materials, textures, height per parcel count), object pooling, LOD patterns, texture optimization, system throttling, and asset preloading. Use when the user wants to optimize, improve performance, fix lag, reduce load time, check limits, or reduce entity/triangle count. Do NOT use for deployment (see deploy-scene).
 ---
 
 # Optimizing Decentraland Scenes
 
 ## Scene Limits (Per Parcel Count)
 
-| Parcels | Max Entities | Max Triangles | Max Textures | Max Materials | Max Height |
-|---------|-------------|---------------|-------------|--------------|-----------|
-| 1 | 512 | 10,000 | 10 MB | 20 | 20m |
-| 2 | 1,024 | 20,000 | 20 MB | 40 | 20m |
-| 4 | 2,048 | 40,000 | 40 MB | 80 | 20m |
-| 8 | 4,096 | 80,000 | 80 MB | 160 | 20m |
-| 16 | 8,192 | 160,000 | 160 MB | 320 | 20m |
+All limits scale with parcel count `n`. Triangles, entities, and bodies scale linearly. Materials, textures, and height scale logarithmically.
+
+| Resource | Formula | 1 parcel | 2 parcels | 4 parcels | 9 parcels | 16 parcels |
+|---|---|---|---|---|---|---|
+| **Triangles** | n x 10,000 | 10,000 | 20,000 | 40,000 | 90,000 | 160,000 |
+| **Entities** | n x 200 | 200 | 400 | 800 | 1,800 | 3,200 |
+| **Physics bodies** | n x 300 | 300 | 600 | 1,200 | 2,700 | 4,800 |
+| **Materials** | log2(n+1) x 20 | 20 | 31 | 46 | 66 | 81 |
+| **Textures** | log2(n+1) x 10 | 10 | 15 | 23 | 33 | 40 |
+| **Height limit** | log2(n+1) x 20m | 20m | 31m | 46m | 66m | 81m |
+
+**File limits:** 15 MB per parcel, 300 MB max total, 200 files per parcel, 50 MB max per individual file.
 
 ## Entity Count Optimization
 
@@ -93,11 +98,14 @@ MeshRenderer.setPlane(entity)  // Very cheap
 
 ## Texture Optimization
 
+- **Dimensions must be power-of-two**: 256, 512, 1024, 2048
+- **Recommended sizes**: 512x512 for most objects, 1024x1024 max for hero pieces
+- **Avoid textures over 2048x2048** — they consume excessive memory and often exceed limits
 - Use `.png` for UI/sprites with transparency
 - Use `.jpg` for photos and textures without transparency
-- Compress textures: 512x512 or 1024x1024 max for most use cases
-- Use texture atlases (combine multiple textures into one image)
-- Avoid 4096x4096 textures unless absolutely necessary
+- Prefer compressed formats (WebP) over raw PNG where possible
+- Use texture atlases (combine multiple textures into one image) to reduce draw calls and material count
+- Share texture references across materials — do not duplicate texture files
 - Reuse materials across entities:
 ```typescript
 // GOOD: Define material once, apply to many
@@ -142,13 +150,42 @@ engine.addSystem(systemFn)
 engine.removeSystem(systemFn)
 ```
 
+## Asset Preloading (AssetLoad Component)
+
+For large assets that would cause visible pop-in, use `AssetLoad` to pre-download before rendering:
+
+```typescript
+import { engine, AssetLoad, LoadingState, GltfContainer, Transform } from '@dcl/sdk/ecs'
+import { Vector3 } from '@dcl/sdk/math'
+
+// Create a preload entity at scene startup
+const preloadEntity = engine.addEntity()
+AssetLoad.create(preloadEntity, { src: 'models/large-model.glb' })
+
+// System to track loading progress
+function assetLoadingSystem(dt: number) {
+  for (const [entity] of engine.getEntitiesWith(AssetLoad)) {
+    const state = AssetLoad.get(entity)
+    if (state.loadingState === LoadingState.FINISHED) {
+      // Asset is cached — now safe to create the visible entity
+      GltfContainer.create(entity, { src: 'models/large-model.glb' })
+      Transform.create(entity, { position: Vector3.create(8, 0, 8) })
+      AssetLoad.deleteFrom(entity) // Remove preload component
+    }
+  }
+}
+engine.addSystem(assetLoadingSystem)
+```
+
+Use this pattern for any model over ~1 MB or for assets that should be ready before a game phase begins.
+
 ## Loading Time Optimization
 
 - Lazy-load 3D models (load on demand, not all at scene start)
 - Use compressed .glb files (Draco compression)
 - Minimize total asset size
 - Use CDN URLs for large shared assets when possible
-- Preload critical assets, defer non-essential ones
+- Preload critical assets with `AssetLoad`, defer non-essential ones
 
 ## Common Performance Pitfalls
 
@@ -158,3 +195,9 @@ engine.removeSystem(systemFn)
 4. **Uncompressed audio**: Use .mp3 instead of .wav for music (10x smaller).
 5. **Continuous raycasting**: Set `continuous: false` unless you need per-frame raycasting.
 6. **Text rendering**: `TextShape` is expensive. Use `Label` (UI) for text that doesn't need to be in 3D space.
+
+## Cross-References
+
+- **add-3d-models** — model loading, colliders, and file organization
+- **game-design** — performance budgets, design patterns, and MVP planning
+- **advanced-rendering** — texture modes, material reuse, and LOD with VisibilityComponent

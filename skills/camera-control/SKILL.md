@@ -1,6 +1,6 @@
 ---
 name: camera-control
-description: Control camera behavior in Decentraland scenes. Switch between first-person and third-person with CameraMode, force camera in regions with CameraModeArea, create cinematic scripted cameras with VirtualCamera, and read camera position/rotation via MainCamera. Use when user wants camera control, cinematic views, cutscenes, or camera mode switching.
+description: Control camera behavior in Decentraland scenes. CameraMode detection, CameraModeArea (force first/third person in regions), VirtualCamera (cinematic scripted cameras), MainCamera (read position/rotation), and camera-triggered events. Use when the user wants camera control, cutscenes, cinematic views, forced camera modes, or camera tracking. Do NOT use for input restriction during cutscenes (see advanced-input for InputModifier).
 ---
 
 # Camera Control in Decentraland
@@ -196,6 +196,8 @@ function followNpcCamera(dt: number) {
 
 engine.addSystem(followNpcCamera)
 ```
+
+> **Freezing player during cutscenes?** Combine VirtualCamera with `InputModifier` from the **advanced-input** skill to prevent player movement during cinematic sequences.
 
 ## Best Practices
 

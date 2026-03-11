@@ -1,6 +1,6 @@
 ---
 name: player-avatar
-description: Work with player avatars in Decentraland scenes. Read player position and profile data, customize appearance with AvatarBase, trigger emotes with triggerEmote/triggerSceneEmote, read equipped wearables via AvatarEquippedData, attach objects to players with AvatarAttach, create NPC avatars with AvatarShape, and modify avatars in areas. Use when user wants player data, emotes, wearables, avatar attachments, or NPCs.
+description: Player and avatar system in Decentraland. Read player position/profile, customize appearance (AvatarBase), trigger emotes (triggerEmote/triggerSceneEmote), read equipped wearables (AvatarEquippedData), attach objects to players (AvatarAttach), create NPC avatars (AvatarShape), avatar modifier areas, and locomotion settings. Use when the user wants player data, emotes, wearables, NPC avatars, avatar attachments, or movement speed changes. Do NOT use for wallet/blockchain interactions (see nft-blockchain).
 ---
 
 # Player and Avatar System in Decentraland
@@ -216,6 +216,20 @@ AvatarModifierArea.create(constraintArea, {
 })
 ```
 
+## Avatar Locomotion Settings
+
+Adjust the player's movement speed and jump height:
+
+```typescript
+import { engine, AvatarLocomotionSettings } from '@dcl/sdk/ecs'
+
+// Modify run speed and jump height
+AvatarLocomotionSettings.createOrReplace(engine.PlayerEntity, {
+  runSpeed: 8,    // default is ~6
+  jumpHeight: 3   // default is ~1.5
+})
+```
+
 ## Teleporting the Player
 
 **You MUST use `movePlayerTo` from `~system/RestrictedActions` to move or teleport the player.** Setting `Transform.getMutable(engine.PlayerEntity).position` does NOT work — the runtime ignores direct writes to the player transform.
@@ -268,6 +282,8 @@ Beyond the commonly used anchor points, the full list includes:
 - `AvatarAnchorPointType.AAPT_HEAD` — head bone
 - `AvatarAnchorPointType.AAPT_NECK` — neck bone
 
+> **Need to check the player's wallet before showing avatar items?** See the **nft-blockchain** skill for wallet checks with `getPlayer()` and `isGuest`.
+
 ## Best Practices
 
 - Always check `Transform.has(engine.PlayerEntity)` before reading player data — it may not be ready on the first frame
@@ -280,3 +296,4 @@ Beyond the commonly used anchor points, the full list includes:
 - `Transform.get(engine.PlayerEntity)` is valid for **reading** position only
 
 For component field details, see `{baseDir}/../../context/components-reference.md`.
+For full AvatarShape fields, wearable URNs, anchor points, emote names, and event callbacks, see `{baseDir}/references/avatar-apis.md`.

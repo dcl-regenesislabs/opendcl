@@ -1,6 +1,6 @@
 ---
 name: scene-runtime
-description: Scene runtime APIs — async tasks, HTTP fetch, WebSockets, realm/scene info, timers, restricted actions, portable experiences, testing framework
+description: Cross-cutting runtime APIs for Decentraland SDK7 scenes. Use when the user needs async operations (executeTask), HTTP requests (fetch, signedFetch), WebSocket connections, timers, realm/scene detection, restricted actions (movePlayerTo, teleportTo, triggerEmote, openExternalUrl), portable experiences, or the testing framework. Do NOT use for UI (see build-ui), multiplayer sync (see multiplayer-sync), or avatar/player data (see player-avatar).
 ---
 
 # Scene Runtime APIs
@@ -75,7 +75,7 @@ executeTask(async () => {
 ## World Time
 
 ```typescript
-import { getWorldTime } from '~system/EnvironmentApi'
+import { getWorldTime } from '~system/Runtime'
 
 executeTask(async () => {
   const { seconds } = await getWorldTime({})
@@ -255,3 +255,5 @@ npx @dcl/sdk-commands test
 - Check `realm.realmInfo?.isPreview` to detect preview mode and enable debug features
 - Use `readFile()` for data files (JSON configs, level data) deployed alongside the scene
 - `removeEntityWithChildren()` is essential when cleaning up complex entity hierarchies
+
+For complete executeTask patterns, all RestrictedActions, realm detection, and portable experiences, see `{baseDir}/references/runtime-apis.md`.

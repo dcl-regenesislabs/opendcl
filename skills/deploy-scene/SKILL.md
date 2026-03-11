@@ -1,6 +1,6 @@
 ---
 name: deploy-scene
-description: Deploy and publish a Decentraland scene to Genesis City (LAND-based). Use when user wants to deploy, publish, upload, go live, or make their scene accessible on parcels they own.
+description: Deploy a Decentraland scene to Genesis City (LAND-based). Covers pre-deployment checklist, scene.json validation, spawn points, and common deployment errors. Use when the user wants to deploy, publish, go live, or upload to parcels they own. Do NOT use for Worlds deployment (see deploy-worlds).
 ---
 
 # Deploying to Genesis City
@@ -38,13 +38,7 @@ Before deploying, verify:
    npm install
    ```
 
-5. **Assets are within limits** (check parcel count):
-   | Parcels | Entities | Triangles | Textures |
-   |---------|----------|-----------|----------|
-   | 1 | 512 | 10,000 | 10 MB |
-   | 2 | 1,024 | 20,000 | 20 MB |
-   | 4 | 2,048 | 40,000 | 40 MB |
-   | 8+ | Scales linearly | | |
+5. **Assets are within limits** — see the **optimize-scene** skill for full limit formulas per parcel count (triangles, entities, materials, textures, height)
 
 ## Deployment Process
 
@@ -79,7 +73,7 @@ npx @dcl/sdk-commands deploy
     "parcels": ["0,0", "0,1"],
     "base": "0,0"
   },
-  "main": "bin/index.js",
+  "main": "bin/index.js"
 }
 ```
 
@@ -101,6 +95,29 @@ Configure where players appear when entering the scene:
 ```
 
 Position ranges (e.g., `[1, 5]`) spawn players randomly within the range. Use `cameraTarget` to orient the player's camera on spawn.
+
+## Troubleshooting
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "You don't have permission to deploy" | Wallet doesn't own the target LAND/parcels | Verify LAND ownership on the marketplace, or get deployment permissions from the LAND owner |
+| "Scene is too large" | Assets exceed parcel size limits | Check triangle count, file sizes, and texture counts against the limits table above. See **optimize-scene** skill |
+| Wallet connection fails | Browser popup blocked or MetaMask locked | Allow popups, unlock MetaMask, refresh and try again |
+| "Invalid scene.json" | Missing required fields or malformed JSON | Verify `ecs7: true`, `runtimeVersion: "7"`, valid `parcels` array, and `main: "bin/index.js"` |
+| Deploy succeeds but scene is empty | `main` field doesn't point to compiled output | Ensure `main` is `"bin/index.js"` and run `npx @dcl/sdk-commands build` first |
+| Catalyst rejection | Content violates Decentraland content policies | Review content guidelines at docs.decentraland.org |
+
+### Genesis City vs Worlds
+
+| | Genesis City | Worlds |
+|-|-------------|--------|
+| **Requirement** | Own LAND parcels | Own DCL NAME or ENS domain |
+| **Parcel limits** | Enforced (entity/triangle budgets per parcel) | Not constrained by LAND |
+| **Visibility** | Shown on the Genesis City map | Listed on Places page (opt-out available) |
+| **Deploy target** | Default Catalyst network | `--target-content https://worlds-content-server.decentraland.org` |
+| **Best for** | Permanent installations, high-traffic scenes | Testing, personal spaces, events |
+
+> **Deploying to a World instead?** See the **deploy-worlds** skill.
 
 ## Best Practices
 
