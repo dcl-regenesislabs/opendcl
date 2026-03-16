@@ -65,13 +65,11 @@ This will prompt the user to sign the deployment with their wallet. Validations 
 
 ## 3. Access the World
 
-Once deployed, the World is accessible at:
+After a successful deploy, the `/deploy` command outputs a visit URL automatically. The World is also accessible at:
 
 ```
-decentraland://?realm=NAME.dcl.eth
+https://decentraland.zone/bevy-web?realm=NAME.dcl.eth
 ```
-
-Replace `NAME` with the Decentraland NAME or ENS domain used for deployment.
 
 From inside Decentraland, use the chatbox command:
 ```
