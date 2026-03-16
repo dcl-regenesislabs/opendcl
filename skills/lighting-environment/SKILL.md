@@ -1,6 +1,6 @@
 ---
 name: lighting-environment
-description: Add dynamic lighting and control environment settings in Decentraland scenes. Create point, spot, and directional lights with LightSource, configure shadows, control day/night cycle with SkyboxTime, detect realm info, and use emissive materials for glow effects. Use when user wants lights, shadows, skybox, day-night cycle, or glowing materials.
+description: Dynamic lighting and environment in Decentraland scenes. LightSource (point and spot lights), shadows, SkyboxTime (day/night cycle), realm detection, and emissive materials for glow effects. Use when the user wants lights, shadows, skybox control, day-night cycle, or glowing materials. Do NOT use for PBR material properties like metallic/roughness (see advanced-rendering).
 ---
 
 # Lighting and Environment in Decentraland
@@ -126,15 +126,15 @@ executeTask(async () => {
 ### Change Time Dynamically
 
 ```typescript
-import { SkyboxTime, TransitionMode } from '~system/Runtime'
+import { engine, SkyboxTime } from '@dcl/sdk/ecs'
 
 // Set time of day (must target root entity)
-SkyboxTime.create(engine.RootEntity, { fixed_time: 36000 })  // Noon
+SkyboxTime.create(engine.RootEntity, { fixedTime: 36000 })  // Noon
 
-// Change with transition direction
+// Change with transition direction (TransitionMode from the generated protobuf)
 SkyboxTime.createOrReplace(engine.RootEntity, {
-  fixed_time: 54000,  // Dusk
-  direction: TransitionMode.TM_BACKWARD
+  fixedTime: 54000,  // Dusk
+  transitionMode: 1  // TM_BACKWARD
 })
 ```
 
@@ -147,7 +147,7 @@ const CYCLE_SPEED = 100  // Time units per second
 function dayNightCycle(dt: number) {
   currentTime = (currentTime + CYCLE_SPEED * dt) % 72000
   SkyboxTime.createOrReplace(engine.RootEntity, {
-    fixed_time: currentTime
+    fixedTime: currentTime
   })
 }
 
@@ -207,21 +207,29 @@ LightSource.create(bulb, {
 
 ### Shadow Types
 
-LightSource supports three shadow modes:
-
-- `PBLightSource_ShadowType.ST_NONE` — no shadows (cheapest)
-- `PBLightSource_ShadowType.ST_HARD` — crisp shadows (medium cost)
-- `PBLightSource_ShadowType.ST_SOFT` — smooth, blurred shadows (most expensive)
+Control shadow quality per light. Shadow type is set inside the `Spot()` or `Point()` helper:
 
 ```typescript
 import { LightSource, PBLightSource_ShadowType } from '@dcl/sdk/ecs'
 
+// Spot light with soft shadows
 LightSource.create(spotEntity, {
-  type: LightSourceType.LST_SPOT,
-  intensity: 50,
-  shadow: PBLightSource_ShadowType.ST_SOFT
+  type: LightSource.Type.Spot({
+    innerAngle: 25,
+    outerAngle: 45,
+    shadow: PBLightSource_ShadowType.ST_SOFT
+  }),
+  shadow: true,
+  intensity: 800
 })
 ```
+
+Available shadow types:
+- `PBLightSource_ShadowType.ST_NONE` — no shadows (cheapest)
+- `PBLightSource_ShadowType.ST_HARD` — crisp shadows (medium cost)
+- `PBLightSource_ShadowType.ST_SOFT` — smooth, blurred shadows (most expensive)
+
+> **Need advanced material effects?** See the **advanced-rendering** skill for metallic, roughness, transparency, texture maps, and texture modes.
 
 ## Best Practices
 

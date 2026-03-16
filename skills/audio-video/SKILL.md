@@ -1,9 +1,22 @@
 ---
 name: audio-video
-description: Add audio sources, sound effects, music, audio streaming, and video players to Decentraland scenes. Use when user wants sound, music, audio, video screens, speakers, or media playback.
+description: Add sound effects, music, audio streaming, and video players to Decentraland scenes. Covers AudioSource (local files), AudioStream (streaming URLs), VideoPlayer (video surfaces), video events, and media permissions. Use when the user wants sound, music, audio, video screens, radio, or media playback. Do NOT use for 3D model animations (see animations-tweens).
 ---
 
 # Audio and Video in Decentraland
+
+## When to Use Which Media Component
+
+| Need | Component | Key Difference |
+|------|-----------|---------------|
+| Sound effect from a file (click, explosion, footstep) | `AudioSource` | Local file, spatial, one-shot or looping |
+| Background music or radio stream | `AudioStream` | External URL, non-spatial, continuous |
+| Video on a surface (screen, billboard) | `VideoPlayer` + `Material.Texture.Video` | Requires a mesh to display on |
+
+**Decision flow:**
+1. Is it a local audio file? → `AudioSource`
+2. Is it a streaming URL (radio, live audio)? → `AudioStream`
+3. Is it video content? → `VideoPlayer` on a plane/mesh
 
 ## Audio Source (Sound Effects & Music)
 
@@ -288,6 +301,8 @@ Material.setPbrMaterial(screen2, {
 - **Distance-based control**: Pause video when player is far away to save bandwidth
 - **Supported formats**: `.mp4` (H.264), `.webm`, HLS (`.m3u8`) for live streaming
 - **Live streaming**: Use HLS (`.m3u8`) URLs — most reliable across clients
+
+For full component field details, supported formats, and advanced patterns, see `{baseDir}/references/media-reference.md`.
 
 ## Important Notes
 

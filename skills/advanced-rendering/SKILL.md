@@ -1,9 +1,25 @@
 ---
 name: advanced-rendering
-description: Advanced rendering features in Decentraland scenes. Use Billboard to make entities face the camera, TextShape for 3D text, advanced PBR material properties like metallic/roughness/transparency, GltfNodeModifiers for per-node visibility and material overrides in GLTF models, and VisibilityComponent to show/hide entities. Use when user wants billboards, 3D text, text labels, material effects, transparency, glow, or model node control.
+description: Advanced rendering in Decentraland scenes. Billboard (face camera), TextShape (3D world text), PBR materials (metallic, roughness, transparency, emissive glow), GltfNodeModifiers (per-node shadow/material overrides), VisibilityComponent (show/hide entities), and texture modes. Use when the user wants billboards, floating labels, 3D text, material effects, glow, transparency, or model node control. Do NOT use for screen-space UI (see build-ui) or loading 3D models (see add-3d-models).
 ---
 
 # Advanced Rendering in Decentraland
+
+## When to Use Which Rendering Feature
+
+| Need | Component | When |
+|------|-----------|------|
+| Entity faces the camera | `Billboard` | Name tags, signs, sprite-like objects |
+| Text in the 3D world | `TextShape` | Labels, signs, floating text above entities |
+| Custom material appearance | `Material.setPbrMaterial` | Metallic, rough, transparent, emissive surfaces |
+| Show/hide without removing | `VisibilityComponent` | LOD systems, toggling objects, conditional display |
+| Modify GLTF model nodes | `GltfNodeModifiers` | Override materials or shadow casting on specific mesh nodes |
+
+**Decision flow:**
+1. Need text on screen? → Use **build-ui** (React-ECS Label) instead
+2. Need text in 3D space? → `TextShape` (+ `Billboard` to face camera)
+3. Need glowing/transparent materials? → `Material.setPbrMaterial` with emissive/transparency
+4. Need to override material on a model node? → `GltfNodeModifiers` with `modifiers` array
 
 ## Billboard (Face the Camera)
 
@@ -212,20 +228,20 @@ function lodSystem() {
 engine.addSystem(lodSystem)
 ```
 
-### Per-Node Material Overrides (GltfNodeModifiers)
+### Per-Node Modifiers (GltfNodeModifiers)
 
-Override materials on specific nodes within a GLTF model without modifying the model file:
+Override material or shadow casting on specific nodes within a GLTF model:
 
 ```typescript
-import { GltfNode, GltfNodeState } from '@dcl/sdk/ecs'
+import { GltfNodeModifiers } from '@dcl/sdk/ecs'
 
-// Hide a specific node in a model
-GltfNode.create(entity, { path: 'RootNode/Armor', visible: false })
-
-// Override a node's material
-GltfNode.create(entity, {
-  path: 'RootNode/Helmet',
-  materialOverride: Material.Texture.Common({ src: 'images/custom-skin.png' })
+GltfNodeModifiers.create(entity, {
+  modifiers: [
+    {
+      path: 'RootNode/Armor',     // GLTF hierarchy path
+      castShadows: false           // Disable shadow casting for this node
+    }
+  ]
 })
 ```
 

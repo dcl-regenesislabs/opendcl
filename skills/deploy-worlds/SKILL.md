@@ -1,6 +1,6 @@
 ---
 name: deploy-worlds
-description: Deploy and publish a Decentraland scene to a World (personal 3D space). Use when user wants to deploy to a World, publish to a World, set up worldConfiguration, use a DCL NAME or ENS domain for deployment, or opt out of Places listing.
+description: Deploy a Decentraland scene to a World (personal 3D space using a DCL NAME or ENS domain). Covers worldConfiguration setup, Places listing opt-out, and common deployment errors. Use when the user wants to deploy to a World, publish to a personal space, or use a DCL NAME/ENS domain. Do NOT use for Genesis City LAND deployment (see deploy-scene).
 ---
 
 # Deploying to Decentraland Worlds
@@ -98,6 +98,18 @@ From inside Decentraland, use the chatbox command:
   }
 }
 ```
+
+## Troubleshooting
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "NAME not found" or "NAME not owned" | The wallet signing the deployment doesn't own the NAME/ENS in `worldConfiguration.name` | Verify NAME ownership at `https://builder.decentraland.org/names`. The wallet used for signing must own the exact NAME |
+| ENS resolution fails | ENS domain not registered or expired | Check ENS registration at `https://app.ens.domains` |
+| "Scene too large" | World scenes have size limits even though parcels aren't constrained | Reduce asset sizes. Worlds still enforce file size and entity limits |
+| Deploy succeeds but world is empty | `main` field misconfigured | Ensure `main` is `"bin/index.js"` and code compiles |
+| World not showing on Places | Propagation delay | Wait a few minutes after deployment. If opted out via `placesConfig.optOut`, it won't appear |
+
+> **Deploying to Genesis City instead?** See the **deploy-scene** skill.
 
 ## Key Differences from Genesis City
 

@@ -110,6 +110,8 @@ describe("skill loading", () => {
       "advanced-input",
       "authoritative-server",
       "scene-runtime",
+      "game-design",
+      "visual-feedback",
     ];
     for (const name of expected) {
       expect(names, `Missing skill: ${name}`).toContain(name);

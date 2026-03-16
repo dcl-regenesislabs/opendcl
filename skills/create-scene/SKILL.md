@@ -1,9 +1,11 @@
 ---
 name: create-scene
-description: Scaffold a new Decentraland SDK7 scene project from scratch. Creates scene.json, package.json, tsconfig.json, and src/index.ts with a basic scene setup. Use when user wants to start a new scene, initialize a project, or set up from an empty folder.
+description: Scaffold a new Decentraland SDK7 scene project. Creates scene.json, package.json, tsconfig.json, and src/index.ts. Covers scene.json schema (parcels, spawnPoints, permissions, featureToggles), multi-parcel layouts, and project structure. Use when the user wants to start a new scene, create a project, or set up from scratch. Do NOT use for deployment (see deploy-scene or deploy-worlds).
 ---
 
 # Create a New Decentraland SDK7 Scene
+
+> **Runtime constraint:** Decentraland runs in a QuickJS sandbox. No Node.js APIs (`fs`, `http`, `path`, `process`). Use the SDK's `executeTask()` + `fetch()` for async work. See the **scene-runtime** skill for details.
 
 When the user wants to create a new scene, follow these steps:
 
@@ -67,11 +69,73 @@ export function main() {
 }
 ```
 
+### scene.json Reference
+
+All valid `scene.json` fields:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `ecs7` | Yes | Must be `true` for SDK7 |
+| `runtimeVersion` | Yes | Must be `"7"` |
+| `main` | Yes | Must be `"bin/index.js"` — the compiled output path |
+| `display.title` | Recommended | Scene name shown in the map and Places |
+| `display.description` | Recommended | Short description for discovery |
+| `display.navmapThumbnail` | Optional | Image path for the Genesis City minimap |
+| `scene.parcels` | Yes | Array of `"x,y"` coordinate strings |
+| `scene.base` | Yes | The origin parcel (usually southwest corner) |
+| `spawnPoints` | Optional | Where players appear when entering (see below) |
+| `requiredPermissions` | Optional | Array of permissions (e.g., `"ALLOW_MEDIA_HOSTNAMES"`) |
+| `allowedMediaHostnames` | Optional | Whitelisted domains for external media |
+| `featureToggles` | Optional | Enable/disable SDK features |
+| `worldConfiguration` | Optional | For Worlds deployment (see **deploy-worlds** skill) |
+| `authoritativeMultiplayer` | Optional | Enable authoritative server mode (see **authoritative-server** skill) |
+
+### Spawn Points
+
+Configure where and how players enter the scene:
+
+```json
+{
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": { "x": [1, 5], "y": [0, 0], "z": [2, 4] },
+      "cameraTarget": { "x": 8, "y": 1, "z": 8 }
+    }
+  ]
+}
+```
+
+- Position ranges (e.g., `[1, 5]`) spawn players randomly within the range
+- `cameraTarget` orients the player's camera on spawn — point it at the scene's focal area
+- Fixed spawn: use single values instead of ranges (e.g., `"x": 8`)
+
+### Multi-Parcel Layouts
+
+| Layout | Parcels Array | Use Case |
+|--------|--------------|----------|
+| **Single** | `["0,0"]` | Small games, galleries, single-room experiences |
+| **Strip** | `["0,0", "1,0", "2,0"]` | Hallways, racing tracks, linear journeys |
+| **L-Shape** | `["0,0", "1,0", "0,1"]` | Corner buildings, split experiences |
+| **2x2 Square** | `["0,0", "1,0", "0,1", "1,1"]` | Open plazas, arenas, medium games |
+| **3x3 Square** | 9 parcels from `"0,0"` to `"2,2"` | Large games, multi-room buildings |
+
+**Base parcel:** Always set `scene.base` to the southwest (lowest x,y) corner parcel.
+
+**Boundaries per parcel:** 16m x 16m x 20m height. A 2x2 scene spans 32m x 32m.
+
 ## 5. Post-Creation Steps
 
 After customizing the files:
 1. Use the `preview` tool to start the preview server (or run `npx @dcl/sdk-commands start --bevy-web` manually)
 2. The scene will open in a browser at http://localhost:8000
+
+## Cross-References
+
+- Ready to deploy? See the **deploy-scene** skill (Genesis City) or **deploy-worlds** skill (personal Worlds)
+- Need to optimize for parcel limits? See the **optimize-scene** skill
+- Planning a game? See the **game-design** skill for design patterns and performance budgets
 
 ## Important Notes
 

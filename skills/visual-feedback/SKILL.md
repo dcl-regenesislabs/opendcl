@@ -1,6 +1,6 @@
 ---
 name: visual-feedback
-description: Use the screenshot tool to see the running Decentraland preview and verify scene changes visually. Use when the preview is running and you need to check what the scene looks like after making code changes.
+description: Capture screenshots of the running Decentraland preview to verify scene changes visually. Covers camera movement, interaction actions, and visual debugging. Use when the preview is running and you need to check what the scene looks like, debug visual issues, or verify layout. Do NOT use for code changes (make changes first, then screenshot).
 ---
 
 # Visual Feedback — Seeing Your Scene
@@ -102,6 +102,21 @@ Keep it to 1-2 screenshots per task. Each screenshot consumes significant tokens
 | Scene looks different after code change | Hot reload takes ~1-2s — add a `wait` action of 2000ms |
 | "No preview server running" | Start it with `/preview` first |
 | Empty/gray space, no scene content | You've left the scene boundaries — stop moving |
+| Z-fighting (flickering surfaces) | Two surfaces at the same position | Move one surface slightly (0.01m) away from the other |
+| Missing textures (pink/magenta) | Texture file not found or wrong path | Verify file exists in project and path matches code |
+| Objects appear wrong scale | Scale values off or model exported at wrong scale | Check Transform.scale values; 1,1,1 is original model size |
+| Lighting looks flat | No LightSource components in scene | Add point or spot lights — see **lighting-environment** skill |
+
+## What to Look For in Screenshots
+
+When evaluating a screenshot, check these common issues:
+
+- **Missing objects** — entity exists in code but not visible. Check: wrong position (behind camera, underground, outside parcels), scale of 0, VisibilityComponent set to false
+- **Z-fighting** — flickering or shimmering where two surfaces overlap. Fix: offset one surface by 0.01m
+- **Texture issues** — pink/magenta means missing texture file, black means missing material, white means missing texture coordinates
+- **Scale problems** — objects too large (clipping through ceiling) or too small (invisible dots). Compare against parcel size (16m x 16m)
+- **Lighting** — very flat/uniform usually means no custom lights. Dark scene may need SkyboxTime adjustment
+- **UI elements** — check that HUD elements are positioned correctly and text is readable
 
 ## Tips
 

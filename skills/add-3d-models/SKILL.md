@@ -1,6 +1,6 @@
 ---
 name: add-3d-models
-description: Add 3D models (.glb/.gltf) to a Decentraland scene using GltfContainer. Covers loading models, positioning, scaling, colliders, and browsing the open-source 3D assets catalog for free CC0 models. Use when user wants to add models, import GLB files, or find free 3D assets.
+description: Add 3D models (.glb/.gltf) to a Decentraland scene using GltfContainer. Covers loading, positioning, scaling, colliders, parenting, and browsing 2,700+ free assets from the Creator Hub catalog and 991 CC0 models. Use when the user wants to add models, import GLB files, find free 3D assets, or set up model colliders. Do NOT use for materials/textures (see advanced-rendering) or model animations (see animations-tweens).
 ---
 
 # Adding 3D Models to Decentraland Scenes
@@ -144,6 +144,21 @@ engine.addSystem(() => {
   }
 })
 ```
+
+## Troubleshooting
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| Model not visible | Wrong file path | Verify the file exists at the exact path relative to project root (e.g., `models/myModel.glb`) |
+| Model not visible | Position outside scene boundaries | Check Transform position is within 0-16 per parcel. Center of 1-parcel scene is (8, 0, 8) |
+| Model not visible | Scale is 0 or very small | Check `Transform.scale` — default is (1,1,1). Try larger values if model was exported very small |
+| Model not visible | Behind the camera | Move the avatar or rotate to look in the model's direction |
+| Model loads but looks wrong | Y-up vs Z-up mismatch | Decentraland uses Y-up. Re-export from Blender with "Y Up" checked |
+| "FINISHED_WITH_ERROR" load state | Corrupted or unsupported .glb | Re-export the model. Use `.glb` (binary GLTF) format. Ensure no unsupported extensions |
+| Clicking model does nothing | Missing collider | Add `visibleMeshesCollisionMask: ColliderLayer.CL_POINTER` to `GltfContainer` or add `MeshCollider` |
+
+> **Need to optimize models for scene limits?** See the **optimize-scene** skill for triangle budgets and LOD patterns.
+> **Need animations from your model?** See the **animations-tweens** skill for playing GLTF animation clips with Animator.
 
 ## Model Best Practices
 

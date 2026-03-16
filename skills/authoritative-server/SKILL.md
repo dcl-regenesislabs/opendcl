@@ -1,6 +1,6 @@
 ---
 name: authoritative-server
-description: Build multiplayer scenes with a headless authoritative server that controls game state, validates changes, and prevents cheating. Install @dcl/sdk@auth-server and run with hammurabi-server. Use isServer() to branch logic, registerMessages() for client-server communication, validateBeforeChange() for server-only components, Storage for persistence, and EnvVar for configuration. Use when user wants authoritative server, anti-cheat, server-side validation, persistent storage, environment variables, or server messages.
+description: Build multiplayer Decentraland scenes with a headless authoritative server. Covers isServer() branching, registerMessages() for client-server communication, validateBeforeChange() for server-only state, Storage (world and player persistence), EnvVar (environment variables), and project structure. Use when the user wants authoritative multiplayer, anti-cheat, server-side validation, persistent storage, or server messages. Do NOT use for basic CRDT multiplayer without a server (see multiplayer-sync).
 ---
 
 # Authoritative Server Pattern
@@ -181,10 +181,10 @@ room.onMessage('gameEvent', (data) => {
 Before sending messages from the client, wait until state is synchronized:
 
 ```typescript
-import { isStateSynchronized } from '@dcl/sdk/network'
+import { isStateSyncronized } from '@dcl/sdk/network'
 
 engine.addSystem(() => {
-  if (!isStateSynchronized()) return
+  if (!isStateSyncronized()) return
 
   // Safe to send messages now
   room.send('playerJoin', { displayName: 'Player' })
@@ -323,10 +323,12 @@ Put synced components and messages in `shared/` so both server and client import
 ## Important Notes
 
 - **Use `Schemas.Int64` for timestamps**: `Schemas.Number` corrupts large numbers (13+ digits). Always use `Schemas.Int64` for values like `Date.now()`.
-- **State sync readiness**: Clients must wait for `isStateSynchronized()` (from `@dcl/sdk/network`) to return `true` before sending messages.
+- **State sync readiness**: Clients must wait for `isStateSyncronized()` (from `@dcl/sdk/network`) to return `true` before sending messages. Note the intentional SDK typo: "Syncronized" not "Synchronized".
 - **Custom vs built-in validation**: Custom components use global `validateBeforeChange((value) => ...)`. Built-in components (Transform, GltfContainer) use per-entity `validateBeforeChange(entity, (value) => ...)`.
 - **Single codebase**: Both server and client run the same `index.ts` entry point. Use `isServer()` to branch.
 - **No Node.js APIs**: The DCL runtime uses sandboxed QuickJS — no `fs`, `http`, etc. `setTimeout`/`setInterval` are supported. Use SDK-provided APIs (Storage, EnvVar, engine systems) for server-side operations.
 - **SDK branch (MANDATORY)**: The auth-server pattern requires `npm install @dcl/sdk@auth-server`, not the standard `@dcl/sdk`. Without it, `isServer()`, `registerMessages()`, `Storage`, and `EnvVar` are unavailable.
 - **scene.json required fields**: `authoritativeMultiplayer: true` must be set, and `logsPermissions: ["0xWalletAddress"]` must list wallet addresses that should see server logs.
 - For basic CRDT multiplayer without a server, see the `multiplayer-sync` skill.
+
+For complete server setup examples, authentication flow, state reconciliation, Storage patterns, and EnvVar usage, see `{baseDir}/references/server-patterns.md`.

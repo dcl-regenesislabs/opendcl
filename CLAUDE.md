@@ -72,12 +72,12 @@ Key lifecycle events: `session_start`, `before_agent_start`, `tool_call`, `tool_
 | `process-registry.ts` | Shared `Map<string, BackgroundProcess>` singleton (via globalThis) | Module export |
 | `permissions/index.ts` | Confirms dangerous bash & file write ops | `tool_call` + `registerFlag` |
 
-## Skills (19)
+## Skills (20)
 
 create-scene, add-3d-models, add-interactivity, build-ui, animations-tweens,
 multiplayer-sync, authoritative-server, audio-video, deploy-scene, deploy-worlds, optimize-scene,
 camera-control, lighting-environment, player-avatar, nft-blockchain, advanced-rendering, advanced-input, scene-runtime,
-visual-feedback
+visual-feedback, game-design
 
 Adding a skill = creating `skills/<name>/SKILL.md`. No code changes needed.
 
