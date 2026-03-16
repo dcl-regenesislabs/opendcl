@@ -32,7 +32,7 @@ The result: **more creators building more scenes, faster.**
 - **Integrated commands** — `/init` to scaffold, `/preview` to launch the dev server, `/tasks` to manage running processes, `/review` to audit code
 - **TypeScript validation** — catches type errors immediately after writing code
 - **Free asset catalogs** — 2,700+ Creator Hub 3D models, 900+ CC0-licensed models, and 50 audio files the agent proactively suggests when building scenes
-- **Permission gate** — prompts for confirmation before destructive bash commands, writes to sensitive files, or any file access outside the working directory
+- **Permission gate** — prompts for confirmation before destructive bash commands, writes to sensitive files, or writes/edits outside the working directory
 - **Compact tool output** — write shows path + size instead of file content, read shows a 5-line preview instead of 10
 - **Session persistence** — pick up where you left off across sessions
 

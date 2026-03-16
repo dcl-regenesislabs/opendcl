@@ -7,7 +7,7 @@
  */
 
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
-import { classifyBashCommand, classifyFilePath, isOutsideCwd, OUTSIDE_CWD_REASON } from "./utils.js";
+import { classifyBashCommand, classifyFilePath, OUTSIDE_CWD_REASON } from "./utils.js";
 import { resolve } from "node:path";
 
 type BlockResult = { block: true; reason: string };
@@ -91,17 +91,6 @@ const extension: ExtensionFactory = (pi) => {
       return promptOrBlock(ctx, reason, `Path: ${filePath}`, () => sessionAllow.add(reason));
     }
 
-    if (toolName === "read" || toolName === "grep" || toolName === "find" || toolName === "ls") {
-      const filePath = (event.input as { path?: string }).path ?? "";
-      if (!filePath) return;
-
-      const resolved = resolve(ctx.cwd, filePath);
-      const reason = isOutsideCwd(filePath, ctx.cwd);
-      if (!reason) return;
-      if (isPathAllowed(resolved)) return;
-
-      return promptOrBlock(ctx, reason, `Path: ${filePath}`, () => allowedPaths.add(resolved));
-    }
   });
 };
 
