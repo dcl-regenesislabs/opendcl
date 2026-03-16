@@ -13,15 +13,28 @@ import { join } from "node:path";
 import { fileExists, findSceneRoot } from "./scene-utils.js";
 
 const WORLDS_CONTENT_SERVER = "https://worlds-content-server.decentraland.org";
+const BEVY_BASE = "https://decentraland.zone/bevy-web";
 
-async function hasWorldConfiguration(sceneRoot: string): Promise<boolean> {
+interface SceneDeployInfo {
+  /** World name (e.g. "boedo.dcl.eth") — presence means it's a World deploy */
+  worldName?: string;
+  /** Base parcel (e.g. "30,30") for Genesis City */
+  baseParcel?: string;
+}
+
+async function getSceneDeployInfo(sceneRoot: string): Promise<SceneDeployInfo> {
   try {
     let content = await readFile(join(sceneRoot, "scene.json"), "utf-8");
     if (content.charCodeAt(0) === 0xfeff) content = content.slice(1);
     const sceneJson = JSON.parse(content);
-    return Boolean(sceneJson.worldConfiguration?.name);
+    const worldName = sceneJson.worldConfiguration?.name;
+    if (worldName) {
+      return { worldName };
+    }
+    const baseParcel = sceneJson.scene?.base;
+    return { baseParcel };
   } catch {
-    return false;
+    return {};
   }
 }
 
@@ -39,13 +52,14 @@ async function deployScene(
     return { message: "node_modules not found. Run 'npm install' first.", isError: true };
   }
 
-  const isWorldDeploy = await hasWorldConfiguration(sceneRoot);
+  const deployInfo = await getSceneDeployInfo(sceneRoot);
+  const isWorld = Boolean(deployInfo.worldName);
   const deployArgs = ["@dcl/sdk-commands", "deploy"];
-  if (isWorldDeploy) {
+  if (isWorld) {
     deployArgs.push("--target-content", WORLDS_CONTENT_SERVER);
   }
 
-  const targetLabel = isWorldDeploy ? "World" : "Genesis City";
+  const targetLabel = isWorld ? "World" : "Genesis City";
 
   try {
     const result = await pi.exec("npx", deployArgs, {
@@ -54,7 +68,14 @@ async function deployScene(
     });
 
     if (result.code === 0) {
-      return { message: `Scene deployed to ${targetLabel} successfully!` };
+      let visitUrl: string | undefined;
+      if (deployInfo.worldName) {
+        visitUrl = `${BEVY_BASE}?realm=${deployInfo.worldName}`;
+      } else if (deployInfo.baseParcel) {
+        visitUrl = `${BEVY_BASE}?position=${deployInfo.baseParcel}`;
+      }
+      const urlLine = visitUrl ? `\nVisit: ${visitUrl}` : "";
+      return { message: `Scene deployed to ${targetLabel} successfully!${urlLine}` };
     } else {
       return { message: `Deploy failed (exit code ${result.code}): ${result.stderr || result.stdout}`, isError: true };
     }
