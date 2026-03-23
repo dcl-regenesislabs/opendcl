@@ -26,7 +26,7 @@ The result: **more creators building more scenes, faster.**
 ## Features
 
 - **Branded header** — on startup, displays a block-character "Decentraland" ASCII art banner with version and working directory. Falls back to a compact text header on narrow terminals
-- **Multi-provider LLM support** — works with Claude, OpenAI, Google, Ollama (free/local), OpenRouter, and more
+- **Multi-provider LLM support** — works with Claude, OpenAI, Google, OpenRouter, and more
 - **Scene-aware** — automatically detects your project's `scene.json`, SDK version, and entry points
 - **20 built-in skills** — scaffolding, 3D models, interactivity, UI, animations, multiplayer, authoritative server, audio/video, deployment (Genesis City & Worlds), optimization, camera control, lighting, player/avatar, NFT/blockchain, advanced rendering, advanced input, scene runtime, visual feedback, game design
 - **Integrated commands** — `/init` to scaffold, `/preview` to launch the dev server, `/tasks` to manage running processes, `/review` to audit code
@@ -152,7 +152,7 @@ opendcl/
 │   └── scene-context.ts      # Scene detection & context formatting
 ├── extensions/
 │   ├── dcl-context.ts        # Auto-detect scene, inject metadata
-│   ├── dcl-init.ts           # /init command
+│   ├── dcl-init.ts           # /init command + editor setup
 │   ├── dcl-preview.ts        # /preview command
 │   ├── dcl-deploy.ts         # /deploy command
 │   ├── dcl-setup.ts          # /setup command (cloud API provider config)
@@ -234,7 +234,6 @@ OpenDCL supports any provider compatible with pi-coding-agent:
 | Anthropic (Claude) | `ANTHROPIC_API_KEY` | Best quality |
 | OpenAI | `OPENAI_API_KEY` | GPT-4o, o1, etc. |
 | Google | `GOOGLE_API_KEY` | Gemini models |
-| Ollama | — | Free, runs locally |
 | OpenRouter | `OPENROUTER_API_KEY` | Access to many models |
 
 Set the environment variable or enter the key on first run. Switch models anytime with `Ctrl+P`.

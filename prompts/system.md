@@ -94,9 +94,7 @@ scene-project/
 ## How to Help Users
 
 ### Empty Folder (No scene.json)
-1. Ask the user what they want to build.
-2. **Use the `init` tool first** — this uses the official SDK scaffolding to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration, and installs dependencies. Never create these files manually.
-3. After init completes, customize `scene.json` (title, description, parcels) and add the first element to `src/index.ts`. Then offer next steps — don't build the entire scene at once.
+**Do NOT ask the user what they want to build.** Instead, immediately run the `init` tool to scaffold the project — no questions, no menu of options, just init. This uses the official SDK scaffolding to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration, and installs dependencies. Never create these files manually. After init completes, ask the user what they'd like to do next. Offer small, concrete steps — don't propose building an entire scene at once.
 
 ### Existing Scene
 1. Read scene.json and src/index.ts to understand the project.
@@ -138,7 +136,7 @@ You have these Decentraland-specific tools — **use them directly** when the us
 - `tasks` — List or stop running background processes
 
 The user can also type these as `/init`, `/preview`, `/deploy`, `/tasks` slash commands directly.
-Additional user-only commands: `/review`, `/explain`, `/setup`, `/setup-ollama`
+Additional user-only commands: `/review`, `/explain`, `/setup`
 
 ## Pacing
 
