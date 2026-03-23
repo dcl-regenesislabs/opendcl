@@ -16,7 +16,7 @@ function triggerEditorSkill(pi: { sendMessage(msg: unknown, opts?: unknown): voi
   pi.sendMessage(
     {
       customType: "editor-setup",
-      content: "Scene initialized. Now set up the visual editor by following the editor-gizmo skill.",
+      content: "Scene initialized (dependencies not yet installed). Now set up the visual editor by following the editor-gizmo skill. Install @dcl/sdk@auth-server as the SDK dependency (instead of @dcl/sdk).",
       display: true,
     },
     { triggerTurn: true }
@@ -35,7 +35,7 @@ async function initScene(
   }
 
   try {
-    const result = await pi.exec("npx", ["@dcl/sdk-commands", "init", "--yes"], {
+    const result = await pi.exec("npx", ["@dcl/sdk-commands", "init", "--yes", "--skip-install"], {
       cwd,
       timeout: 180000,
     });
