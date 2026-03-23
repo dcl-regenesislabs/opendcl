@@ -90,10 +90,10 @@ describe("dcl-header", () => {
       expect(names).toEqual([]);
     });
 
-    it("reads real skills directory and finds all 20 skills", () => {
+    it("reads real skills directory and finds all 21 skills", () => {
       const realSkillsDir = join(import.meta.dirname, "../../skills");
       const names = getSkillNames(realSkillsDir);
-      expect(names.length).toBe(20);
+      expect(names.length).toBe(21);
       expect(names).toContain("create-scene");
       expect(names).toContain("add-3d-models");
       expect(names).toContain("deploy-worlds");

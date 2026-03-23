@@ -78,11 +78,6 @@ const extensions = headless
       "dcl-editor-save.ts",
     ];
 
-// Conditionally load dcl-setup-ollama (hidden by default, enable with ENABLE_OLLAMA_SETUP=true)
-if (!headless && process.env.ENABLE_OLLAMA_SETUP === "true") {
-  extensions.push("dcl-setup-ollama.ts");
-}
-
 for (const ext of extensions) {
   args.push("-e", join(extDir, ext));
 }
@@ -107,14 +102,6 @@ if (!isDev()) {
 
 // InteractiveMode patches — only needed for terminal UI, skip in headless mode
 if (!headless) {
-  // Suppress pi's generic "No models available" warning — our dcl-setup-ollama
-  // extension shows a more helpful message that mentions /setup-ollama.
-  const _showWarning = InteractiveMode.prototype.showWarning;
-  InteractiveMode.prototype.showWarning = function (msg: string) {
-    if (msg.startsWith("No models available")) return;
-    _showWarning.call(this, msg);
-  };
-
   // Suppress pi's "What's New" changelog notification on startup — it shows pi's
   // own version/changes, which confuses OpenDCL users.
   (InteractiveMode.prototype as any).getChangelogForDisplay = function () {

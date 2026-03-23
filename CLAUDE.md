@@ -14,7 +14,7 @@ npm run dev         # tsc --watch
 npm run lint        # tsc --noEmit (type-check only)
 npm test            # vitest run (all tests)
 npm run test:watch  # vitest in watch mode
-npx vitest run tests/integration/dcl-setup-ollama.test.ts  # single test file
+npx vitest run tests/unit/extensions/dcl-init.test.ts  # single test file
 node dist/index.js  # run locally (build first)
 ```
 
@@ -61,11 +61,10 @@ Key lifecycle events: `session_start`, `before_agent_start`, `tool_call`, `tool_
 |------|---------|---------|
 | `dcl-context.ts` | Injects scene metadata into system prompt | `before_agent_start` |
 | `dcl-preview.ts` | `/preview` → starts Bevy-web dev server | `registerCommand` |
-| `dcl-init.ts` | `/init` → scaffolds new scene | `registerCommand` |
+| `dcl-init.ts` | `/init` → scaffolds new scene + triggers editor-gizmo skill; prompts on startup if editor missing | `registerCommand` + `before_agent_start` |
 | `dcl-validate.ts` | Runs `tsc --noEmit` after .ts writes | `tool_result` |
 | `dcl-deploy.ts` | `/deploy` → deploys to Genesis City or World | `registerCommand` |
 | `dcl-setup.ts` | `/setup` → interactive cloud API provider configuration (Anthropic, OpenAI, Google, etc.) | `registerCommand` |
-| `dcl-setup-ollama.ts` | `/setup-ollama` → Ollama install + model config; prompts on startup if no provider configured | `registerCommand` + `session_start` |
 | `dcl-status.ts` | Shows elapsed time + output token count in spinner during LLM inference | `turn_start` + `message_update` + `turn_end` + `agent_end` |
 | `dcl-tasks.ts` | `/tasks` → interactive process manager | `registerCommand` |
 | `dcl-screenshot.ts` | `screenshot` LLM tool → captures preview via headless Chrome; persistent browser, user consent, Bevy-Web GPU flags | `registerTool` + `session_shutdown` |
