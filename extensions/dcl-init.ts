@@ -19,7 +19,7 @@ function triggerEditorSkill(pi: { sendMessage(msg: unknown, opts?: unknown): voi
       content: "Scene initialized. Now set up the visual editor by following the editor-gizmo skill.",
       display: true,
     },
-    { triggerTurn: true, deliverAs: "nextTurn" }
+    { triggerTurn: true }
   );
 }
 
