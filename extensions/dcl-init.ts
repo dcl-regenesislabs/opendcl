@@ -16,7 +16,7 @@ function triggerEditorSkill(pi: { sendMessage(msg: unknown, opts?: unknown): voi
   pi.sendMessage(
     {
       customType: "editor-setup",
-      content: "Scene initialized (dependencies not yet installed). Now set up the visual editor by following the editor-gizmo skill. Install @dcl/sdk@auth-server as the SDK dependency (instead of @dcl/sdk).",
+      content: "Scene initialized (dependencies not yet installed). Now set up the visual editor by following the editor-gizmo skill.",
       display: true,
     },
     { triggerTurn: true }
