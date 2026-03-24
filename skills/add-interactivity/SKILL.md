@@ -89,7 +89,7 @@ pointerEventsSystem.removeOnPointerUp(cube)
 ```
 
 ### Important: Colliders Required
-Pointer events only work on entities with a **collider**. Add one if your entity doesn't have a mesh:
+Pointer events only work on entities with a **collider**, using the `ColliderLayer.CL_POINTER` layer. Add one if your entity doesn't have a mesh:
 ```typescript
 import { MeshCollider } from '@dcl/sdk/ecs'
 MeshCollider.setBox(entity) // Invisible box collider
@@ -321,11 +321,10 @@ pointerEventsSystem.onPointerDown(
 ## Best Practices
 
 - Always set `maxDistance` on pointer events (8-16m is typical)
-- Always set `hoverText` so users know they can interact
+- Always set `hoverText` so users know what outcome their interaction will have
 - Clean up handlers when entities are removed
 - Use `MeshCollider` for invisible trigger surfaces
 - For complex interactions, use a system with state tracking
-- Test interactions in preview — hover text should be visible and clear
 - Set `continuous: false` on raycasts unless you need per-frame results
 - Design for both desktop and mobile — mobile has no keyboard, rely on pointer and on-screen buttons
 

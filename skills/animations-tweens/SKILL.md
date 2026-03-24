@@ -97,6 +97,16 @@ Tween.create(box, {
 })
 ```
 
+You can also use tweens for a continuous rotation:
+
+```typescript
+Tween.setRotateContinuous(myEntity, 
+	Quaternion.fromEulerDegrees(0, -1, 0), 
+	700
+)
+```
+
+
 ### Scale
 ```typescript
 Tween.create(box, {
@@ -108,6 +118,21 @@ Tween.create(box, {
   easingFunction: EasingFunction.EF_EASEOUTBOUNCE
 })
 ```
+
+### Multiple transformations
+
+If an entity needs to tween in any combination of position, scale, or rotation, you can achieve multiple simultaneous changes using `Tween.setMoveRotateScale`.
+An entity can only have one Tween compoent at a time.
+
+```typescript
+Tween.setMoveRotateScale(mrsEntity, {
+	position: { start: Vector3.create(14, 1, 2), end: Vector3.create(14, 3, 2) },
+	rotation: { start: Quaternion.fromEulerDegrees(0, 0, 0), end: Quaternion.fromEulerDegrees(0, 180, 90) },
+	scale: { start: Vector3.One(), end: Vector3.create(2, 0.5, 2) },
+	duration: 2000
+})
+```
+
 
 ## Tween Sequences (Chained Animations)
 
@@ -209,7 +234,7 @@ Tween.setScale(entity,
 
 ### Yoyo Loop Mode
 
-`TL_YOYO` reverses the tween at each end instead of restarting:
+`TL_YOYO` reverses the tween sequence at each end instead of restarting:
 
 ```typescript
 TweenSequence.create(entity, {
@@ -263,7 +288,6 @@ anim.states[1].weight = 0.5  // blend idle at 50%
 
 - Use Tweens for simple A-to-B animations (doors, platforms, UI elements)
 - Use Animator for character/model animations baked into GLTF files
-- Use Systems for continuous or physics-based animations
+- Use Systems for continuous user control or physics-based animations
 - Tween durations are in **milliseconds** (1000 = 1 second)
-- Combine move + rotate tweens by applying them to parent/child entities
 - For looping: use `TweenSequence` with `loop: TweenLoop.TL_RESTART`

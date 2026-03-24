@@ -81,7 +81,40 @@ function myInputSystem() {
 engine.addSystem(myInputSystem)
 ```
 
+Best practice: use the Tag component to mark all entities that share a same interaction, then iterate over them in a system.
+
+```typescript
+import { engine, inputSystem, InputAction, PointerEventType, Tags } from '@dcl/sdk/ecs'
+
+function myInputSystem() {
+
+  // fetch entities with a particular tag
+  const taggedEntities = engine.getEntitiesByTag('myTag')
+  
+  // iterate over those entities
+	for (const entity of taggedEntities) {
+         // Check for click on a specific entity
+        const clickData = inputSystem.getInputCommand(
+          InputAction.IA_POINTER,
+          PointerEventType.PET_DOWN,
+          entity
+        )
+
+        if (clickData) {
+          console.log('Entity clicked via system:', clickData.hit.entityId)
+        }
+    }
+
+}
+
+engine.addSystem(myInputSystem)
+```
+
+
+
 ### Global Input Checks
+
+Check if a specific key was pressed, regardless of if the player's cursor was pointing at an entity or not.
 
 ```typescript
 function globalInputSystem() {
@@ -143,7 +176,9 @@ InputModifier.createOrReplace(engine.PlayerEntity, {
   mode: InputModifier.Mode.Standard({
     disableRun: true,
     disableJump: true,
-    disableEmote: true
+    disableEmote: true,
+    disableDoubleJump: true,
+    disableGliding: true
   })
 })
 

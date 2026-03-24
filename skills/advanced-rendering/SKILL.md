@@ -143,7 +143,7 @@ Material.setPbrMaterial(entity, {
 
 // Alpha test — cutout (binary visible/invisible based on threshold)
 Material.setPbrMaterial(entity, {
-  texture: Material.Texture.Common({ src: 'assets/cutout.png' }),
+  texture: Material.Texture.Common({ src: 'assets/scene/Images/cutout.png' }),
   transparencyMode: MaterialTransparencyMode.MTM_ALPHA_TEST,
   alphaTest: 0.5
 })
@@ -161,8 +161,8 @@ Material.setPbrMaterial(entity, {
 
 // Emissive with texture
 Material.setPbrMaterial(entity, {
-  texture: Material.Texture.Common({ src: 'assets/diffuse.png' }),
-  emissiveTexture: Material.Texture.Common({ src: 'assets/emissive.png' }),
+  texture: Material.Texture.Common({ src: 'assets/scene/Images/diffuse.png' }),
+  emissiveTexture: Material.Texture.Common({ src: 'assets/scene/Images/emissive.png' }),
   emissiveIntensity: 1.0,
   emissiveColor: Color3.White()
 })
@@ -172,15 +172,15 @@ Material.setPbrMaterial(entity, {
 
 ```typescript
 Material.setPbrMaterial(entity, {
-  texture: Material.Texture.Common({ src: 'assets/diffuse.png' }),
-  bumpTexture: Material.Texture.Common({ src: 'assets/normal.png' }),
-  emissiveTexture: Material.Texture.Common({ src: 'assets/emissive.png' })
+  texture: Material.Texture.Common({ src: 'assets/scene/Images/diffuse.png' }),
+  bumpTexture: Material.Texture.Common({ src: 'assets/scene/Images/normal.png' }),
+  emissiveTexture: Material.Texture.Common({ src: 'assets/scene/Images/emissive.png' })
 })
 ```
 
-## GltfContainer Visibility Masks
+## GltfContainer Collision Masks
 
-Control visibility and collision of specific mesh layers within a GLTF model using collision masks:
+Use collision masks to control which collision layers respond to the different mesh layers in a GLTF model. GLTF models have two mesh layers: visible meshes (what players see rendered), and invisible layers (collider meshes, named internally with _collider):
 
 ```typescript
 import { engine, Transform, GltfContainer, ColliderLayer } from '@dcl/sdk/ecs'
@@ -245,15 +245,41 @@ GltfNodeModifiers.create(entity, {
 })
 ```
 
+To override the materials or shadow casting of the entire model, set the path to ''.
+
+```typescript
+import { GltfNodeModifiers } from '@dcl/sdk/ecs'
+
+GltfNodeModifiers.create(entity, {
+  modifiers: [
+    {
+      path: '', 
+      material: {
+				material: {
+					$case: 'pbr',
+					pbr: {
+						albedoColor: Color4.Red(),
+					},
+				},
+			},
+    }
+  ]
+})
+```
+
+
 ### Avatar Texture
 
-Generate a texture from a player's avatar:
+Generate a texture from a player's avatar portrait:
 
 ```typescript
 Material.setPbrMaterial(portraitFrame, {
   texture: Material.Texture.Avatar({ userId: '0x...' })
 })
 ```
+
+This will fetch a thumbnail image with a closeup of the player's face, wearing the wearables that this player currently has on.
+
 
 ### Texture Modes
 
@@ -264,7 +290,7 @@ import { TextureFilterMode, TextureWrapMode } from '@dcl/sdk/ecs'
 
 Material.setPbrMaterial(entity, {
   texture: Material.Texture.Common({
-    src: 'images/pixel-art.png',
+    src: 'assets/scene/Images/pixel-art.png',
     filterMode: TextureFilterMode.TFM_POINT,    // crisp pixels (no smoothing)
     wrapMode: TextureWrapMode.TWM_REPEAT        // tile the texture
   })
@@ -273,6 +299,30 @@ Material.setPbrMaterial(entity, {
 
 Filter modes: `TFM_POINT` (pixelated), `TFM_BILINEAR` (smooth), `TFM_TRILINEAR` (smoothest).
 Wrap modes: `TWM_REPEAT` (tile), `TWM_CLAMP` (stretch edges), `TWM_MIRROR` (mirror tile).
+
+## Texture tweens
+
+You can use tweens to make a texture slide sideways or shrink or zoom in, this can be used to achieve very cool effects.
+
+```typescript
+Material.setPbrMaterial(myEntity, {
+	texture: Material.Texture.Common({
+		src: 'materials/water.png',
+		wrapMode: TextureWrapMode.TWM_REPEAT,
+	}),
+})
+
+// move continuously
+Tween.setTextureMoveContinuous(myEntity, Vector2.create(0, 1), 1)
+```
+
+You can also make a texture move once, lasting a specific duration
+
+```typescript
+// slide once, for 1 second
+Tween.setTextureMove(myEntity, Vector2.create(0, 0), Vector2.create(0, 1), 1000)
+```
+
 
 ## Best Practices
 

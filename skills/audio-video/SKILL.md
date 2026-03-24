@@ -1,6 +1,6 @@
 ---
 name: audio-video
-description: Add sound effects, music, audio streaming, and video players to Decentraland scenes. Covers AudioSource (local files), AudioStream (streaming URLs), VideoPlayer (video surfaces), video events, and media permissions. Use when the user wants sound, music, audio, video screens, radio, or media playback. Do NOT use for 3D model animations (see animations-tweens).
+description: Add sound effects, music, audio streaming, and video players to Decentraland scenes. Covers AudioSource (local files), AudioStream (streaming URLs), VideoPlayer (video surfaces), video events, and media permissions. Use when the user wants sound, music, audio, video screens, radio, or media playback.
 ---
 
 # Audio and Video in Decentraland
@@ -30,7 +30,7 @@ const speaker = engine.addEntity()
 Transform.create(speaker, { position: Vector3.create(8, 1, 8) })
 
 AudioSource.create(speaker, {
-  audioClipUrl: 'sounds/music.mp3',
+  audioClipUrl: 'assets/scene/Audio/music.mp3',
   playing: true,
   loop: true,
   volume: 0.5,   // 0 to 1
@@ -46,10 +46,12 @@ AudioSource.create(speaker, {
 ### File Organization
 ```
 project/
-├── sounds/
-│   ├── click.mp3
-│   ├── background-music.mp3
-│   └── explosion.ogg
+├── assets/
+│   └── scene/
+│       └── Audio/
+│           ├── click.mp3
+│           ├── background-music.mp3
+│           └── explosion.ogg
 ├── src/
 │   └── index.ts
 └── scene.json
@@ -78,7 +80,7 @@ const button = engine.addEntity()
 const audioEntity = engine.addEntity()
 Transform.create(audioEntity, { position: Vector3.create(8, 1, 8) })
 AudioSource.create(audioEntity, {
-  audioClipUrl: 'sounds/click.mp3',
+  audioClipUrl: 'assets/scene/Audio/click.mp3',
   playing: false,
   loop: false,
   volume: 0.8
@@ -165,7 +167,18 @@ VideoPlayer.getMutable(screen).src = 'https://example.com/other.mp4'
 
 ### Enhanced Video Material (PBR)
 
+Ideally video screens should use basic (unlit) materials, that way they're always bright and crisp.
+
+```typescript
+const videoTexture = Material.Texture.Video({ videoPlayerEntity: screen })
+
+Material.setBasicMaterial(screen, {
+	texture: videoTexture,
+})
+```
+
 For a brighter, emissive video screen:
+
 
 ```typescript
 import { Color3 } from '@dcl/sdk/math'
@@ -209,9 +222,42 @@ videoEventsSystem.registerVideoEventsEntity(screen, (videoEvent) => {
 
 ## Spatial Audio
 
-Audio in Decentraland is **spatial by default** — it gets louder as the player approaches the audio source entity and quieter as they move away. The position is determined by the entity's `Transform`.
+Audio from the `AudioSource` component in Decentraland is **spatial by default** — it gets louder as the player approaches the audio source entity and quieter as they move away. The position is determined by the entity's `Transform`. You can change this by setting the `global` property to true.
 
-To make audio non-spatial (same volume everywhere), there's no built-in flag — keep the volume low and place the audio at the scene center.
+```typescript
+AudioSource.create(sourceEntity, {
+	audioClipUrl: 'assets/scene/Audio/music.mp3',
+	playing: true,
+	global: true,
+})
+```
+
+Audio from the `VideoPlayer` component and the `AudioStream` component is global by default. Set it to spatial by setting the `spatial` to true. You can also change these properties:
+
+- spatialMinDistance: The minimum distance at which audio becomes spatial. If the player is closer, the audio will be heard at full volume. 0 by default.
+
+- spatialMaxDistance: The maximum distance at which the audio is heard. If the player is further away, the audio will be heard at 0 volume. 60 by default
+
+```typescript
+VideoPlayer.create(videoPlayerEntity, {
+	src: 'https://player.vimeo.com/progressive_redirect/playback/1145666916/rendition/540p/file.mp4%20%28540p%29.mp4?loc=external&signature=db1cd6946851313cb8f7be60d1f6c30af0902bcc46fdae0ba2a06e5fdf44c329',
+	playing: true,
+	spatial: true,
+	spatialMinDistance: 5,
+	spatialMaxDistance: 10
+});
+
+AudioStream.create(audioStreamEntity, {
+    url: 'https://radioislanegra.org/listen/up/stream',
+    playing: true,
+    volume: 1.0,
+    spatial: true,
+    spatialMinDistance: 5,
+    spatialMaxDistance: 10
+});
+```
+
+
 
 ## Free Audio Files
 
@@ -222,12 +268,12 @@ Read `{baseDir}/../../context/audio-catalog.md` for music tracks (ambient, dance
 To use a catalog sound:
 ```bash
 # Download from catalog
-mkdir -p sounds
-curl -o sounds/ambient_1.mp3 "https://builder-items.decentraland.org/contents/bafybeic4faewxkdqx67dloyw57ikgaeibc2e2dbx34hwjubl3gfvs2r4su"
+mkdir -p assets/scene/Audio
+curl -o assets/scene/Audio/ambient_1.mp3 "https://builder-items.decentraland.org/contents/bafybeic4faewxkdqx67dloyw57ikgaeibc2e2dbx34hwjubl3gfvs2r4su"
 ```
 ```typescript
 // Reference in code — must be a local file path
-AudioSource.create(entity, { audioClipUrl: 'sounds/ambient_1.mp3', playing: true, loop: true })
+AudioSource.create(entity, { audioClipUrl: 'assets/scene/Audio/ambient_1.mp3', playing: true, loop: true })
 ```
 
 ### How to suggest audio
@@ -235,10 +281,10 @@ AudioSource.create(entity, { audioClipUrl: 'sounds/ambient_1.mp3', playing: true
 1. Read the audio catalog file
 2. Search for sounds matching the user's description/theme
 3. Suggest specific sounds with download commands
-4. Download selected sounds into the scene's `sounds/` directory
+4. Download selected sounds into the scene's `assets/scene/Audio/` directory
 5. Reference them in code with local paths
 
-> **Important**: `AudioSource` only works with **local files**. Never use external URLs for the `audioClipUrl` field. Always download audio into `sounds/` first.
+> **Important**: `AudioSource` only works with **local files**. Never use external URLs for the `audioClipUrl` field. Always download audio into `assets/scene/Audio/` first.
 
 ### Video State Polling
 
@@ -294,10 +340,40 @@ Material.setPbrMaterial(screen2, {
   texture: Material.Texture.Video({ videoPlayerEntity: videoEntity })
 })
 ```
+### Play a video on a glTF model
+
+You may want to play a video on a shape that is not a primitive, to have curved screens or exotic shapes. Use `GltfNodeModifiers` to swap the material of a GLTF model.
+
+```typescript
+VideoPlayer.create(myEntity, {
+	src: 'https://player.vimeo.com/external/552481870.m3u8?s=c312c8533f97e808fccc92b0510b085c8122a875',
+	playing: true,
+})
+
+GltfNodeModifiers.create(
+	myEntity,
+	{
+		modifiers: [{
+			path: '',
+			material: {
+				material: {
+					$case: 'pbr', pbr: {
+						texture: Material.Texture.Video({
+							videoPlayerEntity: myEntity,
+						}),
+					},
+				},
+			},
+		}],
+	})
+```
+
 
 ### Video Limits & Tips
 
-- **Simultaneous videos**: 1 in preview, 5 in Explorer, 10 max across the scene
+
+
+- **Simultaneous videos**: Always avoid playing multiple videos at once. Only play more than 1 simultaneous video if explicitly requested. Maximum 5 simultaneous videos.
 - **Distance-based control**: Pause video when player is far away to save bandwidth
 - **Supported formats**: `.mp4` (H.264), `.webm`, HLS (`.m3u8`) for live streaming
 - **Live streaming**: Use HLS (`.m3u8`) URLs — most reliable across clients
@@ -312,3 +388,4 @@ For full component field details, supported formats, and advanced patterns, see 
 - Keep audio files small — large files increase scene load time
 - Use `.mp3` for music and `.ogg` for sound effects (smaller file sizes)
 - For live video streaming, use HLS (.m3u8) URLs when possible
+- If an audio file needs to be ready to play as the player interacts, use the `AssetLoad` component to pre-load the asset.
