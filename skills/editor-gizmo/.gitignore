@@ -1,14 +1,10 @@
-# Only track the skill doc, editor module, and scene scaffold
+# Only track the skill doc and editor module
 *
 !.gitignore
 !SKILL.md
 !src/
 !src/__editor/
 !src/__editor/**
-!src/index.ts
-!scene.json
-!package.json
-!tsconfig.json
 src/__editor/editor-scene.json
 node_modules/
 bin/
