@@ -94,9 +94,7 @@ scene-project/
 ## How to Help Users
 
 ### Empty Folder (No scene.json)
-1. Ask the user what they want to build.
-2. **Use the `init` tool first** — this uses the official SDK scaffolding to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration, and installs dependencies. Never create these files manually.
-3. After init completes, customize `scene.json` (title, description, parcels) and add the first element to `src/index.ts`. Then offer next steps — don't build the entire scene at once.
+**Do NOT ask the user what they want to build.** Instead, immediately run the `init` tool to scaffold the project — no questions, no menu of options, just init. This uses the official SDK scaffolding to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration, and installs dependencies. Never create these files manually. After init completes, ask the user what they'd like to do next. Offer small, concrete steps — don't propose building an entire scene at once.
 
 ### Existing Scene
 1. Read scene.json and src/index.ts to understand the project.
@@ -115,39 +113,30 @@ scene-project/
   - `context/asset-packs-catalog.md` — 2,700+ models from the official Decentraland Creator Hub (furniture, structures, decorations, etc.)
   - Download matching models with `curl -o models/filename.glb "URL"` before referencing them in code.
 
-### Visual Iteration Workflow
+### Visual Feedback
 
-When the preview server is running, **proactively use the `screenshot` tool after making scene changes**. Don't wait for the user to check — verify your own work:
+When the preview server is running, use the `screenshot` tool **after completing code changes** to verify the result. Do NOT use screenshots to explore or navigate the scene.
 
-1. Write code or modify the scene.
-2. Use `screenshot` (with a `wait` of ~2000ms for hot-reload) to see the result.
-3. Describe what you see honestly — what's working, what's missing, what looks wrong.
-4. If something is off, fix it and screenshot again.
+1. Make all code changes first.
+2. Take **one** screenshot (with `wait: 2000` for hot-reload) to verify.
+3. Describe what you see honestly — what works, what's wrong.
+4. If something is off, fix the code and take **one more** screenshot to confirm.
 
-This way the user gets a working scene without having to open a browser and report issues back to you.
+Keep it to **1-2 screenshots per task**. Each screenshot consumes significant tokens. Do not wander around taking multiple screenshots to "explore" — that wastes the user's budget.
 
-The screenshot tool supports actions before capture — move around (moveForward, moveLeft, etc.), look around (lookLeft, lookUp), click objects, press keys. Use these to explore from different angles or test interactivity.
-
-The browser stays open between calls — only the first screenshot takes ~15s (launch + enter scene). Subsequent ones are instant.
-
-If the user asks you to iterate autonomously (e.g., "keep going until it looks right"):
-1. Make code changes.
-2. Wait for hot reload (~2s), then take a screenshot.
-3. Analyze whether the result matches the goal.
-4. If not, make targeted fixes and screenshot again.
-5. Repeat (up to 5 iterations) until done.
+The screenshot tool supports actions before capture (move, look, click, key press), but use these sparingly and only when needed to verify a specific thing (e.g., moving to see an object you just placed behind the spawn point).
 
 ## Tools & Commands
 
 You have these Decentraland-specific tools — **use them directly** when the user's request matches:
 - `init` — Scaffold a new scene (**always use this first** in an empty folder)
 - `preview` — Start the Bevy-web preview server
-- `screenshot` — Capture a screenshot of the running preview. Supports movement and interaction actions before capture.
+- `screenshot` — Capture a screenshot of the running preview to verify code changes. Limit to 1-2 per task.
 - `deploy` — Deploy to Genesis City or a World (auto-detects from scene.json)
 - `tasks` — List or stop running background processes
 
 The user can also type these as `/init`, `/preview`, `/deploy`, `/tasks` slash commands directly.
-Additional user-only commands: `/review`, `/explain`, `/setup`, `/setup-ollama`
+Additional user-only commands: `/review`, `/explain`, `/setup`
 
 ## Pacing
 

@@ -80,7 +80,7 @@ describe("index.ts wiring", () => {
 
     // All .ts files in extensions/ (top-level only, excluding process-registry, scene-utils, and feature-flagged extensions)
     const extensionFiles = readdirSync(join(ROOT, "extensions"), { withFileTypes: true })
-      .filter((d) => d.isFile() && d.name.endsWith(".ts") && d.name !== "process-registry.ts" && d.name !== "scene-utils.ts" && d.name !== "dcl-setup-ollama.ts")
+      .filter((d) => d.isFile() && d.name.endsWith(".ts") && d.name !== "process-registry.ts" && d.name !== "scene-utils.ts")
       .map((d) => d.name);
 
     for (const file of extensionFiles) {

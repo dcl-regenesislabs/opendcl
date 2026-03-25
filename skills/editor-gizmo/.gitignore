@@ -1,0 +1,10 @@
+# Only track the skill doc and editor module
+*
+!.gitignore
+!SKILL.md
+!src/
+!src/__editor/
+!src/__editor/**
+src/__editor/editor-scene.json
+node_modules/
+bin/

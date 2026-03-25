@@ -26,7 +26,7 @@ The result: **more creators building more scenes, faster.**
 ## Features
 
 - **Branded header** — on startup, displays a block-character "Decentraland" ASCII art banner with version and working directory. Falls back to a compact text header on narrow terminals
-- **Multi-provider LLM support** — works with Claude, OpenAI, Google, Ollama (free/local), OpenRouter, and more
+- **Multi-provider LLM support** — works with Claude, OpenAI, Google, OpenRouter, and more
 - **Scene-aware** — automatically detects your project's `scene.json`, SDK version, and entry points
 - **20 built-in skills** — scaffolding, 3D models, interactivity, UI, animations, multiplayer, authoritative server, audio/video, deployment (Genesis City & Worlds), optimization, camera control, lighting, player/avatar, NFT/blockchain, advanced rendering, advanced input, scene runtime, visual feedback, game design
 - **Integrated commands** — `/init` to scaffold, `/preview` to launch the dev server, `/tasks` to manage running processes, `/review` to audit code
@@ -99,6 +99,7 @@ This uses the open [skills](https://github.com/vercel-labs/skills) CLI to copy S
 | `/deploy` | Deploy the scene to Genesis City or a World (auto-detects from scene.json) |
 | `/tasks` | Interactively manage running background processes (preview server, etc.) |
 | `/review` | Review scene code for quality, performance, and SDK7 best practices |
+| `/save-editor` | Apply pending visual editor changes to scene source code |
 | `/explain <concept>` | Explain a Decentraland SDK7 concept (e.g., `/explain tweens`) |
 
 The agent also has a `screenshot` tool it can call automatically to see the running preview. On first use it asks for your permission to open a headless browser. The browser stays open for the entire session — no repeated logins.
@@ -129,6 +130,7 @@ OpenDCL loads domain-specific skills on demand based on what you're asking:
 | `scene-runtime` | Async tasks, fetch, timers, realm info, restricted actions, testing |
 | `visual-feedback` | Use the screenshot tool to see your scene, verify changes, iterate visually |
 | `game-design` | Plan game architecture, scene limits, state management, MVP planning |
+| `editor-gizmo` | Use a visual in-scene editor with translate/rotate gizmos |
 
 ## How It Works
 
@@ -150,7 +152,7 @@ opendcl/
 │   └── scene-context.ts      # Scene detection & context formatting
 ├── extensions/
 │   ├── dcl-context.ts        # Auto-detect scene, inject metadata
-│   ├── dcl-init.ts           # /init command
+│   ├── dcl-init.ts           # /init command + editor setup
 │   ├── dcl-preview.ts        # /preview command
 │   ├── dcl-deploy.ts         # /deploy command
 │   ├── dcl-setup.ts          # /setup command (cloud API provider config)
@@ -159,6 +161,7 @@ opendcl/
 │   ├── dcl-validate.ts       # Post-write TypeScript validation
 │   ├── dcl-screenshot.ts      # screenshot tool (headless Chrome, persistent browser)
 │   ├── dcl-tasks.ts          # /tasks command (process manager)
+│   ├── dcl-editor-save.ts    # /save-editor command (apply visual editor changes)
 │   ├── process-registry.ts   # Shared background process registry
 │   └── permissions/           # Permission gate for dangerous operations
 ├── skills/                   # 20 SKILL.md files (domain expertise)
@@ -231,7 +234,6 @@ OpenDCL supports any provider compatible with pi-coding-agent:
 | Anthropic (Claude) | `ANTHROPIC_API_KEY` | Best quality |
 | OpenAI | `OPENAI_API_KEY` | GPT-4o, o1, etc. |
 | Google | `GOOGLE_API_KEY` | Gemini models |
-| Ollama | — | Free, runs locally |
 | OpenRouter | `OPENROUTER_API_KEY` | Access to many models |
 
 Set the environment variable or enter the key on first run. Switch models anytime with `Ctrl+P`.

@@ -47,4 +47,22 @@ describe("dcl-init extension", () => {
     );
     expect(content).toContain("reload");
   });
+
+  it("triggers editor-gizmo skill after init", async () => {
+    const content = await readFile(
+      join(EXTENSIONS_DIR, "dcl-init.ts"),
+      "utf-8"
+    );
+    expect(content).toContain("editor-gizmo");
+    expect(content).toContain("sendMessage");
+  });
+
+  it("prompts for editor on session start", async () => {
+    const content = await readFile(
+      join(EXTENSIONS_DIR, "dcl-init.ts"),
+      "utf-8"
+    );
+    expect(content).toContain("before_agent_start");
+    expect(content).toContain("__editor");
+  });
 });

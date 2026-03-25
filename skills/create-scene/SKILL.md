@@ -144,3 +144,4 @@ After customizing the files:
 - Y axis is up, minimum Y=0 (ground)
 - The `main` field in scene.json MUST be `"bin/index.js"` — this is the compiled output path
 - The `jsx` and `jsxImportSource` tsconfig settings are already included by `/init` — do not modify them
+- **Never pass `undefined` values in Transform fields** (position, rotation, scale) — the SDK serializer crashes. If a field is optional, omit the key entirely instead of including it with an `undefined` value.

@@ -16,7 +16,6 @@ const EXTENSION_FILES = [
   "dcl-validate",
   "dcl-header",
   "dcl-update-check",
-  "dcl-setup-ollama",
   "dcl-tasks",
   "process-registry",
   "plan-mode/index",
@@ -53,26 +52,6 @@ describe("extension loading", () => {
     it("process-registry does not export a default function", async () => {
       const mod = await import(`${EXTENSIONS_DIR}/process-registry.js`);
       expect(typeof mod.default).not.toBe("function");
-    });
-
-    it("dcl-setup-ollama exports writeModelsConfig function", async () => {
-      const mod = await import(`${EXTENSIONS_DIR}/dcl-setup-ollama.js`);
-      expect(typeof mod.writeModelsConfig).toBe("function");
-    });
-
-    it("dcl-setup-ollama exports setDefaultModel function", async () => {
-      const mod = await import(`${EXTENSIONS_DIR}/dcl-setup-ollama.js`);
-      expect(typeof mod.setDefaultModel).toBe("function");
-    });
-
-    it("dcl-setup-ollama exports isProviderConfigured function", async () => {
-      const mod = await import(`${EXTENSIONS_DIR}/dcl-setup-ollama.js`);
-      expect(typeof mod.isProviderConfigured).toBe("function");
-    });
-
-    it("dcl-setup-ollama exports OLLAMA_MODELS array", async () => {
-      const mod = await import(`${EXTENSIONS_DIR}/dcl-setup-ollama.js`);
-      expect(Array.isArray(mod.OLLAMA_MODELS)).toBe(true);
     });
 
     it("dcl-tasks exports updateStatus function", async () => {
