@@ -11,7 +11,7 @@ Decentraland is a **continuous, shared 3D world**. Design around these constrain
 
 - **No startup screen**: The scene is always live. Players walk in from adjacent parcels — there is no splash screen, no "press start." Your scene must be meaningful the instant a player arrives.
 - **No forced endings**: You cannot force a "game over" state. Players can leave at any time by walking away or teleporting. Design loops that accommodate drop-in / drop-out naturally.
-- **Cannot remove players**: There is no API to eject a player from a scene. You can teleport a player, but only with their consent (they must accept the prompt). Design around misbehaving players with game mechanics, not eviction.
+- **Cannot remove players**: There is no API to eject a player from a scene. You can teleport a player, but only within the existing scene. If you're teleporting outside the scene, you can only do it with their consent (they must accept the prompt). Design around misbehaving players with game mechanics, not eviction. If the scene has admin players, admins are able to ban other players from the scene manually.
 - **Boundary awareness**: Players standing outside your parcel can see into it. Your scene is always on display. Neighboring scenes are visible too — consider visual harmony.
 - **Shared space**: Multiple players are always potentially present. Even a "single-player" puzzle is witnessed by others. Embrace or account for this.
 
@@ -31,11 +31,12 @@ All limits scale with parcel count `n`. Know these formulas and design within th
 
 **File limits:** 15 MB per parcel, 300 MB max total, 200 files per parcel, 50 MB max per individual file.
 
+Important: Except for the MB size limits, all other limits can be exceeded. It's generally not recommended to go over them because of performance impact, but if a user tests their scene and determines that it's good enough, it should be ok to publish. 
+
 ## 3. Texture Requirements
 
 - **Dimensions must be power-of-two**: 256, 512, 1024, 2048
 - **Recommended sizes**: 1024x1024 for scene objects, 512x512 for wearables
-- **Avoid textures over 2048x2048** — they consume excessive memory and often exceed limits
 - **Use texture atlases** to combine multiple small textures into one, reducing draw calls and material count
 - Prefer compressed formats (WebP) over raw PNG where possible
 - Share texture references across materials — do not duplicate texture files
@@ -64,7 +65,7 @@ function assetLoadingSystem(dt: number) {
 engine.addSystem(assetLoadingSystem)
 ```
 
-Use this pattern for any model over ~1 MB or for assets that should be ready before a game phase begins.
+Use this pattern for any model over ~1 MB or for assets that should be ready before a game phase begins. Also use for any sound that plays in response to a player interaction, as soon as the player is able to call it.
 
 ## 5. Performance Patterns
 

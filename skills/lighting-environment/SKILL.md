@@ -19,7 +19,7 @@ Transform.create(light, { position: Vector3.create(8, 3, 8) })
 LightSource.create(light, {
   type: LightSource.Type.Point({}),
   color: Color3.White(),
-  intensity: 300  // candela
+  intensity: 16000  // candela
 })
 ```
 
@@ -29,7 +29,7 @@ LightSource.create(light, {
 LightSource.create(light, {
   type: LightSource.Type.Point({}),
   color: Color3.create(1, 0.5, 0),  // Warm orange
-  intensity: 200,
+  intensity: 16000,
   range: 15  // Maximum distance in meters
 })
 ```
@@ -50,7 +50,7 @@ Transform.create(spotlight, {
 LightSource.create(spotlight, {
   type: LightSource.Type.Spot({ innerAngle: 25, outerAngle: 45 }),
   color: Color3.White(),
-  intensity: 800
+  intensity: 16000
 })
 ```
 
@@ -69,6 +69,8 @@ LightSource.create(spotlight, {
   intensity: 800
 })
 ```
+
+Note: shadows are not available on point lights, only on spoit lights.
 
 ### Shadow Mask Textures (Gobos)
 
@@ -91,10 +93,11 @@ lightData.active = !lightData.active
 
 ## Light Limits
 
-- Maximum **one active light per parcel** (16m x 16m)
+- Maximum **one active light per parcel** in the scene (16m x 16m). Scenes with multiple parcels can group lights close together.
 - The renderer auto-culls lights based on quality settings and proximity
 - Up to ~3 shadowed lights visible at once
 - Intensity is in candela — visible distance grows roughly with `sqrt(intensity)`
+- Depending on the player's quality settings, they may see as much as 10 lights rendered at the same time, or as little as 4. If the scene is trying to render more lights than this, only the closest ones to the player will be rendered.
 
 ## SkyboxTime (Day/Night Cycle)
 
@@ -185,6 +188,8 @@ Material.setPbrMaterial(entity, {
 })
 ```
 
+Note: emissive materials don't illuminate other surrounding entities, they just have a glow effect on them.
+
 ### Combining Emissive + LightSource
 
 For an object that both glows visually and casts light:
@@ -229,14 +234,14 @@ Available shadow types:
 - `PBLightSource_ShadowType.ST_HARD` — crisp shadows (medium cost)
 - `PBLightSource_ShadowType.ST_SOFT` — smooth, blurred shadows (most expensive)
 
-> **Need advanced material effects?** See the **advanced-rendering** skill for metallic, roughness, transparency, texture maps, and texture modes.
+> **Need advanced material effects?** See the **advanced-rendering** skill for metallic, roughness, transparency, texture maps, texture tweens, and texture modes.
 
 ## Best Practices
 
-- Stay within the **one light per parcel** budget — plan light placement around scene parcels
+- Stay within the **one light per parcel** budget
 - Use emissive materials for decorative glow that doesn't need to illuminate surroundings
 - Combine emissive materials with LightSource for realistic light fixtures (lamp = emissive mesh + point light)
 - Use spot lights with shadows for dramatic effects (stage lighting, flashlights)
-- Keep shadow count low (max ~3 visible) — disable `shadow` on lights that don't need it
+- Keep shadow count low (max ~3 sadow-casting lights visible) — disable `shadow` on lights that don't need it
 - Set `range` on lights to limit their influence and save performance
 - Use `SkyboxTime` for atmosphere — nighttime scenes with point lights create dramatic environments
