@@ -34,6 +34,12 @@ if (!existsSync(settingsPath)) {
 // Build args: start with user's CLI args
 const args = process.argv.slice(2);
 
+// Detect --headless flag (remove from args before passing to pi-coding-agent)
+const headless = args.includes("--headless");
+if (headless) {
+  args.splice(args.indexOf("--headless"), 1);
+}
+
 // Inject DCL system prompt (strip YAML frontmatter, resolve context/ paths to absolute)
 if (!args.includes("--system-prompt")) {
   const raw = readFileSync(join(packageDir, "prompts/system.md"), "utf-8");
@@ -45,33 +51,46 @@ if (!args.includes("--system-prompt")) {
   args.push("--system-prompt", systemPrompt);
 }
 
-// Load our extensions
+// Load extensions
 const extDir = join(packageDir, "extensions");
-const extensions = [
-  "dcl-context.ts",
-  "dcl-preview.ts",
-  "dcl-init.ts",
-  "dcl-deploy.ts",
-  "dcl-setup.ts",
-  "dcl-validate.ts",
-  "dcl-header.ts",
-  "dcl-update-check.ts",
-  "dcl-status.ts",
-  "dcl-tasks.ts",
-  "dcl-asset-path.ts",
-  "dcl-screenshot.ts",
-];
+
+// Headless mode: only load extensions needed for non-interactive agent operation
+// (e.g., inside a sandboxed web service). Skips UI, preview, screenshot, and
+// interactive extensions that require a terminal or spawned processes.
+const extensions = headless
+  ? [
+      "dcl-context.ts",
+      "dcl-validate.ts",
+      "dcl-asset-path.ts",
+    ]
+  : [
+      "dcl-context.ts",
+      "dcl-preview.ts",
+      "dcl-init.ts",
+      "dcl-deploy.ts",
+      "dcl-setup.ts",
+      "dcl-validate.ts",
+      "dcl-header.ts",
+      "dcl-update-check.ts",
+      "dcl-status.ts",
+      "dcl-tasks.ts",
+      "dcl-asset-path.ts",
+      "dcl-screenshot.ts",
+    ];
 
 // Conditionally load dcl-setup-ollama (hidden by default, enable with ENABLE_OLLAMA_SETUP=true)
-if (process.env.ENABLE_OLLAMA_SETUP === "true") {
+if (!headless && process.env.ENABLE_OLLAMA_SETUP === "true") {
   extensions.push("dcl-setup-ollama.ts");
 }
 
 for (const ext of extensions) {
   args.push("-e", join(extDir, ext));
 }
-args.push("-e", join(extDir, "plan-mode/index.ts"));
-args.push("-e", join(extDir, "permissions/index.ts"));
+
+if (!headless) {
+  args.push("-e", join(extDir, "plan-mode/index.ts"));
+  args.push("-e", join(extDir, "permissions/index.ts"));
+}
 
 // Load all skill directories
 args.push("--skill", join(packageDir, "skills"));
@@ -86,40 +105,43 @@ if (!isDev()) {
   process.env.PI_SKIP_VERSION_CHECK = "1";
 }
 
-// Suppress pi's generic "No models available" warning — our dcl-setup-ollama
-// extension shows a more helpful message that mentions /setup-ollama.
-const _showWarning = InteractiveMode.prototype.showWarning;
-InteractiveMode.prototype.showWarning = function (msg: string) {
-  if (msg.startsWith("No models available")) return;
-  _showWarning.call(this, msg);
-};
+// InteractiveMode patches — only needed for terminal UI, skip in headless mode
+if (!headless) {
+  // Suppress pi's generic "No models available" warning — our dcl-setup-ollama
+  // extension shows a more helpful message that mentions /setup-ollama.
+  const _showWarning = InteractiveMode.prototype.showWarning;
+  InteractiveMode.prototype.showWarning = function (msg: string) {
+    if (msg.startsWith("No models available")) return;
+    _showWarning.call(this, msg);
+  };
 
-// Suppress pi's "What's New" changelog notification on startup — it shows pi's
-// own version/changes, which confuses OpenDCL users.
-(InteractiveMode.prototype as any).getChangelogForDisplay = function () {
-  return undefined;
-};
+  // Suppress pi's "What's New" changelog notification on startup — it shows pi's
+  // own version/changes, which confuses OpenDCL users.
+  (InteractiveMode.prototype as any).getChangelogForDisplay = function () {
+    return undefined;
+  };
 
-// Override pi's built-in /changelog command — it shows pi's CHANGELOG.md,
-// not OpenDCL's. The command is hardcoded in handleEditorSubmit before extension
-// commands, so monkey-patching is the only way to intercept it.
-const opendclVersion = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf-8")).version;
-(InteractiveMode.prototype as any).handleChangelogCommand = function () {
-  (this as any).showStatus(
-    `OpenDCL v${opendclVersion} — https://github.com/dcl-regenesislabs/opendcl/releases/tag/${opendclVersion}`,
-  );
-};
+  // Override pi's built-in /changelog command — it shows pi's CHANGELOG.md,
+  // not OpenDCL's. The command is hardcoded in handleEditorSubmit before extension
+  // commands, so monkey-patching is the only way to intercept it.
+  const opendclVersion = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf-8")).version;
+  (InteractiveMode.prototype as any).handleChangelogCommand = function () {
+    (this as any).showStatus(
+      `OpenDCL v${opendclVersion} — https://github.com/dcl-regenesislabs/opendcl/releases/tag/${opendclVersion}`,
+    );
+  };
 
-// Compact tool output — override built-in write/read renderers to reduce terminal noise.
-// When a built-in tool has no custom renderCall/renderResult, pi shows verbose output.
-// By returning compact renderers from getRegisteredToolDefinition, the ToolExecutionComponent
-// uses them instead (see shouldUseBuiltInRenderer() in tool-execution.js).
-const _getToolDef = (InteractiveMode.prototype as any).getRegisteredToolDefinition;
-(InteractiveMode.prototype as any).getRegisteredToolDefinition = function (toolName: string) {
-  const original = _getToolDef.call(this, toolName);
-  if (original) return original;
-  return getCompactToolDefinition(toolName);
-};
+  // Compact tool output — override built-in write/read renderers to reduce terminal noise.
+  // When a built-in tool has no custom renderCall/renderResult, pi shows verbose output.
+  // By returning compact renderers from getRegisteredToolDefinition, the ToolExecutionComponent
+  // uses them instead (see shouldUseBuiltInRenderer() in tool-execution.js).
+  const _getToolDef = (InteractiveMode.prototype as any).getRegisteredToolDefinition;
+  (InteractiveMode.prototype as any).getRegisteredToolDefinition = function (toolName: string) {
+    const original = _getToolDef.call(this, toolName);
+    if (original) return original;
+    return getCompactToolDefinition(toolName);
+  };
+}
 
 main(args).catch((err) => {
   console.error("OpenDCL fatal error:", err);
