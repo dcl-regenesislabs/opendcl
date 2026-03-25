@@ -17,8 +17,41 @@ import {
   PrimaryPointerInfo,
 } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
+import { getSceneInformation } from '~system/Runtime'
 import { state, editorEntities, selectableInfoMap, gizmoClickConsumed } from './state'
 import { copyVec3, copyQuat } from './math-utils'
+
+// ── Scene bounds (computed once) ────────────────────────
+let sceneCenter = Vector3.create(8, 0, 8)
+let sceneBoundsMin = Vector3.create(0, 0, 0)
+let sceneBoundsMax = Vector3.create(16, 20, 16)
+
+void getSceneInformation({}).then((info) => {
+  try {
+    const metadata = JSON.parse(info.metadataJson)
+    const parcels: string[] = metadata?.scene?.parcels ?? ['0,0']
+    let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity
+    for (const p of parcels) {
+      const [px, pz] = p.split(',').map(Number)
+      if (px < minX) minX = px
+      if (pz < minZ) minZ = pz
+      if (px > maxX) maxX = px
+      if (pz > maxZ) maxZ = pz
+    }
+    const base = parcels[0].split(',').map(Number)
+    const offX = -base[0] * 16
+    const offZ = -base[1] * 16
+    sceneBoundsMin = Vector3.create((minX * 16) + offX, 0, (minZ * 16) + offZ)
+    sceneBoundsMax = Vector3.create(((maxX + 1) * 16) + offX, 20, ((maxZ + 1) * 16) + offZ)
+    sceneCenter = Vector3.create(
+      (sceneBoundsMin.x + sceneBoundsMax.x) / 2,
+      0,
+      (sceneBoundsMin.z + sceneBoundsMax.z) / 2,
+    )
+  } catch (e) {
+    console.warn('[editor] failed to parse scene bounds, using defaults', e)
+  }
+}).catch(() => {})
 
 // ============================================================
 // Editor Camera
@@ -82,12 +115,8 @@ export function activateEditorCamera() {
   if (state.editorCamActive || state.isDragging) return
   state.editorCamActive = true
 
-  if (Transform.has(engine.CameraEntity)) {
-    const camT = Transform.get(engine.CameraEntity)
-    const fwd = Vector3.rotate(Vector3.Forward(), camT.rotation)
-    editorCam.target = Vector3.add(camT.position, Vector3.scale(fwd, editorCam.distance * 0.5))
-    editorCam.target.y = Math.max(editorCam.target.y, 0)
-  }
+  // Center on scene
+  editorCam.target = Vector3.create(sceneCenter.x, 0, sceneCenter.z)
 
   updateEditorCamera()
   MainCamera.getMutable(engine.CameraEntity).virtualCameraEntity = editorCamEntity
@@ -191,7 +220,7 @@ export function editorCameraSystem(dt: number) {
       const dy = pointer.screenDelta.y ?? 0
       if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
         editorCam.yaw += dx * ORBIT_SENSITIVITY
-        editorCam.pitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, editorCam.pitch - dy * ORBIT_SENSITIVITY))
+        editorCam.pitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, editorCam.pitch + dy * ORBIT_SENSITIVITY))
         changed = true
       }
     }
@@ -237,8 +266,8 @@ export function unlockCamera() {
 // Active Camera Helper
 // ============================================================
 
-/** Returns the active camera transform — editor cam when active, otherwise player camera. */
-export function getActiveCameraTransform(): { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number; w: number } } {
+/** Returns the active camera transform -- editor cam when active, otherwise player camera. */
+export function getActiveCameraTransform() {
   if (state.editorCamActive && editorCamEntity !== undefined && Transform.has(editorCamEntity)) {
     return Transform.get(editorCamEntity)
   }
