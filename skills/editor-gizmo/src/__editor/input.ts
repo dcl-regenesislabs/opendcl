@@ -17,19 +17,26 @@ export function modeToggleSystem() {
     if (state.selectedEntity !== undefined) createGizmo()
   }
 
+  // F = deselect (select mode)
   if (inputSystem.isTriggered(InputAction.IA_SECONDARY, PointerEventType.PET_DOWN)) {
     if (state.isDragging) return
-    if (state.editorCamActive && state.selectedEntity !== undefined) {
-      focusSelectedEntity()
-    } else if (state.selectedEntity !== undefined) {
+    if (state.selectedEntity !== undefined) {
       deselectEntity()
-    } else if (state.editorCamActive) {
-      deactivateEditorCamera()
     }
   }
 
+  // 1 = toggle editor camera
   if (inputSystem.isTriggered(InputAction.IA_ACTION_3, PointerEventType.PET_DOWN)) {
     toggleEditorCamera()
+  }
+
+  // 2 = focus selected entity
+  if (inputSystem.isTriggered(InputAction.IA_ACTION_4, PointerEventType.PET_DOWN)) {
+    if (state.isDragging) return
+    if (state.selectedEntity !== undefined) {
+      if (!state.editorCamActive) toggleEditorCamera()
+      focusSelectedEntity()
+    }
   }
 
   // 4 = undo, Shift+4 = redo

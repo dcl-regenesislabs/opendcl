@@ -28,6 +28,9 @@ import { selectEntity } from './selection'
 /** Built-in entities to never register */
 export const SKIP_ENTITIES = new Set<Entity>()
 
+/** Entity names to skip (case-insensitive). Add names here to prevent selection. */
+const SKIP_NAMES = new Set(['ground', 'floor'])
+
 function getEntityName(entity: Entity): string {
   if (Name.has(entity)) {
     return Name.get(entity).value
@@ -79,6 +82,12 @@ export function registerEntity(entity: Entity) {
   if (selectableInfoMap.has(entity)) return
   if (editorEntities.has(entity)) return
   if (SKIP_ENTITIES.has(entity)) return
+
+  // Skip entities with ground/floor names
+  if (Name.has(entity)) {
+    const n = Name.get(entity).value.toLowerCase()
+    if (SKIP_NAMES.has(n)) return
+  }
 
   const { centerOffset, boundsSize, isModel } = estimateBounds(entity)
   const name = getEntityName(entity)
