@@ -256,7 +256,7 @@ AvatarLocomotionSettings.createOrReplace(engine.PlayerEntity, {
 
 ## Restrict Locomotion (InputModifier)
 
-Use `InputModifier` on `engine.PlayerEntity` to freeze the player or selectively disable movement types. This is useful for cut scenes, locked interactions, or game mechanics where movement should be controlled.
+Use `InputModifier` on `engine.PlayerEntity` to freeze the player or selectively disable movement types. This is useful for cutscenes, locked interactions, or game mechanics where movement should be controlled.
 
 ### Freeze All Movement
 

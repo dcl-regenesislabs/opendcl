@@ -144,13 +144,13 @@ For `triggerEmote({ predefinedEmote: '...' })`:
 - `kiss` — blow a kiss
 - `tik` — tik dance
 - `hammer` — hammer dance
-- `tektonik` — electro dance style
-- `dontsee` — cover eyes (see no evil)
+- `tektonik` — tektonik dance
+- `dontsee` — cover eyes
 - `handsair` — hands in the air
 - `shrug` — shrug shoulders
 - `disco` — disco dance
 - `dab` — dab
-- `headexplode` — mind blown gesture
+- `headexplode` — head explode
 
 ## Player Event Callbacks
 
