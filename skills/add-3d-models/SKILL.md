@@ -20,21 +20,23 @@ Transform.create(model, {
   scale: Vector3.create(1, 1, 1)
 })
 GltfContainer.create(model, {
-  src: 'models/myModel.glb'
+  src: 'assets/scene/Models/myModel.glb'
 })
 ```
 
 ## File Organization
 
-Place model files in a `models/` directory at the project root:
+Place model files in the `assets/scene/Models/` directory at the project root:
 ```
 project/
-├── models/
-│   ├── building.glb
-│   ├── tree.glb
-│   └── furniture/
-│       ├── chair.glb
-│       └── table.glb
+├── assets/
+│   └── scene/
+│       └── Models/
+│           ├── building.glb
+│           ├── tree.glb
+│           └── furniture/
+│               ├── chair.glb
+│               └── table.glb
 ├── src/
 │   └── index.ts
 └── scene.json
@@ -46,7 +48,7 @@ project/
 Models exported with collision meshes work automatically. Set the collision mask:
 ```typescript
 GltfContainer.create(model, {
-  src: 'models/building.glb',
+  src: 'assets/scene/Models/building.glb',
   visibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS | ColliderLayer.CL_POINTER,
   invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS
 })
@@ -88,12 +90,12 @@ Transform.create(child, {
   position: Vector3.create(0, 2, 0), // 2m above parent
   parent: parent
 })
-GltfContainer.create(child, { src: 'models/hat.glb' })
+GltfContainer.create(child, { src: 'assets/scene/Models/hat.glb' })
 ```
 
 ## Free 3D Models
 
-Always check both asset catalogs before suggesting the user create or find their own models.
+Always check the scene's local asset folder, then both asset catalogs before suggesting the user create or find their own models.
 
 ### Creator Hub Asset Packs (2,700+ models)
 
@@ -102,12 +104,12 @@ Read `{baseDir}/../../context/asset-packs-catalog.md` for official Decentraland 
 To use a Creator Hub model:
 ```bash
 # Download from catalog
-mkdir -p models
-curl -o models/arcade_machine.glb "https://builder-items.decentraland.org/contents/bafybei..."
+mkdir -p assets/scene/Models
+curl -o assets/scene/Models/arcade_machine.glb "https://builder-items.decentraland.org/contents/bafybei..."
 ```
 ```typescript
 // Reference in code — must be a local file path
-GltfContainer.create(entity, { src: 'models/arcade_machine.glb' })
+GltfContainer.create(entity, { src: 'assets/scene/Models/arcade_machine.glb' })
 ```
 
 ### Open Source CC0 Models (991 models)
@@ -115,7 +117,7 @@ GltfContainer.create(entity, { src: 'models/arcade_machine.glb' })
 Read `{baseDir}/../../context/open-source-3d-assets.md` for free CC0-licensed models from Polygonal Mind, organized by 18 themed collections (MomusPark, Medieval Fair, Cyberpunk, Sci-fi, etc.) with direct GitHub download URLs.
 
 ```bash
-curl -o models/tree.glb "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/MomusPark/Tree_01_Art.glb"
+curl -o assets/scene/Models/tree.glb "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/MomusPark/Tree_01_Art.glb"
 ```
 
 ### How to suggest models
@@ -123,7 +125,7 @@ curl -o models/tree.glb "https://raw.githubusercontent.com/ToxSam/cc0-models-Pol
 1. Read both catalog files
 2. Search for models matching the user's description/theme
 3. Suggest specific models with download commands
-4. Download selected models into the scene's `models/` directory
+4. Download selected models into the scene's `assets/scene/Models/` directory
 5. Reference them in code with local paths
 
 > **Important**: `GltfContainer` only works with **local files**. Never use external URLs for the model `src` field. Always download models into `models/` first.
@@ -149,7 +151,7 @@ engine.addSystem(() => {
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| Model not visible | Wrong file path | Verify the file exists at the exact path relative to project root (e.g., `models/myModel.glb`) |
+| Model not visible | Wrong file path | Verify the file exists at the exact path relative to project root (e.g., `assets/scene/Models/myModel.glb`) |
 | Model not visible | Position outside scene boundaries | Check Transform position is within 0-16 per parcel. Center of 1-parcel scene is (8, 0, 8) |
 | Model not visible | Scale is 0 or very small | Check `Transform.scale` — default is (1,1,1). Try larger values if model was exported very small |
 | Model not visible | Behind the camera | Move the avatar or rotate to look in the model's direction |

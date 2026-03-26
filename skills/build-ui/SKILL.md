@@ -38,7 +38,7 @@ const MyUI = () => (
 )
 
 export function setupUi() {
-  ReactEcsRenderer.setUiRenderer(MyUI)
+  ReactEcsRenderer.setUiRenderer(MyUI, { virtualWidth: 1920, virtualHeight: 1080 })
 }
 ```
 
@@ -142,6 +142,47 @@ import { Dropdown } from '@dcl/sdk/react-ecs'
   fontSize={14}
 />
 ```
+
+## Virtual Screen Size (Scaling for All Resolutions)
+
+Always set `virtualWidth` and `virtualHeight` when calling `setUiRenderer` or `addUiRenderer`. This establishes a reference coordinate system so UI elements scale proportionally across all screen sizes.
+
+```tsx
+ReactEcsRenderer.setUiRenderer(MyUI, { virtualWidth: 1920, virtualHeight: 1080 })
+```
+
+The scaling factor is `Math.min(realWidth / virtualWidth, realHeight / virtualHeight)`. For example, on a 4K (3840×2160) screen, a 100px element scales to 200 actual pixels — maintaining the same proportions as on a 1080p screen.
+
+Use `1920 × 1080` as the standard reference resolution.
+
+## Adding Independent UI Renderers (addUiRenderer)
+
+Use `ReactEcsRenderer.addUiRenderer()` to render a UI module independently from the main UI, without replacing it. This is useful for smart items or modular scene components that each manage their own UI.
+
+Each renderer requires an entity as its owner:
+
+```tsx
+import ReactEcs, { ReactEcsRenderer, UiEntity, Label } from '@dcl/sdk/react-ecs'
+import { engine } from '@dcl/sdk/ecs'
+
+const MyWidget = () => (
+  <UiEntity uiTransform={{ positionType: 'absolute', position: { top: 10, right: 10 } }}>
+    <Label value="Widget" fontSize={16} />
+  </UiEntity>
+)
+
+export function setupWidget() {
+  const owner = engine.addEntity()
+  ReactEcsRenderer.addUiRenderer(owner, MyWidget, { virtualWidth: 1920, virtualHeight: 1080 })
+}
+```
+
+To remove it:
+```typescript
+ReactEcsRenderer.removeUiRenderer(owner)
+```
+
+If the owner entity is destroyed, the UI is removed automatically.
 
 ## State Management
 
@@ -312,7 +353,7 @@ The `Dropdown` component supports additional props:
 | UI elements overlapping | Missing `flexDirection` or wrong layout | Set `flexDirection: 'column'` on the parent container |
 | Button clicks not registering | Missing `onMouseDown` handler | Add `onMouseDown={() => { ... }}` to the Button or UiEntity |
 | JSX errors at compile time | File extension is `.ts` instead of `.tsx` | Rename the file to `.tsx` |
-| Multiple UIs fighting | More than one `setUiRenderer` call | Only call `setUiRenderer` once — combine all UI into a single root component |
+| Multiple UIs fighting | More than one `setUiRenderer` call | Only call `setUiRenderer` once — combine all UI into a single root component, or use `addUiRenderer` with separate owner entities for independent modules |
 | Text not visible | Text color matches background | Set contrasting `color` on Label or `uiText` |
 
 > **World interactions instead of screen UI?** See the **add-interactivity** skill for click handlers and pointer events on 3D objects.
@@ -324,6 +365,7 @@ The `Dropdown` component supports additional props:
 - UI is rendered as a 2D overlay on top of the 3D scene
 - Use `display: 'none'` in `uiTransform` to hide elements without removing them
 - File extension must be `.tsx` for JSX support
-- Only one `ReactEcsRenderer.setUiRenderer()` call per scene — combine all UI into one root component
+- Only one `ReactEcsRenderer.setUiRenderer()` call per scene — combine all UI into one root component, or use `addUiRenderer()` with separate owner entities for independent modules
+- Always set `virtualWidth` and `virtualHeight` in `setUiRenderer`/`addUiRenderer` so the UI scales correctly across screen sizes
 
 For full component props (UiEntity, Label, Button, Input, Dropdown), layout patterns, and responsive design, see `{baseDir}/references/ui-components.md`.

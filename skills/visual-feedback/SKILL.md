@@ -31,12 +31,12 @@ The tool returns the image directly — you'll see it and can describe what's vi
 
 The scene camera **always faces north** in headless mode. Movement is relative to compass direction, not camera:
 
-| Action | Direction | Key |
-|--------|-----------|-----|
-| `moveForward` | North (toward top of screen) | W |
-| `moveBack` | South (toward bottom) | S |
-| `moveRight` | East (toward right) | D |
-| `moveLeft` | West (toward left) | A |
+| Action        | Direction                    | Key |
+| ------------- | ---------------------------- | --- |
+| `moveForward` | North (toward top of screen) | W   |
+| `moveBack`    | South (toward bottom)        | S   |
+| `moveRight`   | East (toward right)          | D   |
+| `moveLeft`    | West (toward left)           | A   |
 
 Movement speed is ~6 meters/second. Default `holdMs` is 300ms (~1.8 meters).
 
@@ -44,12 +44,12 @@ Movement speed is ~6 meters/second. Default `holdMs` is 300ms (~1.8 meters).
 
 Use look actions to rotate the camera view (arrow key holds):
 
-| Action | Effect |
-|--------|--------|
-| `lookLeft` | Rotate camera left |
+| Action      | Effect              |
+| ----------- | ------------------- |
+| `lookLeft`  | Rotate camera left  |
 | `lookRight` | Rotate camera right |
-| `lookUp` | Tilt camera up |
-| `lookDown` | Tilt camera down |
+| `lookUp`    | Tilt camera up      |
+| `lookDown`  | Tilt camera down    |
 
 Default rotation hold is 300ms. Use `holdMs` for more or less rotation.
 
@@ -94,18 +94,18 @@ Keep it to 1-2 screenshots per task. Each screenshot consumes significant tokens
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| Screenshot shows welcome screen | The scene hasn't loaded yet — increase `wait` time |
-| Black/empty screenshot | Preview server may have crashed — check `/tasks` |
-| Objects not visible | They may be behind the camera (south of avatar) — use `moveBack` or `lookLeft`/`lookRight` to find them |
-| Scene looks different after code change | Hot reload takes ~1-2s — add a `wait` action of 2000ms |
-| "No preview server running" | Start it with `/preview` first |
-| Empty/gray space, no scene content | You've left the scene boundaries — stop moving |
-| Z-fighting (flickering surfaces) | Two surfaces at the same position | Move one surface slightly (0.01m) away from the other |
-| Missing textures (pink/magenta) | Texture file not found or wrong path | Verify file exists in project and path matches code |
-| Objects appear wrong scale | Scale values off or model exported at wrong scale | Check Transform.scale values; 1,1,1 is original model size |
-| Lighting looks flat | No LightSource components in scene | Add point or spot lights — see **lighting-environment** skill |
+| Problem                                 | Solution                                                                                                |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Screenshot shows welcome screen         | The scene hasn't loaded yet — increase `wait` time                                                      |
+| Black/empty screenshot                  | Preview server may have crashed — check `/tasks`                                                        |
+| Objects not visible                     | They may be behind the camera (south of avatar) — use `moveBack` or `lookLeft`/`lookRight` to find them |
+| Scene looks different after code change | Hot reload takes ~1-2s — add a `wait` action of 2000ms                                                  |
+| "No preview server running"             | Start it with `/preview` first                                                                          |
+| Empty/gray space, no scene content      | You've left the scene boundaries — stop moving                                                          |
+| Z-fighting (flickering surfaces)        | Two surfaces at the same position                                                                       | Move one surface slightly (0.01m) away from the other         |
+| Missing textures (pink/magenta)         | Texture file not found or wrong path                                                                    | Verify file exists in project and path matches code           |
+| Objects appear wrong scale              | Scale values off or model exported at wrong scale                                                       | Check Transform.scale values; 1,1,1 is original model size    |
+| Lighting looks flat                     | No LightSource components in scene                                                                      | Add point or spot lights — see **lighting-environment** skill |
 
 ## What to Look For in Screenshots
 
@@ -115,7 +115,7 @@ When evaluating a screenshot, check these common issues:
 - **Z-fighting** — flickering or shimmering where two surfaces overlap. Fix: offset one surface by 0.01m
 - **Texture issues** — pink/magenta means missing texture file, black means missing material, white means missing texture coordinates
 - **Scale problems** — objects too large (clipping through ceiling) or too small (invisible dots). Compare against parcel size (16m x 16m)
-- **Lighting** — very flat/uniform usually means no custom lights. Dark scene may need SkyboxTime adjustment
+- **Lighting** — very flat/uniform usually means no custom lights. Custom lights may be too dim or far away to be seen. Dark scene may need SkyboxTime adjustment
 - **UI elements** — check that HUD elements are positioned correctly and text is readable
 
 ## Tips

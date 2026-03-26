@@ -11,12 +11,12 @@ Free CC0-licensed GLB 3D models curated from the [Open Source 3D Assets](https:/
 
 **How to use**:
 1. Find a model below that matches your scene
-2. Download it — the output path **must** start with `models/`:
-   `curl -o models/<filename>.glb "<URL>"`
-3. Reference it: `GltfContainer.create(entity, { src: 'models/<filename>.glb' })`
+2. Download it — the output path **must** start with `assets/scene/Models/`:
+   `curl -o assets/scene/Models/<filename>.glb "<URL>"`
+3. Reference it: `GltfContainer.create(entity, { src: 'assets/scene/Models/<filename>.glb' })`
 
-> **Important**: Always download into `models/`. Never write to the scene root.
-> Correct: `curl -o models/Tree_01.glb "..."` | Wrong: `curl -o Tree_01.glb "..."`
+> **Important**: Always download into `assets/scene/Models/`. Never write to the scene root.
+> Correct: `curl -o assets/scene/Models/Tree_01.glb "..."` | Wrong: `curl -o Tree_01.glb "..."`
 
 Base URL for all downloads:
 ```
@@ -702,7 +702,7 @@ import { engine, GltfContainer, Transform } from '@dcl/sdk/ecs'
 
 const tree = engine.addEntity()
 Transform.create(tree, { position: { x: 8, y: 0, z: 8 } })
-GltfContainer.create(tree, { src: 'models/Tree_01_Art.glb' })
+GltfContainer.create(tree, { src: 'assets/scene/Models/Tree_01_Art.glb' })
 ```
 
 ## Notes

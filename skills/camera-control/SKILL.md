@@ -204,7 +204,6 @@ engine.addSystem(followNpcCamera)
 - Only one VirtualCamera should be active at a time
 - Use `CameraModeArea` to force first-person in tight indoor spaces
 - Keep transition speeds between 0.5 and 3.0 for comfortable camera movement
-- Always provide a way for the player to exit forced camera modes (e.g., leave the area)
 - Read camera state via `engine.CameraEntity` — never try to write to it directly
 - For look-at detection, combine camera position with raycasting (see `add-interactivity` skill)
 - Camera control is read-only outside of VirtualCamera and CameraModeArea — you cannot directly move the player's camera
