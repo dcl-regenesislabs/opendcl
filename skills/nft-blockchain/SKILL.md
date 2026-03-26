@@ -15,14 +15,14 @@ import { Vector3, Quaternion, Color4 } from '@dcl/sdk/math'
 
 const nftFrame = engine.addEntity()
 Transform.create(nftFrame, {
-  position: Vector3.create(8, 2, 8),
-  rotation: Quaternion.fromEulerDegrees(0, 0, 0)
+	position: Vector3.create(8, 2, 8),
+	rotation: Quaternion.fromEulerDegrees(0, 0, 0),
 })
 
 NftShape.create(nftFrame, {
-  urn: 'urn:decentraland:ethereum:erc721:0x06012c8cf97bead5deae237070f9587f8e7a266d:558536',
-  color: Color4.White(),
-  style: NftFrameType.NFT_CLASSIC
+	urn: 'urn:decentraland:ethereum:erc721:0x06012c8cf97bead5deae237070f9587f8e7a266d:558536',
+	color: Color4.White(),
+	style: NftFrameType.NFT_CLASSIC,
 })
 ```
 
@@ -38,29 +38,29 @@ urn:decentraland:ethereum:erc721:<contractAddress>:<tokenId>
 ### Available Frame Styles
 
 ```typescript
-NftFrameType.NFT_CLASSIC            // Simple classic frame
-NftFrameType.NFT_BAROQUE_ORNAMENT   // Ornate baroque
-NftFrameType.NFT_DIAMOND_ORNAMENT   // Diamond pattern
-NftFrameType.NFT_MINIMAL_WIDE       // Minimal wide border
-NftFrameType.NFT_MINIMAL_GREY       // Minimal grey border
-NftFrameType.NFT_BLOCKY             // Pixelated/blocky
-NftFrameType.NFT_GOLD_EDGES         // Gold edge trim
-NftFrameType.NFT_GOLD_CARVED        // Carved gold
-NftFrameType.NFT_GOLD_WIDE          // Wide gold border
-NftFrameType.NFT_GOLD_ROUNDED       // Rounded gold
-NftFrameType.NFT_METAL_MEDIUM       // Medium metal
-NftFrameType.NFT_METAL_WIDE         // Wide metal
-NftFrameType.NFT_METAL_SLIM         // Slim metal
-NftFrameType.NFT_METAL_ROUNDED      // Rounded metal
-NftFrameType.NFT_PINS               // Pinned to wall
-NftFrameType.NFT_MINIMAL_BLACK      // Minimal black
-NftFrameType.NFT_MINIMAL_WHITE      // Minimal white
-NftFrameType.NFT_TAPE               // Taped to wall
-NftFrameType.NFT_WOOD_SLIM          // Slim wood
-NftFrameType.NFT_WOOD_WIDE          // Wide wood
-NftFrameType.NFT_WOOD_TWIGS         // Twig/branch wood
-NftFrameType.NFT_CANVAS             // Canvas style
-NftFrameType.NFT_NONE               // No frame
+NftFrameType.NFT_CLASSIC // Simple classic frame
+NftFrameType.NFT_BAROQUE_ORNAMENT // Ornate baroque
+NftFrameType.NFT_DIAMOND_ORNAMENT // Diamond pattern
+NftFrameType.NFT_MINIMAL_WIDE // Minimal wide border
+NftFrameType.NFT_MINIMAL_GREY // Minimal grey border
+NftFrameType.NFT_BLOCKY // Pixelated/blocky
+NftFrameType.NFT_GOLD_EDGES // Gold edge trim
+NftFrameType.NFT_GOLD_CARVED // Carved gold
+NftFrameType.NFT_GOLD_WIDE // Wide gold border
+NftFrameType.NFT_GOLD_ROUNDED // Rounded gold
+NftFrameType.NFT_METAL_MEDIUM // Medium metal
+NftFrameType.NFT_METAL_WIDE // Wide metal
+NftFrameType.NFT_METAL_SLIM // Slim metal
+NftFrameType.NFT_METAL_ROUNDED // Rounded metal
+NftFrameType.NFT_PINS // Pinned to wall
+NftFrameType.NFT_MINIMAL_BLACK // Minimal black
+NftFrameType.NFT_MINIMAL_WHITE // Minimal white
+NftFrameType.NFT_TAPE // Taped to wall
+NftFrameType.NFT_WOOD_SLIM // Slim wood
+NftFrameType.NFT_WOOD_WIDE // Wide wood
+NftFrameType.NFT_WOOD_TWIGS // Twig/branch wood
+NftFrameType.NFT_CANVAS // Canvas style
+NftFrameType.NFT_NONE // No frame
 ```
 
 ## Check Player Wallet
@@ -69,13 +69,13 @@ NftFrameType.NFT_NONE               // No frame
 import { getPlayer } from '@dcl/sdk/src/players'
 
 function checkWallet() {
-  const player = getPlayer()
-  if (player && !player.isGuest) {
-    console.log('Player wallet address:', player.userId)
-    // userId is the Ethereum wallet address
-  } else {
-    console.log('Player is guest (no wallet)')
-  }
+	const player = getPlayer()
+	if (player && !player.isGuest) {
+		console.log('Player wallet address:', player.userId)
+		// userId is the Ethereum wallet address
+	} else {
+		console.log('Player is guest (no wallet)')
+	}
 }
 ```
 
@@ -89,28 +89,28 @@ Send authenticated requests to a backend, signed with the player's wallet:
 import { signedFetch } from '~system/SignedFetch'
 
 executeTask(async () => {
-  try {
-    const response = await signedFetch({
-      url: 'https://example.com/api/action',
-      init: {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'claimReward',
-          amount: 100
-        })
-      }
-    })
+	try {
+		const response = await signedFetch({
+			url: 'https://example.com/api/action',
+			init: {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					action: 'claimReward',
+					amount: 100,
+				}),
+			},
+		})
 
-    if (!response.ok) {
-      console.error('HTTP error:', response.status)
-      return
-    }
-    const result = JSON.parse(response.body)
-    console.log('Result:', result)
-  } catch (error) {
-    console.log('Request failed:', error)
-  }
+		if (!response.ok) {
+			console.error('HTTP error:', response.status)
+			return
+		}
+		const result = JSON.parse(response.body)
+		console.log('Result:', result)
+	} catch (error) {
+		console.log('Request failed:', error)
+	}
 })
 ```
 
@@ -129,14 +129,14 @@ npm install eth-connect
 ```typescript
 // contracts/myContract.ts
 export default [
-  {
-    "constant": true,
-    "inputs": [{ "name": "_owner", "type": "address" }],
-    "name": "balanceOf",
-    "outputs": [{ "name": "balance", "type": "uint256" }],
-    "type": "function"
-  }
-  // ... rest of ABI
+	{
+		constant: true,
+		inputs: [{ name: '_owner', type: 'address' }],
+		name: 'balanceOf',
+		outputs: [{ name: 'balance', type: 'uint256' }],
+		type: 'function',
+	},
+	// ... rest of ABI
 ]
 ```
 
@@ -148,21 +148,23 @@ import { createEthereumProvider } from '@dcl/sdk/ethereum-provider'
 import { abi } from '../contracts/myContract'
 
 executeTask(async () => {
-  try {
-    // Create web3 provider
-    const provider = createEthereumProvider()
-    const requestManager = new RequestManager(provider)
+	try {
+		// Create web3 provider
+		const provider = createEthereumProvider()
+		const requestManager = new RequestManager(provider)
 
-    // Create contract at a specific address
-    const factory = new ContractFactory(requestManager, abi)
-    const contract = await factory.at('0x2a8fd99c19271f4f04b1b7b9c4f7cf264b626edb') as any
+		// Create contract at a specific address
+		const factory = new ContractFactory(requestManager, abi)
+		const contract = (await factory.at(
+			'0x2a8fd99c19271f4f04b1b7b9c4f7cf264b626edb'
+		)) as any
 
-    // Read data (no gas required)
-    const balance = await contract.balanceOf('0x123...abc')
-    console.log('Balance:', balance)
-  } catch (error) {
-    console.log('Contract interaction failed:', error)
-  }
+		// Read data (no gas required)
+		const balance = await contract.balanceOf('0x123...abc')
+		console.log('Balance:', balance)
+	} catch (error) {
+		console.log('Contract interaction failed:', error)
+	}
 })
 ```
 
@@ -170,24 +172,20 @@ executeTask(async () => {
 
 ```typescript
 executeTask(async () => {
-  try {
-    const userData = getPlayer()
-    if (userData.isGuest) return
+	try {
+		const userData = getPlayer()
+		if (userData.isGuest) return
 
-    // Write operation — prompts the player to sign the transaction
-    const writeResult = await contract.transfer(
-      '0xRecipientAddress',
-      100,
-      {
-        from: userData.userId,
-        gas: 100000,
-        gasPrice: await requestManager.eth_gasPrice()
-      }
-    )
-    console.log('Transaction hash:', writeResult)
-  } catch (error) {
-    console.log('Transaction failed:', error)
-  }
+		// Write operation — prompts the player to sign the transaction
+		const writeResult = await contract.transfer('0xRecipientAddress', 100, {
+			from: userData.userId,
+			gas: 100000,
+			gasPrice: await requestManager.eth_gasPrice(),
+		})
+		console.log('Transaction hash:', writeResult)
+	} catch (error) {
+		console.log('Transaction failed:', error)
+	}
 })
 ```
 
@@ -198,14 +196,14 @@ import { RequestManager } from 'eth-connect'
 import { createEthereumProvider } from '@dcl/sdk/ethereum-provider'
 
 executeTask(async () => {
-  const provider = createEthereumProvider()
-  const requestManager = new RequestManager(provider)
+	const provider = createEthereumProvider()
+	const requestManager = new RequestManager(provider)
 
-  const gasPrice = await requestManager.eth_gasPrice()
-  console.log('Current gas price:', gasPrice)
+	const gasPrice = await requestManager.eth_gasPrice()
+	console.log('Current gas price:', gasPrice)
 
-  const balance = await requestManager.eth_getBalance('0x123...abc', 'latest')
-  console.log('Account balance:', balance)
+	const balance = await requestManager.eth_getBalance('0x123...abc', 'latest')
+	console.log('Account balance:', balance)
 })
 ```
 
@@ -237,7 +235,9 @@ Use restricted actions to open external links and NFT detail views:
 import { openExternalUrl, openNftDialog } from '~system/RestrictedActions'
 
 openExternalUrl({ url: 'https://opensea.io/collection/...' })
-openNftDialog({ urn: 'urn:decentraland:ethereum:erc721:0x06012c8cf97BEaD5deAe237070F9587f8E7A266d:558536' })
+openNftDialog({
+	urn: 'urn:decentraland:ethereum:erc721:0x06012c8cf97BEaD5deAe237070F9587f8E7A266d:558536',
+})
 ```
 
 ## Best Practices

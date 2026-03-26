@@ -8,24 +8,24 @@
 import { executeTask } from '@dcl/sdk/ecs'
 
 executeTask(async () => {
-  const ws = new WebSocket('wss://example.com/ws')
+	const ws = new WebSocket('wss://example.com/ws')
 
-  ws.onopen = () => {
-    console.log('Connected to WebSocket')
-    ws.send('Hello Server!')
-  }
+	ws.onopen = () => {
+		console.log('Connected to WebSocket')
+		ws.send('Hello Server!')
+	}
 
-  ws.onmessage = (event) => {
-    console.log('Received:', event.data)
-  }
+	ws.onmessage = (event) => {
+		console.log('Received:', event.data)
+	}
 
-  ws.onerror = (error) => {
-    console.error('WebSocket error:', error)
-  }
+	ws.onerror = (error) => {
+		console.error('WebSocket error:', error)
+	}
 
-  ws.onclose = () => {
-    console.log('Disconnected from WebSocket')
-  }
+	ws.onclose = () => {
+		console.log('Disconnected from WebSocket')
+	}
 })
 ```
 
@@ -33,31 +33,31 @@ executeTask(async () => {
 
 ```typescript
 executeTask(async () => {
-  let ws: WebSocket | null = null
-  let reconnectAttempts = 0
-  const maxReconnectAttempts = 5
+	let ws: WebSocket | null = null
+	let reconnectAttempts = 0
+	const maxReconnectAttempts = 5
 
-  function connect() {
-    ws = new WebSocket('wss://example.com/ws')
+	function connect() {
+		ws = new WebSocket('wss://example.com/ws')
 
-    ws.onopen = () => {
-      console.log('Connected')
-      reconnectAttempts = 0
-    }
+		ws.onopen = () => {
+			console.log('Connected')
+			reconnectAttempts = 0
+		}
 
-    ws.onclose = () => {
-      if (reconnectAttempts < maxReconnectAttempts) {
-        reconnectAttempts++
-        setTimeout(connect, 1000 * reconnectAttempts) // exponential backoff
-      }
-    }
+		ws.onclose = () => {
+			if (reconnectAttempts < maxReconnectAttempts) {
+				reconnectAttempts++
+				setTimeout(connect, 1000 * reconnectAttempts) // exponential backoff
+			}
+		}
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
-    }
-  }
+		ws.onerror = (error) => {
+			console.error('WebSocket error:', error)
+		}
+	}
 
-  connect()
+	connect()
 })
 ```
 
@@ -67,13 +67,13 @@ Send periodic pings to keep the connection alive:
 
 ```typescript
 ws.onopen = () => {
-  const heartbeat = setInterval(() => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'ping' }))
-    } else {
-      clearInterval(heartbeat)
-    }
-  }, 30000) // every 30 seconds
+	const heartbeat = setInterval(() => {
+		if (ws?.readyState === WebSocket.OPEN) {
+			ws.send(JSON.stringify({ type: 'ping' }))
+		} else {
+			clearInterval(heartbeat)
+		}
+	}, 30000) // every 30 seconds
 }
 ```
 
@@ -87,12 +87,18 @@ ws.send(JSON.stringify({ type: 'playerMove', position: { x: 8, y: 1, z: 8 } }))
 
 // Receive and dispatch
 ws.onmessage = (event) => {
-  const msg = JSON.parse(event.data)
-  switch (msg.type) {
-    case 'gameState': handleGameState(msg); break
-    case 'playerJoin': handlePlayerJoin(msg); break
-    case 'playerLeave': handlePlayerLeave(msg); break
-  }
+	const msg = JSON.parse(event.data)
+	switch (msg.type) {
+		case 'gameState':
+			handleGameState(msg)
+			break
+		case 'playerJoin':
+			handlePlayerJoin(msg)
+			break
+		case 'playerLeave':
+			handlePlayerLeave(msg)
+			break
+	}
 }
 ```
 
@@ -104,17 +110,17 @@ ws.onmessage = (event) => {
 import { executeTask } from '@dcl/sdk/ecs'
 
 executeTask(async () => {
-  try {
-    const response = await fetch('https://api.example.com/data')
-    if (!response.ok) {
-      console.error('HTTP error:', response.status)
-      return
-    }
-    const data = await response.json()
-    // use data
-  } catch (error) {
-    console.error('Network error:', error)
-  }
+	try {
+		const response = await fetch('https://api.example.com/data')
+		if (!response.ok) {
+			console.error('HTTP error:', response.status)
+			return
+		}
+		const data = await response.json()
+		// use data
+	} catch (error) {
+		console.error('Network error:', error)
+	}
 })
 ```
 
@@ -122,17 +128,17 @@ executeTask(async () => {
 
 ```typescript
 executeTask(async () => {
-  try {
-    const response = await fetch('https://api.example.com/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'player123', score: 1500 })
-    })
-    const result = await response.json()
-    console.log('Submission result:', result)
-  } catch (error) {
-    console.log('Submission failed:', error)
-  }
+	try {
+		const response = await fetch('https://api.example.com/submit', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ username: 'player123', score: 1500 }),
+		})
+		const result = await response.json()
+		console.log('Submission result:', result)
+	} catch (error) {
+		console.log('Submission failed:', error)
+	}
 })
 ```
 
@@ -144,24 +150,24 @@ executeTask(async () => {
 import { signedFetch } from '~system/SignedFetch'
 
 executeTask(async () => {
-  try {
-    const response = await signedFetch({
-      url: 'https://example.com/api/claim',
-      init: {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'claimReward', amount: 100 })
-      }
-    })
-    if (!response.ok) {
-      console.error('HTTP error:', response.status)
-      return
-    }
-    const result = JSON.parse(response.body)
-    console.log('Claim result:', result)
-  } catch (error) {
-    console.log('Claim failed:', error)
-  }
+	try {
+		const response = await signedFetch({
+			url: 'https://example.com/api/claim',
+			init: {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ action: 'claimReward', amount: 100 }),
+			},
+		})
+		if (!response.ok) {
+			console.error('HTTP error:', response.status)
+			return
+		}
+		const result = JSON.parse(response.body)
+		console.log('Claim result:', result)
+	} catch (error) {
+		console.log('Claim failed:', error)
+	}
 })
 ```
 
@@ -173,27 +179,31 @@ Define types for message data to keep code safe:
 import { MessageBus } from '@dcl/sdk/message-bus'
 
 type SpawnMessage = {
-  position: { x: number; y: number; z: number }
-  entityEnumId: number
+	position: { x: number; y: number; z: number }
+	entityEnumId: number
 }
 
 type ChatMessage = {
-  sender: string
-  text: string
-  timestamp: number
+	sender: string
+	text: string
+	timestamp: number
 }
 
 const bus = new MessageBus()
 
 bus.on('spawn', (message: SpawnMessage) => {
-  const entity = engine.addEntity()
-  Transform.create(entity, {
-    position: Vector3.create(message.position.x, message.position.y, message.position.z)
-  })
+	const entity = engine.addEntity()
+	Transform.create(entity, {
+		position: Vector3.create(
+			message.position.x,
+			message.position.y,
+			message.position.z
+		),
+	})
 })
 
 bus.on('chat', (msg: ChatMessage) => {
-  console.log(`[${msg.sender}]: ${msg.text}`)
+	console.log(`[${msg.sender}]: ${msg.text}`)
 })
 ```
 
@@ -224,15 +234,15 @@ Open multiple browser windows to test multiplayer locally:
 ```typescript
 // Track active players
 function multiplayerTestSystem() {
-  const players = Array.from(engine.getEntitiesWith(PlayerIdentityData))
-  console.log(`Active players: ${players.length}`)
+	const players = Array.from(engine.getEntitiesWith(PlayerIdentityData))
+	console.log(`Active players: ${players.length}`)
 
-  players.forEach(([entity, playerData]) => {
-    const transform = Transform.getOrNull(entity)
-    if (transform) {
-      console.log(`Player ${playerData.address} at:`, transform.position)
-    }
-  })
+	players.forEach(([entity, playerData]) => {
+		const transform = Transform.getOrNull(entity)
+		if (transform) {
+			console.log(`Player ${playerData.address} at:`, transform.position)
+		}
+	})
 }
 engine.addSystem(multiplayerTestSystem)
 ```
