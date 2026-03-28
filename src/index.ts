@@ -7,7 +7,19 @@
  */
 
 import { main, InteractiveMode } from "@mariozechner/pi-coding-agent";
+import { getModels } from "@mariozechner/pi-ai";
 import { isDev } from "./utils.js";
+
+// Allow overriding the Anthropic API base URL via env var.
+// Used by opendcl-studio's API proxy to keep the real API key out of sandbox containers.
+// getModels() returns references to the same model objects used by the provider,
+// so mutating baseUrl here affects all subsequent API calls.
+const anthropicBaseUrl = process.env.ANTHROPIC_BASE_URL;
+if (anthropicBaseUrl) {
+  for (const model of getModels("anthropic")) {
+    (model as unknown as { baseUrl: string }).baseUrl = anthropicBaseUrl;
+  }
+}
 import { getCompactToolDefinition } from "./compact-tool-renderers.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
