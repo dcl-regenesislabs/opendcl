@@ -104,8 +104,6 @@ describe("index.ts wiring", () => {
 
     // Should contain absolute paths to the context directory
     expect(systemPrompt).toContain(join(contextDir, "sdk7-cheat-sheet.md"));
-    expect(systemPrompt).toContain(join(contextDir, "open-source-3d-assets.md"));
-    expect(systemPrompt).toContain(join(contextDir, "asset-packs-catalog.md"));
   });
 
   it("compact tool renderers are wired via getRegisteredToolDefinition patch", () => {

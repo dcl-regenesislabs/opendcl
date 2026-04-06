@@ -24,16 +24,19 @@ Never manually create scene.json, package.json, or tsconfig.json — the SDK tem
 
 ## 3. Find Matching 3D Assets
 
-Before writing scene code, check both asset catalogs for free models that match the user's theme:
+Before writing scene code, search the asset catalog for free models that match the user's theme:
 
-1. Read `{baseDir}/../../context/asset-packs-catalog.md` (2,700+ Creator Hub models — furniture, structures, decorations, nature, etc.)
-2. Read `{baseDir}/../../context/open-source-3d-assets.md` (991 CC0 models — cyberpunk, medieval, nature, sci-fi, etc.)
-3. Read `{baseDir}/../../context/audio-catalog.md` (50 free sounds — music, ambient, SFX, game mechanics, etc.)
+1. Search the model catalog (5,700+ optimized 3D models — characters, structures, props, nature, vehicles, etc.)
+   ```bash
+   grep -i "keyword" {baseDir}/../add-3d-models/references/model-catalog.md
+   ```
+2. Read `{baseDir}/../../context/audio-catalog.md` (50 free sounds — music, ambient, SFX, game mechanics, etc.)
+3. Fetch the **preview thumbnail** (the `preview:` URL at the end of each catalog line) to visually confirm models
 4. Suggest matching models and sounds to the user
 5. Download selected models into the scene's `models/` directory:
    ```bash
    mkdir -p models
-   curl -o models/arcade_machine.glb "https://builder-items.decentraland.org/contents/bafybei..."
+   curl -o models/zombie-purple.glb "https://models.dclregenesislabs.xyz/blobs/bafybeiffc..."
    ```
 
 > **Important**: `GltfContainer` only works with local files. Never use external URLs for the model `src` field.

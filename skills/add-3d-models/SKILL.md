@@ -1,6 +1,6 @@
 ---
 name: add-3d-models
-description: Add 3D models (.glb/.gltf) to a Decentraland scene using GltfContainer. Covers loading, positioning, scaling, colliders, parenting, and browsing 2,700+ free assets from the Creator Hub catalog and 991 CC0 models. Use when the user wants to add models, import GLB files, find free 3D assets, or set up model colliders. Do NOT use for materials/textures (see advanced-rendering) or model animations (see animations-tweens).
+description: Add 3D models (.glb/.gltf) to a Decentraland scene using GltfContainer. Covers loading, positioning, scaling, colliders, parenting, and browsing 5,700+ free assets from the OpenDCL catalog. Use when the user wants to add models, import GLB files, find free 3D assets, or set up model colliders. Do NOT use for materials/textures (see advanced-rendering) or model animations (see animations-tweens).
 ---
 
 # Adding 3D Models to Decentraland Scenes
@@ -10,7 +10,7 @@ description: Add 3D models (.glb/.gltf) to a Decentraland scene using GltfContai
 Use `GltfContainer` to load `.glb` or `.gltf` files:
 
 ```typescript
-import { engine, Transform, GltfContainer } from '@dcl/sdk/ecs'
+import { engine, Transform, GltfContainer, ColliderLayer } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 
 const model = engine.addEntity()
@@ -20,9 +20,12 @@ Transform.create(model, {
   scale: Vector3.create(1, 1, 1)
 })
 GltfContainer.create(model, {
-  src: 'models/myModel.glb'
+  src: 'models/myModel.glb',
+  visibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS | ColliderLayer.CL_POINTER
 })
 ```
+
+> **Always set `visibleMeshesCollisionMask`** when loading models. Catalog models don't include separate collider meshes — using the visible mesh as the collider ensures the model is solid and clickable.
 
 ## File Organization
 
@@ -91,42 +94,75 @@ Transform.create(child, {
 GltfContainer.create(child, { src: 'models/hat.glb' })
 ```
 
-## Free 3D Models
+## Free 3D Models — OpenDCL Catalog (5,700+ models)
 
-Always check both asset catalogs before suggesting the user create or find their own models.
-
-### Creator Hub Asset Packs (2,700+ models)
-
-Read `{baseDir}/../../context/asset-packs-catalog.md` for official Decentraland models across 12 themed packs (Cyberpunk, Fantasy, Gallery, Sci-fi, Western, Pirates, etc.) with furniture, structures, decorations, nature, and more.
-
-To use a Creator Hub model:
-```bash
-# Download from catalog
-mkdir -p models
-curl -o models/arcade_machine.glb "https://builder-items.decentraland.org/contents/bafybei..."
+The catalog file is at `{baseDir}/references/model-catalog.md`. Each line has this format:
 ```
+slug | dims | tris | size | category/sub | description [tags] [anim: clips] | curl command | preview: thumbnail_url
+```
+
+### How to search
+
+Search with one keyword at a time — try the most specific word first:
+```bash
+grep -i "zombie" {baseDir}/references/model-catalog.md
+```
+
+If no results, try synonyms, broader terms, or related words:
+- "sofa" → "couch" → "seat" → "furniture"
+- "car" → "vehicle" → "truck" → "van"
+- "wall" → "fence" → "barrier" → "structure"
+
+Browse all categories to discover what's available:
+```bash
+grep "^##" {baseDir}/references/model-catalog.md
+```
+
+Search within a specific category:
+```bash
+grep "^##\|chair" {baseDir}/references/model-catalog.md
+```
+
+### How to use models
+
+1. Search the catalog with different keywords until you find matching models
+2. Review the results — check dimensions, triangle count, animations, and description
+3. Download the model with the curl command into `models/`
+4. Reference in code with `GltfContainer.create(entity, { src: 'models/{slug}.glb' })`
+5. If the model has animations (listed in `[anim: ...]`), use the `Animator` component to play them
+6. After placing the model, you can fetch its **preview thumbnail** (`preview:` URL) to see what it looks like
+
+### Example workflow
+```bash
+# Search for zombie models
+grep -i "zombie" {baseDir}/references/model-catalog.md
+
+# Found: zombie-purple | 2.8×2.9×0.5m | 1472 tri | 271KB | character/zombie | ...
+#   [anim: Tpose, ZombieAttack, ZombieUP, ZombieWalk]
+#   preview: https://models.dclregenesislabs.xyz/blobs/bafkrei...
+
+# Download the model
+curl -o models/zombie-purple.glb "https://models.dclregenesislabs.xyz/blobs/bafybeiffc..."
+```
+
 ```typescript
-// Reference in code — must be a local file path
-GltfContainer.create(entity, { src: 'models/arcade_machine.glb' })
+// Use in code with animations
+import { engine, Transform, GltfContainer, Animator } from '@dcl/sdk/ecs'
+import { Vector3 } from '@dcl/sdk/math'
+
+const zombie = engine.addEntity()
+Transform.create(zombie, { position: Vector3.create(8, 0, 8) })
+GltfContainer.create(zombie, { src: 'models/zombie-purple.glb' })
+Animator.create(zombie, {
+  states: [
+    { clip: 'ZombieWalk', playing: true, loop: true },
+    { clip: 'ZombieAttack', playing: false, loop: false }
+  ]
+})
 ```
-
-### Open Source CC0 Models (991 models)
-
-Read `{baseDir}/../../context/open-source-3d-assets.md` for free CC0-licensed models from Polygonal Mind, organized by 18 themed collections (MomusPark, Medieval Fair, Cyberpunk, Sci-fi, etc.) with direct GitHub download URLs.
-
-```bash
-curl -o models/tree.glb "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/MomusPark/Tree_01_Art.glb"
-```
-
-### How to suggest models
-
-1. Read both catalog files
-2. Search for models matching the user's description/theme
-3. Suggest specific models with download commands
-4. Download selected models into the scene's `models/` directory
-5. Reference them in code with local paths
 
 > **Important**: `GltfContainer` only works with **local files**. Never use external URLs for the model `src` field. Always download models into `models/` first.
+> **Never `cd` into the models directory**. Always run curl from the project root with `curl -o models/slug.glb "URL"`. Do NOT use `cd models && curl -o slug.glb`.
 
 ### Checking Model Load State
 

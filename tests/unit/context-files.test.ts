@@ -9,7 +9,6 @@ describe("context files", () => {
     const required = [
       "sdk7-cheat-sheet.md",
       "components-reference.md",
-      "open-source-3d-assets.md",
       "audio-catalog.md",
     ];
 
@@ -24,7 +23,7 @@ describe("context files", () => {
   it("context files are valid markdown with content", async () => {
     const files = await readdir(CONTEXT_DIR);
     const mdFiles = files.filter((f) => f.endsWith(".md"));
-    expect(mdFiles.length).toBeGreaterThanOrEqual(4);
+    expect(mdFiles.length).toBeGreaterThanOrEqual(3);
 
     for (const file of mdFiles) {
       const content = await readFile(join(CONTEXT_DIR, file), "utf-8");
@@ -88,14 +87,12 @@ describe("context files", () => {
     expect(content).toContain("builder-items.decentraland.org/contents");
   });
 
-  it("open-source-3d-assets.md contains model entries", async () => {
-    const content = await readFile(
-      join(CONTEXT_DIR, "open-source-3d-assets.md"),
-      "utf-8"
-    );
-    // Should have substantial content with model entries
-    expect(content.length).toBeGreaterThan(500);
-    // Should mention 3D models or GLB
-    expect(content).toMatch(/3d|glb|model/i);
+  it("model-catalog.md exists in add-3d-models skill references", async () => {
+    const catalogPath = join(import.meta.dirname, "../../skills/add-3d-models/references/model-catalog.md");
+    const content = await readFile(catalogPath, "utf-8");
+    expect(content.length).toBeGreaterThan(1000);
+    expect(content).toMatch(/glb|model/i);
+    expect(content).toContain("## character");
+    expect(content).toContain("models.dclregenesislabs.xyz");
   });
 });
