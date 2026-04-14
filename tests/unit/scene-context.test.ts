@@ -196,6 +196,31 @@ describe("detectSceneContext", () => {
     }
   });
 
+  it("detects opendcl flag in scene.json", async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), "opendcl-flag-"));
+    try {
+      await writeFile(
+        join(tmpDir, "scene.json"),
+        JSON.stringify({
+          ecs7: true,
+          runtimeVersion: "7",
+          scene: { parcels: ["0,0"], base: "0,0" },
+          main: "bin/index.js",
+          opendcl: true,
+        })
+      );
+      const ctx = await detectSceneContext(tmpDir);
+      expect(ctx.isOpenDcl).toBe(true);
+    } finally {
+      await rm(tmpDir, { recursive: true });
+    }
+  });
+
+  it("isOpenDcl is false when opendcl field is absent", async () => {
+    const ctx = await detectSceneContext(join(FIXTURES, "valid-scene"));
+    expect(ctx.isOpenDcl).toBe(false);
+  });
+
   it("detects world configuration", async () => {
     const tmpDir = await mkdtemp(join(tmpdir(), "opendcl-world-"));
     try {
@@ -251,6 +276,17 @@ describe("formatSceneContext", () => {
     expect(formatted).toContain("32m x 32m");
     expect(formatted).toContain("4 parcels");
     expect(formatted).toContain("@dcl/sdk@^7.5.0");
+  });
+
+  it("shows OpenDCL badge when isOpenDcl is true", () => {
+    const formatted = formatSceneContext({
+      hasScene: true,
+      isOpenDcl: true,
+      parcels: ["0,0"],
+      parcelCount: 1,
+    });
+    expect(formatted).toContain("Created with");
+    expect(formatted).toContain("OpenDCL");
   });
 
   it("shows install warning when node_modules missing", async () => {

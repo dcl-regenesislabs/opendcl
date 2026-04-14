@@ -78,4 +78,13 @@ describe("dcl-context extension", () => {
     expect(content).toContain("/init");
     expect(content).toContain("must run");
   });
+
+  it("stamps scene.json with opendcl: true for SDK7 scenes", async () => {
+    const content = await readFile(
+      join(EXTENSIONS_DIR, "dcl-context.ts"),
+      "utf-8"
+    );
+    expect(content).toContain("sceneJson.opendcl");
+    expect(content).toContain("writeFile");
+  });
 });

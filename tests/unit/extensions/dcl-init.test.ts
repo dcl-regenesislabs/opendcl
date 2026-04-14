@@ -47,4 +47,13 @@ describe("dcl-init extension", () => {
     );
     expect(content).toContain("reload");
   });
+
+  it("stamps scene.json with opendcl: true after init", async () => {
+    const content = await readFile(
+      join(EXTENSIONS_DIR, "dcl-init.ts"),
+      "utf-8"
+    );
+    expect(content).toContain("opendcl");
+    expect(content).toContain("sceneJson.opendcl = true");
+  });
 });
