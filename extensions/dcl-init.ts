@@ -8,6 +8,7 @@
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { join } from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
 import { fileExists } from "./scene-utils.js";
 
 async function initScene(
@@ -25,6 +26,16 @@ async function initScene(
     });
 
     if (result.code === 0) {
+      // Stamp scene.json with opendcl: true so scenes created with OpenDCL can be identified
+      try {
+        const sceneJsonPath = join(cwd, "scene.json");
+        const content = await readFile(sceneJsonPath, "utf-8");
+        const sceneJson = JSON.parse(content);
+        sceneJson.opendcl = true;
+        await writeFile(sceneJsonPath, JSON.stringify(sceneJson, null, 2) + "\n");
+      } catch {
+        // Non-fatal: scene was still initialized successfully
+      }
       return { message: "Scene initialized and dependencies installed! Use the preview tool to start." };
     } else {
       return { message: `Init failed (exit code ${result.code}): ${result.stderr || result.stdout}`, isError: true };

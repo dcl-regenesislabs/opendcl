@@ -6,7 +6,7 @@
  */
 
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileExists, findSceneRoot } from "./scene-utils.js";
 
@@ -17,6 +17,7 @@ interface SceneJson {
   scene?: { parcels?: string[]; base?: string };
   main?: string;
   worldConfiguration?: { name?: string; [key: string]: unknown };
+  opendcl?: boolean;
   [key: string]: unknown;
 }
 
@@ -59,6 +60,19 @@ After \`/init\`, customize scene.json and src/index.ts based on what the user wa
 OpenDCL supports SDK7 only. Suggest the user migrate to SDK7.
 Migration guide: https://docs.decentraland.org/creator/sdk7/sdk7-migration-guide/\n`;
         } else {
+          // Stamp scene.json with opendcl: true if not already present
+          if (!sceneJson.opendcl) {
+            try {
+              sceneJson.opendcl = true;
+              await writeFile(
+                join(sceneRoot, "scene.json"),
+                JSON.stringify(sceneJson, null, 2) + "\n"
+              );
+            } catch {
+              // Non-fatal: don't block context injection if write fails
+            }
+          }
+
           const lines: string[] = ["\n## Current Project"];
 
           if (sceneJson.display?.title) lines.push(`- **Title**: ${sceneJson.display.title}`);
@@ -96,6 +110,10 @@ Migration guide: https://docs.decentraland.org/creator/sdk7/sdk7-migration-guide
           if (sceneJson.worldConfiguration) {
             const worldName = sceneJson.worldConfiguration.name;
             lines.push(`- **Deployment**: Decentraland World${worldName ? ` (${worldName})` : ""}`);
+          }
+
+          if (sceneJson.opendcl) {
+            lines.push(`- **Created with**: OpenDCL`);
           }
 
           // Check node_modules

@@ -71,6 +71,8 @@ export interface SceneContext {
   parseError?: string;
   /** Whether this appears to be an SDK6 (legacy) scene */
   isLegacySdk6?: boolean;
+  /** Whether this scene was created/edited with OpenDCL */
+  isOpenDcl?: boolean;
 }
 
 /**
@@ -219,6 +221,9 @@ export async function detectSceneContext(cwd: string): Promise<SceneContext> {
   const isWorld = !!sceneJson.worldConfiguration;
   const worldName = sceneJson.worldConfiguration?.name as string | undefined;
 
+  // Check for OpenDCL stamp
+  const isOpenDcl = sceneJson.opendcl === true;
+
   return {
     hasScene: true,
     sceneRoot,
@@ -236,6 +241,7 @@ export async function detectSceneContext(cwd: string): Promise<SceneContext> {
     isWorld,
     worldName,
     isLegacySdk6,
+    isOpenDcl,
   };
 }
 
@@ -279,6 +285,10 @@ Migration guide: https://docs.decentraland.org/creator/sdk7/sdk7-migration-guide
 
   if (ctx.isWorld) {
     lines.push(`- **Deployment**: Decentraland World${ctx.worldName ? ` (${ctx.worldName})` : ""}`);
+  }
+
+  if (ctx.isOpenDcl) {
+    lines.push(`- **Created with**: OpenDCL`);
   }
 
   if (ctx.needsInstall) {
