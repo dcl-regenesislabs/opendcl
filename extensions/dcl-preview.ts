@@ -87,9 +87,18 @@ const extension: ExtensionFactory = (pi) => {
       updateStatus(ctx);
 
       let bevyUrlFound = false;
+      const recentOutput: string[] = [];
+      const MAX_RECENT_LINES = 50;
 
       function handleOutput(data: Buffer): void {
         const output = data.toString().trim();
+        if (!output) return;
+
+        for (const line of output.split("\n")) {
+          recentOutput.push(line);
+          if (recentOutput.length > MAX_RECENT_LINES) recentOutput.shift();
+        }
+
         if (output.includes("EADDRINUSE") || output.includes("address already in use")) {
           ctx.ui.notify("Port already in use. Try /tasks to stop existing servers.", "error");
           return;
@@ -118,7 +127,8 @@ const extension: ExtensionFactory = (pi) => {
 
       previewProcess.on("exit", (code) => {
         if (code !== 0 && code !== null) {
-          ctx.ui.notify(`Preview server exited with code ${code}`, "warning");
+          const errorContext = recentOutput.length > 0 ? `\n${recentOutput.join("\n")}` : "";
+          ctx.ui.notify(`Preview server exited with code ${code}${errorContext}`, "warning");
         }
         cleanupPreview();
         updateStatus(ctx);
