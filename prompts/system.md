@@ -112,8 +112,9 @@ scene-project/
 - Don't start the preview server automatically after writing code. The user will type `/preview` when ready.
 - **Proactively suggest 3D assets**: When building a scene, search the model catalog for free models that match the user's theme:
   - `skills/add-3d-models/references/model-catalog.md` — 5,700+ optimized 3D models (characters, structures, props, nature, vehicles, effects, etc.)
-  - Search with `grep -i "keyword" skills/add-3d-models/references/model-catalog.md`, fetch the preview thumbnail to confirm, then download with curl.
-  - Download matching models with `curl -o models/filename.glb "URL"` before referencing them in code.
+  - Search with `grep -i "keyword" skills/add-3d-models/references/model-catalog.md`.
+  - **Always show preview thumbnails** when presenting model options: download each candidate's `preview:` URL to `/tmp/` with `curl -s -o /tmp/name-preview.png "URL"`, then use the Read tool to display it inline. This lets the user visually compare and choose the right model.
+  - Once the user picks a model, download with `curl -o models/filename.glb "URL"` before referencing them in code.
 
 ### Visual Iteration Workflow
 

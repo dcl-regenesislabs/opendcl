@@ -127,21 +127,36 @@ grep "^##\|chair" {baseDir}/references/model-catalog.md
 
 1. Search the catalog with different keywords until you find matching models
 2. Review the results — check dimensions, triangle count, animations, and description
-3. Download the model with the curl command into `models/`
-4. Reference in code with `GltfContainer.create(entity, { src: 'models/{slug}.glb' })`
-5. If the model has animations (listed in `[anim: ...]`), use the `Animator` component to play them
-6. After placing the model, you can fetch its **preview thumbnail** (`preview:` URL) to see what it looks like
+3. **Show preview thumbnails** so the user can choose: download each candidate's `preview:` URL to a temp file with curl, then use the Read tool to display it as an image
+4. Once the user picks a model, download the `.glb` with the curl command into `models/`
+5. Reference in code with `GltfContainer.create(entity, { src: 'models/{slug}.glb' })`
+6. If the model has animations (listed in `[anim: ...]`), use the `Animator` component to play them
+
+### Showing preview thumbnails
+
+When presenting model options, **always show the thumbnail image** for each candidate so the user can visually compare. Each catalog entry has a `preview:` URL pointing to a PNG thumbnail.
+
+```bash
+# Download thumbnail to a temp file
+curl -s -o /tmp/model-preview.png "PREVIEW_URL"
+```
+
+Then use the **Read tool** on the downloaded file to display it inline. Show one thumbnail per model with its name, triangle count, and animations listed.
 
 ### Example workflow
 ```bash
-# Search for zombie models
+# 1. Search for zombie models
 grep -i "zombie" {baseDir}/references/model-catalog.md
 
-# Found: zombie-purple | 2.8×2.9×0.5m | 1472 tri | 271KB | character/zombie | ...
+# 2. Found: zombie-purple | 2.8×2.9×0.5m | 1472 tri | 271KB | character/zombie | ...
 #   [anim: Tpose, ZombieAttack, ZombieUP, ZombieWalk]
 #   preview: https://models.dclregenesislabs.xyz/blobs/bafkrei...
 
-# Download the model
+# 3. Download and show thumbnails for the user to pick
+curl -s -o /tmp/zombie-purple-preview.png "https://models.dclregenesislabs.xyz/blobs/bafkrei..."
+# Then: Read /tmp/zombie-purple-preview.png (displays image inline)
+
+# 4. User picks a model → download the .glb
 curl -o models/zombie-purple.glb "https://models.dclregenesislabs.xyz/blobs/bafybeiffc..."
 ```
 
