@@ -6,7 +6,6 @@ import { getExplorerInformation } from '~system/Runtime'
 import { toggleEditorCamera, focusSelectedEntity } from './camera'
 import { createGizmo } from './gizmo'
 import { undoCount, redoCount, undo, redo } from './history'
-import { isEditableName } from './persistence'
 import { selectEntity, deselectEntity } from './selection'
 import { state, selectableInfoMap, toggleEditorActive } from './state'
 
@@ -270,11 +269,10 @@ function buildTree(): TreeRow[] {
   const childrenOf = new Map<number, number[]>()
   const rootIds: number[] = []
 
+  // Only Named entities make it into selectableInfoMap (filtered at
+  // discovery), so the hierarchy already excludes runtime-spawned dynamic
+  // entities by convention.
   for (const [entity, info] of selectableInfoMap) {
-    // Only entities declared in main-entities.ts are editable.
-    // Dynamic entities created at runtime via engine.addEntity() are hidden.
-    if (!isEditableName(info.name)) continue
-
     const id = entity as number
     names.set(id, { name: info.name, isModel: info.isModel })
     const pid = info.parentEntity

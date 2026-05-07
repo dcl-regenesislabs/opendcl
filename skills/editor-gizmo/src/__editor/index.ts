@@ -20,7 +20,6 @@ import {
   InputAction,
   ColliderLayer,
   RealmInfo,
-  executeTask,
 } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 import { state, editorEntities, gizmoClickConsumed, setToggleHandler } from './state'
@@ -54,9 +53,7 @@ export function enableEditor() {
 
   setupEditorUi()
   setupClientEditor()
-
-  // Fire-and-forget: load the editable entity set from main-entities.ts.
-  executeTask(async () => { await initPersistence() })
+  initPersistence()
 }
 
 function handleToggle() {

@@ -83,11 +83,13 @@ export function registerEntity(entity: Entity) {
   if (editorEntities.has(entity)) return
   if (SKIP_ENTITIES.has(entity)) return
 
-  // Skip entities with ground/floor names
-  if (Name.has(entity)) {
-    const n = Name.get(entity).value.toLowerCase()
-    if (SKIP_NAMES.has(n)) return
-  }
+  // Only declared entities (those with a Name) are editable. Dynamic
+  // entities created at runtime via engine.addEntity() are intentionally
+  // skipped — by convention they have no Name component.
+  if (!Name.has(entity)) return
+
+  const n = Name.get(entity).value.toLowerCase()
+  if (SKIP_NAMES.has(n)) return
 
   const { centerOffset, boundsSize, isModel } = estimateBounds(entity)
   const name = getEntityName(entity)
