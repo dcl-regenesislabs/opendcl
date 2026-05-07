@@ -105,10 +105,11 @@ export function setupUi() {
 ```
 scene-project/
 ├── scene.json          # Scene metadata (parcels, title, main entry)
+├── main-entities.ts    # Declarative entities (data) — preloaded into the engine before main() runs
 ├── package.json        # Dependencies (@dcl/sdk)
-├── tsconfig.json       # TypeScript config
+├── tsconfig.json       # TypeScript config (must include main-entities.ts)
 └── src/
-    ├── index.ts        # Main entry point (export function main)
+    ├── index.ts        # Main entry point — references entities by Name, attaches behavior
     └── ui.tsx          # UI components (optional)
 ```
 
@@ -129,14 +130,22 @@ scene-project/
 **Do NOT ask the user what they want to build.** Instead, immediately run the `init` tool to scaffold the project — no questions, no menu of options, just init. This uses the official SDK scaffolding to create scene.json, package.json, tsconfig.json, and src/index.ts with the correct, up-to-date configuration, and installs dependencies. Never create these files manually. After init completes, ask the user what they'd like to do next. Offer small, concrete steps — don't propose building an entire scene at once.
 
 ### Existing Scene
-1. Read scene.json and src/index.ts to understand the project.
+1. Read scene.json, main-entities.ts (if it exists), and src/index.ts to understand the project.
 2. Offer contextual help — adding features, fixing bugs, optimizing.
 3. Always preserve existing code when making edits.
+4. When adding a new declarative entity (cube, model, lamp, etc.), edit `main-entities.ts` and reference the new Name from `src/index.ts` if it needs behavior. Don't reach for `engine.addEntity()` in code as a default.
 
 ### Best Practices
+
+**Always declare static / editable entities in `main-entities.ts`** — never via `engine.addEntity()` in `src/index.ts` for things the user might want to move, rotate, or see in the visual editor. Entities declared in `main-entities.ts` are preloaded by the engine before `main()` runs, are visible in the editor's hierarchy panel, and are draggable. Entities created at runtime via `engine.addEntity()` are invisible to the editor and lost when the user reloads.
+
+Use `engine.addEntity()` only for genuinely dynamic things (effects spawned at runtime, projectiles, throwaway markers). Those entities should NOT have a `Name` component — Naming is the marker for "this entity belongs in main-entities.ts."
+
+When the user asks to add a barrel, a tree, a prop, a model — that goes in `main-entities.ts` first, and code references it via `engine.getEntityOrNullByName<EntityName>(name)`. Don't fall back to the old `addEntity + Transform.create + GltfContainer.create` pattern in code unless the user explicitly asks for runtime spawning.
+
 - Always position objects within the scene boundaries (based on parcels).
-- Use `Vector3.create()` and `Quaternion.fromEulerDegrees()` for transforms.
-- For 3D models, use `GltfContainer.create(entity, { src: 'models/myModel.glb' })`.
+- For positions/rotations inside `main-entities.ts`, use plain object literals (`{ x: 8, y: 1, z: 8 }`), not `Vector3.create()` — the `scene` literal must stay JSON-compatible. In `src/index.ts` (behavior code), `Vector3.create()` and `Quaternion.fromEulerDegrees()` are fine.
+- For 3D models, declare `GltfContainer: { src: 'models/myModel.glb' }` inside the entity's `components` block in `main-entities.ts`.
 - `GltfContainer` only works with **local files** — never use external URLs for the `src` field. Always download models into the scene's `models/` directory first.
 - Place `.glb` files in a `models/` directory, textures in `images/`.
 - Don't start the preview server automatically after writing code. The user will type `/preview` when ready.

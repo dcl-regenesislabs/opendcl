@@ -19,7 +19,6 @@ import {
   pointerEventsSystem,
   InputAction,
   ColliderLayer,
-  RealmInfo,
 } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 import { state, editorEntities, gizmoClickConsumed, setToggleHandler } from './state'
@@ -38,18 +37,11 @@ export function enableEditor() {
   if (initialized) return
   initialized = true
 
-  // Assume preview until RealmInfo says otherwise. RealmInfo isn't populated
-  // synchronously at scene start, so we'd lock ourselves out if we read it
-  // here and got null. Watch it instead and flip to false if deployed.
+  // TODO: gate by RealmInfo.isPreview (or equivalent) once studio exposes
+  // a reliable signal. For now the editor is always visible — opendcl-studio
+  // realms don't report isPreview=true even though they should be treated
+  // as editable.
   state.isPreview = true
-  const watchRealm = () => {
-    const realm = RealmInfo.getOrNull(engine.RootEntity)
-    if (!realm) return
-    state.isPreview = realm.isPreview || realm.realmName?.includes('Preview')
-    if (!state.isPreview) console.log('[editor] deployed scene — editor UI hidden')
-    engine.removeSystem(watchRealm)
-  }
-  engine.addSystem(watchRealm)
 
   setupEditorUi()
   setupClientEditor()
