@@ -3,7 +3,7 @@
 import { Entity } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 
-export const EDITOR_VERSION = '0.5.0'
+export const EDITOR_VERSION = '0.6.0'
 
 export type Axis = 'x' | 'y' | 'z'
 export type GizmoMode = 'translate' | 'rotate'
@@ -50,23 +50,11 @@ export interface EditorState {
   // Camera
   editorCamActive: boolean
 
-  // Player identity (set by server on editorEnable)
-  myAddress: string
-
-  // Admin + editor toggle
-  isAdmin: boolean
+  // Editor toggle (starts ON in preview)
   editorActive: boolean
 
-  // Previous layout (from prior deploy)
-  previousAvailable: boolean
-  previousEntityCount: number
-
-  // Connection state
-  connectionState: 'syncing' | 'connected' | 'disconnected'
-
-  // Snapshot toggle (enable/disable applying overrides)
-  snapshotEnabled: boolean
-  snapshotCount: number
+  // Whether the scene is running in preview mode (set on init)
+  isPreview: boolean
 }
 
 export const state: EditorState = {
@@ -84,32 +72,8 @@ export const state: EditorState = {
   dragStartAngle: 0,
   dragRotCenter: Vector3.Zero(),
   editorCamActive: false,
-  myAddress: '',
-  isAdmin: false,
-  editorActive: false,
-  previousAvailable: false,
-  previousEntityCount: 0,
-  connectionState: 'syncing',
-  snapshotEnabled: true,
-  snapshotCount: 0,
-}
-
-// ── Lock management ─────────────────────────────────────
-
-/** entityName → wallet address of lock holder */
-export const lockMap = new Map<string, string>()
-
-export function setLock(entityName: string, lockedBy: string) {
-  lockMap.set(entityName, lockedBy)
-}
-
-export function clearLock(entityName: string) {
-  lockMap.delete(entityName)
-}
-
-export function isLockedByOther(entityName: string, myAddress: string): boolean {
-  const holder = lockMap.get(entityName)
-  return holder !== undefined && holder !== myAddress
+  editorActive: true,
+  isPreview: false,
 }
 
 // ── Entity tracking ─────────────────────────────────────
@@ -142,7 +106,7 @@ export function setToggleHandler(fn: () => void) { _onToggle = fn }
 
 /** Toggle the editor on/off. Safe to call from UI — no circular deps. */
 export function toggleEditorActive() {
-  if (!state.isAdmin) return
+  if (!state.isPreview) return
   if (_onToggle) _onToggle()
   else state.editorActive = !state.editorActive
 }

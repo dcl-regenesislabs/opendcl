@@ -52,6 +52,21 @@ async function initScene(
       } catch {
         // Non-fatal: scene was still initialized successfully
       }
+
+      // Append OpenDCL build artifacts to .gitignore so they don't get committed.
+      // main.crdt is generated from main-entities.ts at bundle time.
+      try {
+        const ignorePath = join(cwd, ".gitignore");
+        let existing = "";
+        try { existing = await readFile(ignorePath, "utf-8"); } catch {}
+        if (!existing.split(/\r?\n/).includes("main.crdt")) {
+          const sep = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
+          await writeFile(ignorePath, existing + sep + "main.crdt\n");
+        }
+      } catch {
+        // Non-fatal: scene still works without .gitignore updates
+      }
+
       triggerEditorSkill(pi);
       return { message: "Scene initialized! Setting up visual editor..." };
     } else {

@@ -1,32 +1,25 @@
 ---
 name: editor-gizmo
-description: Enable editor mode in a Decentraland scene with translate/rotate gizmos. Adds click-to-select, drag-to-move arrows, drag-to-rotate rings, plane handles, wireframe selection box, and UI overlay. Admin-gated with toggle button. Auto-discovers all scene entities. Use when user wants to enable editor mode, add gizmos, edit the scene interactively, or tweak object positions and rotations in preview.
+description: Enable the visual editor in a Decentraland scene with translate/rotate gizmos. Adds click-to-select, drag-to-move arrows, drag-to-rotate rings, plane handles, wireframe selection box, and UI overlay. Auto-discovers all entities declared in main-entities.ts. Use when user wants to enable the editor, add gizmos, edit the scene interactively, or tweak object positions and rotations in preview.
 ---
 
 # Visual Editor Gizmo
 
-Add an in-scene visual editor that lets users click objects to select them, then drag arrow/disc handles to move or rotate them. The editor auto-discovers all entities in the scene — no manual registration needed.
+Add an in-scene visual editor that lets users click objects to select them, then drag arrow/disc handles to move or rotate them. The editor only edits entities declared in `main-entities.ts` — runtime-spawned entities are hidden from the hierarchy.
 
 ## How It Works
 
-- **Admin gating**: Only admin wallets can edit. Non-admins see zero UI. Configured via `ADMIN_WALLETS` env var (comma-separated). In preview, everyone is admin.
-- **Editor toggle**: Admins see a toggle button to activate/deactivate the editor. Starts OFF by default.
-- **Auto-discovery**: Finds all entities with `Transform` + `MeshRenderer` or `GltfContainer`
-- **Click to select**: Shows a wireframe bounding box and spawns the gizmo
+- **Preview only**: the editor only activates in `/preview`. Deployed scenes never show editor UI.
+- **Editor toggle**: a pencil button in the bottom-right corner toggles the editor on/off (starts OFF).
+- **Auto-discovery**: finds all entities with `Transform` + `MeshRenderer` or `GltfContainer`. Hierarchy filters to entities whose `Name` is declared in `main-entities.ts`.
+- **Click to select**: shows a wireframe bounding box and spawns the gizmo.
 - **Translate mode**: 3 colored arrows (R/G/B = X/Y/Z) — drag to move along a world axis. 3 plane handles (XZ/XY/YZ) for 2-axis constrained movement.
-- **Rotate mode**: 3 colored ring outlines — drag to rotate around a world axis
-- **World-aligned gizmos**: Arrows and rings always point along world X/Y/Z, regardless of entity or parent rotation. Drag deltas are converted to local space for child entities.
-- **E key**: Toggle between Move and Rotate
-- **F key** or **click ground**: Deselect
-- **Undo/redo**: Key 4 = undo, Shift+4 = redo. Per-entity history stack with UI buttons.
-- **Auto-save**: Changes are persisted via auth-server (Storage in deployed, WebSocket in preview)
-- **Hover feedback**: Hovered arrow/ring highlights, stays highlighted during drag
-- **Ray-plane intersection**: Accurate dragging regardless of camera angle
-- **Per-frame server discovery**: Server discovers new entities every frame — GLTF child nodes that spawn late are automatically picked up, protected, and patched with saved overrides
-
-## Prerequisites
-
-The editor currently only works with **auth-server scenes** (`"authoritativeMultiplayer": true` in `scene.json` and `@dcl/sdk@auth-server` installed). It uses `isServer()` internally to skip initialization on the server side.
+- **Rotate mode**: 3 colored ring outlines — drag to rotate around a world axis.
+- **World-aligned gizmos**: arrows and rings always point along world X/Y/Z, regardless of entity or parent rotation. Drag deltas are converted to local space for child entities.
+- **E key**: toggle between Move and Rotate.
+- **F key** or **click ground**: deselect.
+- **Undo/redo**: key 4 = undo, Shift+4 = redo.
+- **Auto-save**: changes POST to `${realm.baseUrl}/editor/changes` on every drag end. The preview server merges them into `main-entities.ts` and synchronously regenerates `main.crdt`.
 
 ## Setup Steps
 
@@ -35,8 +28,6 @@ The editor currently only works with **auth-server scenes** (`"authoritativeMult
 If `src/__editor/state.ts` exists, read the first line and look for `EDITOR_VERSION`. Compare it with the version in `{baseDir}/src/__editor/state.ts`. If the versions match, skip Step 1 — the files are current. If they differ (or `src/__editor/` doesn't exist), proceed with Step 1 to install or update.
 
 ### Step 1: Copy editor files into the scene
-
-Copy the pre-built editor files into the scene's `src/__editor/` directory:
 
 ```bash
 mkdir -p src/__editor && cp -rf {baseDir}/src/__editor/* src/__editor/
@@ -47,9 +38,7 @@ This creates a self-contained editor directory:
 src/__editor/
 ├── index.ts       — Entry point + enableEditor() export
 ├── state.ts       — Shared state and types
-├── messages.ts    — Message schemas (client ↔ server)
-├── server.ts      — Auth-server (locks, sync, persistence)
-├── persistence.ts — Client-side message senders
+├── persistence.ts — HTTP POST/GET to {baseUrl}/editor/changes
 ├── selection.ts   — Select/deselect + highlight
 ├── discovery.ts   — Auto-discover scene entities
 ├── gizmo.ts       — Translate/rotate gizmo handles
@@ -61,280 +50,173 @@ src/__editor/
 └── ui.tsx         — Toolbar + hierarchy + properties panel
 ```
 
-### Step 2: Add Name components to all scene entities
+### Step 2: Add `enableEditor()` to the scene's main function
 
-**IMPORTANT**: Every entity that the user might want to move/rotate must have a `Name` component with a **unique** string value. The `Name` is the stable identifier used to match runtime entities back to source code when saving changes.
+In `src/index.ts`:
 
 ```typescript
-import { Name } from '@dcl/sdk/ecs'
-
-const barrel = engine.addEntity()
-Name.create(barrel, { value: 'barrel_1' })
-Transform.create(barrel, { position: Vector3.create(5, 0, 15) })
-GltfContainer.create(barrel, { src: 'models/Barrel.glb' })
-```
-
-Naming convention: `{descriptive_name}_{number}` — e.g. `barrel_1`, `red_box`, `lamp_2`.
-
-If an entity has no `Name` component, the editor still discovers and allows editing it, but the save system can't reliably match it back to the source code.
-
-### Step 3: Add enableEditor() to the scene's main function
-
-In the scene's `src/index.ts` (or wherever `export function main()` is defined):
-
-1. Add this import at the top:
-```typescript
-import { enableEditor } from './__editor'
-```
-
-2. Add this call in `main()`, after all entities are created but **before** any `if (isServer()) { ... return }` guard:
-```typescript
-enableEditor()
-```
-
-**Important**: `enableEditor()` handles `isServer()` branching internally. On the server it starts the editor's sync/lock/persistence system. On the client it sets up the UI and gizmos. If the scene has its own `if (isServer()) { server(); return }` early-exit, `enableEditor()` must be called **before** that guard — otherwise the editor's server never starts.
-
-**Full example:**
-```typescript
-import { engine, Transform, MeshRenderer, GltfContainer, Name } from '@dcl/sdk/ecs'
-import { Vector3 } from '@dcl/sdk/math'
 import { enableEditor } from './__editor'
 
 export function main() {
-  const cube = engine.addEntity()
-  Name.create(cube, { value: 'red_cube' })
-  Transform.create(cube, { position: Vector3.create(8, 1, 8) })
-  MeshRenderer.setBox(cube)
+  // ... your scene code ...
+  enableEditor()
+}
+```
 
-  const table = engine.addEntity()
-  Name.create(table, { value: 'table_1' })
-  Transform.create(table, { position: Vector3.create(12, 0, 8) })
-  GltfContainer.create(table, { src: 'models/table.glb' })
+`enableEditor()` is a no-op outside preview mode, so it's safe to leave in deployed scenes.
+
+### Step 3: Make sure the scene has a `main-entities.ts`
+
+If the scene doesn't have one yet, create `main-entities.ts` at the scene root with at least one entity (see "Authoring Model" below). Without it, the editor's hierarchy panel falls back to permissive mode and shows every named entity, including runtime ones.
+
+### Step 4: Update tsconfig.json to include `main-entities.ts`
+
+The default scene `tsconfig.json` only checks `src/**/*`. Widen the include so the typed `Scene` shape is validated:
+
+```json
+{
+  "extends": "@dcl/sdk/types/tsconfig.ecs7.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "main-entities.ts"]
+}
+```
+
+### Step 5: Verify
+
+Run `/preview`. You should see a pencil button bottom-right. Click it to toggle the editor. Click any entity declared in `main-entities.ts` to select it; drag arrows or rings to move or rotate.
+
+## Scene Authoring Model
+
+The editor only edits **declared** entities — those that exist in `main-entities.ts`. Dynamic entities created at runtime via `engine.addEntity()` are hidden from the hierarchy and not draggable.
+
+### `main-entities.ts` (canonical entity declarations)
+
+`main-entities.ts` lives at the scene root, exports a typed `scene` constant, and is bundled into `main.crdt` at build time. The `satisfies Scene` clause keeps the literal keys typed (so code can reference entity names safely) while still validating the shape against the schema.
+
+```typescript
+import type { Scene } from '@dcl/sdk/scene-types'
+
+export const scene = {
+  "barrel_1": {
+    "components": {
+      "Transform": {
+        "position": { "x": 5, "y": 0, "z": 8 },
+        "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+        "scale": { "x": 1, "y": 1, "z": 1 }
+      },
+      "GltfContainer": { "src": "models/Barrel.glb" }
+    }
+  },
+  "lamp_1": {
+    "components": {
+      "Transform": {
+        "position": { "x": 0, "y": 1.5, "z": 0 },
+        "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+        "scale": { "x": 1, "y": 1, "z": 1 },
+        "parent": "barrel_1"
+      },
+      "GltfContainer": { "src": "models/Lamp.glb" }
+    }
+  }
+} satisfies Scene
+```
+
+**Rules:**
+- **Names are unique** within `scene` — they're the stable ID the editor and code use to reference an entity.
+- **Parents are referenced by Name**, not entity ID (e.g. `"parent": "barrel_1"`). The build resolves names to IDs.
+- **`Transform.position` is required.** `rotation` defaults to identity, `scale` defaults to `(1,1,1)`, but you must provide all three keys when authoring.
+- **Literal-only constraint:** values inside `scene` must be plain JSON-compatible literals — no function calls (`Vector3.create(...)`), no spread, no computed expressions, no comments inside the literal. The build parses the AST and the editor save handler rewrites the whole literal as JSON, so anything outside this discipline gets stripped or breaks.
+
+### Behavior in `src/index.ts`
+
+Code references entities by Name and attaches behavior. Use a type-only import of `scene` so the bundle stays small, and derive `EntityName` for typo-safe lookups:
+
+```typescript
+import { engine, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
+import { enableEditor } from './__editor'
+import type { scene } from '../main-entities'
+
+type EntityName = keyof typeof scene
+
+export function main() {
+  const barrel = engine.getEntityOrNullByName<EntityName>('barrel_1')
+  if (barrel === null) return
+
+  pointerEventsSystem.onPointerDown(
+    { entity: barrel, opts: { button: InputAction.IA_POINTER, hoverText: 'Open' } },
+    () => console.log('clicked barrel')
+  )
 
   enableEditor()
 }
 ```
 
-### Step 4: Verify
+- `engine.getEntityOrNullByName<EntityName>(name)` looks up an entity by its `Name` component, populated by the `main.crdt` preload (built from `main-entities.ts` at bundle time).
+- The `<EntityName>` type parameter makes typos a compile error: passing `'barrl_1'` (typo) fails type-checking.
+- Renaming an entity in `main-entities.ts` immediately surfaces every stale reference in code as a compile error.
+- Use `getEntityOrNullByName` rather than `getEntityByName` — the SDK's typed `getEntityByName` requires awkward generics and silently returns `undefined` cast as `Entity`, so null-handling is cleaner.
 
-Run the preview. You should see:
-- Bottom-left UI panel showing "EDITOR [Move] (N objects)" with WebSocket connection status
-  - `● connected` (green) = auto-save active
-  - `● N unsaved` (yellow) = changes pending write
-  - `○ not connected` (red) = no persistence
-- Click any object → wireframe box appears + gizmo arrows
-- Selected entity shows position (X/Y/Z) and rotation (X/Y/Z) values in the panel
-- Drag arrows to move, press E to switch to rotate mode
-- Press F or click ground to deselect
+### Dynamic entities
 
-## Persistence Pipeline
-
-The editor auto-saves entity transforms to the preview server. The full pipeline:
-
-### During editing (automatic)
-1. User drags an object → `endDrag()` sends transform via **WebSocket** to the preview server
-2. Server accumulates changes in memory (keyed by entity `Name`)
-3. Server debounce-writes to `src/__editor/editor-scene.json` on disk (1s delay)
-4. On scene reload, editor fetches `GET /editor/changes` from server memory to restore positions
-
-### Data format (`editor-scene.json`)
-
-The file contains raw quaternion rotations for lossless restore:
-
-```json
-{
-  "barrel_1": {
-    "components": {
-      "Transform": {
-        "position": { "x": 5.2, "y": 0, "z": 15 },
-        "rotation": { "x": 0, "y": 0.707, "z": 0, "w": 0.707 },
-        "scale": { "x": 1, "y": 1, "z": 1 }
-      }
-    }
-  }
-}
-```
-
-## Applying Editor Changes to Source Code
-
-When the user asks to apply editor changes (or says "save editor", "apply editor changes", etc.), follow this process:
-
-### Step 1: Create a backup
-
-Move the changes file to a backup before modifying any source code:
-
-```bash
-mv src/__editor/editor-scene.json src/__editor/editor-scene.json.bkp
-```
-
-This is atomic — if anything goes wrong, the `.bkp` file still has the data.
-
-If `editor-scene.json.bkp` already exists (interrupted previous apply), skip this step and work from the existing `.bkp`.
-
-### Step 2: Read the changes
-
-Read `src/__editor/editor-scene.json.bkp`. Each key is an entity name (matching the `Name` component), and the value contains the new `Transform` data with position, rotation (raw quaternion), and scale.
-
-### Step 3: Convert quaternions to euler angles
-
-The JSON stores rotations as raw quaternions `{ x, y, z, w }`. Convert to euler degrees for human-readable code using this formula:
-
-```
-sinRoll  = 2 * (w*x + y*z)
-cosRoll  = 1 - 2 * (x*x + y*y)
-euler.x  = atan2(sinRoll, cosRoll) * 180/π
-
-sinPitch = 2 * (w*y - z*x)
-euler.y  = |sinPitch| >= 1 ? sign(sinPitch) * 90 : asin(sinPitch) * 180/π
-
-sinYaw   = 2 * (w*z + x*y)
-cosYaw   = 1 - 2 * (y*y + z*z)
-euler.z  = atan2(sinYaw, cosYaw) * 180/π
-```
-
-Round all values to 2 decimal places.
-
-### Step 4: Patch Transform.create() calls in source code
-
-For each entity in the changes file:
-
-1. **Find the entity** in the source code by its `Name` component value (e.g., `Name.create(entity, { value: 'barrel_1' })`)
-2. **Update the `Transform.create()` call** for that entity with the new position and rotation
-
-**Position format:**
-```typescript
-position: Vector3.create(5.2, 0, 15)
-```
-
-**Rotation format** (converted from quaternion to euler):
-```typescript
-rotation: Quaternion.fromEulerDegrees(0, 90, 0)
-```
-
-### Critical rules
-
-- ⚠️ **Never pass `undefined` to any Transform field** — the SDK serializer crashes reading `.x` on `undefined`
-- **If rotation is identity** (euler 0, 0, 0): **omit the rotation key entirely** from the `Transform.create()` call, don't set it to `undefined`
-- **If scale is unchanged** (1, 1, 1): you can omit it, but if it was already in the code, keep it
-- **Preserve existing code structure** — only change the position/rotation values, don't reformat or restructure
-
-### Step 5: Clean up
-
-After **all** changes are successfully applied to the source code:
-
-```bash
-rm src/__editor/editor-scene.json.bkp
-```
-
-### If something goes wrong
-
-If the apply fails partway through, restore the backup:
-
-```bash
-mv src/__editor/editor-scene.json.bkp src/__editor/editor-scene.json
-```
-
-### Full example
-
-Given this in `editor-scene.json.bkp`:
-```json
-{
-  "barrel_1": {
-    "components": {
-      "Transform": {
-        "position": { "x": 5.2, "y": 0, "z": 15 },
-        "rotation": { "x": 0, "y": 0.707, "z": 0, "w": 0.707 },
-        "scale": { "x": 1, "y": 1, "z": 1 }
-      }
-    }
-  },
-  "red_box": {
-    "components": {
-      "Transform": {
-        "position": { "x": 8, "y": 2.5, "z": 10 },
-        "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
-        "scale": { "x": 1, "y": 1, "z": 1 }
-      }
-    }
-  }
-}
-```
-
-The source code changes would be:
+Anything that needs to spawn at runtime (effects, projectiles, dynamic UI markers) still uses `engine.addEntity()` directly:
 
 ```typescript
-// barrel_1: position changed, rotation = 90° around Y
-Transform.create(barrel, { position: Vector3.create(5.2, 0, 15), rotation: Quaternion.fromEulerDegrees(0, 90, 0) })
-
-// red_box: position changed, rotation is identity → omit rotation key
-Transform.create(redBox, { position: Vector3.create(8, 2.5, 10) })
+const explosion = engine.addEntity()
+Transform.create(explosion, { position: Vector3.create(8, 1, 8) })
+GltfContainer.create(explosion, { src: 'models/Explosion.glb' })
+// Don't give dynamic entities a Name — they don't go in main-entities.ts.
 ```
 
-Then delete `src/__editor/editor-scene.json.bkp`.
+**Rule**: only declarative, editable entities go in `main-entities.ts`. Dynamic runtime entities use `engine.addEntity` and don't get `Name` components.
 
-## Applying Editor Changes — Composite + Code
+## Persistence
 
-A single `editor-scene.json` can contain entities from both TypeScript code and `main.composite`. The `/save-editor` command handles both automatically:
+When the user drags an entity in preview:
 
-1. **Composite entities** (`assets/scene/main.composite`) are patched **deterministically** by the extension — no AI needed. It matches entity names via `core-schema::Name`, updates `core::Transform` with raw quaternions, and preserves `parent` fields.
+1. The scene applies the new Transform client-side (instant).
+2. The editor POSTs `${realm.baseUrl}/editor/changes` with the entity's new Transform, keyed by Name.
+3. The preview server merges the change into `main-entities.ts` on disk by parsing the AST, mutating the scene object, and splicing the new JSON back into the source — preserving everything outside the `scene` literal (imports, `satisfies` clause, comments above the export).
+4. The same handler synchronously regenerates `main.crdt` so the next reload preloads the updated state.
+5. Both `main-entities.ts` and `main.crdt` are excluded from the file watcher, so editor saves do not trigger a scene reload.
 
-2. **Code entities** (TypeScript) are handed to the AI agent. The `.bkp` file is rewritten to contain only the remaining code entities. Follow the "Applying Editor Changes to Source Code" section above.
+There is no manual "save" step — every drag persists.
 
-3. If all entities were composite, the `.bkp` is deleted automatically — done.
-
-The agent only needs to handle TypeScript patching. The composite patching is fully automated.
-
-### Safety checks
-- **Before deploy**: Check if `src/__editor/editor-scene.json` or `src/__editor/editor-scene.json.bkp` exists with content. If so, warn the user that there are unapplied editor changes and suggest applying them first.
-- **On session start**: If either file exists, ask the user if they want to apply changes.
-
-## How the Editor Auto-Discovers Entities
-
-The `discoverySystem` runs every frame and queries:
-- `engine.getEntitiesWith(Transform, MeshRenderer)` — finds primitives (box, sphere, cylinder)
-- `engine.getEntitiesWith(Transform, GltfContainer)` — finds GLB models
-
-It automatically:
-- Skips editor-owned entities (gizmo arrows, indicators, invisible ground)
-- Skips engine built-in entities (RootEntity, CameraEntity, PlayerEntity)
-- Adds a pointer collider if the entity doesn't have one
-- Estimates bounding box from `Transform.scale`
-- Reads entity name from `Name` component, falls back to GLB filename or mesh type
-
-**Entities added dynamically** (after `main()` returns) are discovered on the next frame.
-
-## Bounds Estimation
-
-The auto-discovery estimates bounding boxes:
-- **Primitives**: bounds = `Transform.scale` (unit-sized meshes scaled by transform)
-- **GLB models**: defaults to `Transform.scale` with center offset at half height
-
-These estimates are approximate. The wireframe box may not perfectly fit every model, but it's functional for selection feedback.
+If the AI / a human edits `main-entities.ts` directly (without going through the editor), a dedicated watcher on `main-entities.ts` regenerates `main.crdt` out-of-band as well, with an mtime check that skips redundant work when the editor's POST handler already produced a fresh CRDT.
 
 ## Removing the Editor
 
-To remove the editor from a scene:
-1. Delete the `src/__editor/` directory
-2. Remove the `import { enableEditor } from './__editor'` line
-3. Remove the `enableEditor()` call
-4. `Name` components can be kept or removed — they have no runtime cost
+To remove:
+1. Delete `src/__editor/`
+2. Remove the `import { enableEditor } from './__editor'` line and the `enableEditor()` call
 
-The editor doesn't modify any existing scene code or entities — it only adds its own systems and UI.
+`main-entities.ts` is unaffected — it remains the source of truth for declared entities, regardless of whether the editor is installed.
 
-## Technical Details
+## Adding New Entities
 
-### Collider Management
-When an object is selected, the editor strips only the `CL_POINTER` collision layer — `CL_PHYSICS` is preserved so the camera collision doesn't jump. On deselect, colliders are fully restored.
+When the user asks to add a new entity (e.g., "add a barrel"):
 
-### Drag Mechanism
-Uses ray-plane intersection for both translate and rotate:
-- **Translate**: Casts camera ray onto a plane containing the drag axis, projects hit delta onto the axis
-- **Rotate**: Casts camera ray onto the plane perpendicular to the rotation axis, computes angle delta via `atan2`
-- The drag plane normal is locked at drag start to prevent jumps if the camera rotates mid-drag
+1. **Add the entry to `main-entities.ts`** with a unique Name and the components needed to render it (`Transform`, `GltfContainer` or `MeshRenderer` + `Material`, etc.). The TS compiler will validate the shape against `Scene`.
+2. **Reference it in code** if you need to attach behavior:
+   ```typescript
+   const barrel = engine.getEntityOrNullByName<EntityName>('barrel_1')
+   ```
+3. Run `/preview` — the entity will appear in the scene at the position declared in `main-entities.ts`, and will be draggable in the editor.
 
-### Console Logging
-Every move/rotate operation logs the final position/rotation to the console:
-```
-[editor] move x: pos=(5.20, 1.00, 8.00)
-[editor] rotate y: rot=(0.0, 45.2, 0.0)
-```
+## Components supported in `main-entities.ts`
+
+All ECS data components that the client renders/uses:
+
+- `Transform` (required for every entity)
+- `GltfContainer`, `MeshRenderer`, `MeshCollider`, `Material`
+- `VisibilityComponent`, `Billboard`
+- `AudioSource`, `VideoPlayer`, `TextShape`, `NftShape`
+- `Animator` (state-machine config; runtime control via code)
+
+Behavior — pointer event callbacks, systems, tweens, conditional logic — stays in `src/`.
+
+## Common Pitfalls
+
+- **Component shapes mirror the SDK protobuf.** `MeshRenderer` is `{ mesh: { $case: 'box', box: { uvs: [] } } }`, not `MeshRenderer.setBox()`. The TS compiler validates against the protobuf-derived types and will flag mismatches.
+- **Don't use `Vector3.create(...)` inside `main-entities.ts`.** Use plain `{ x, y, z }` objects. The literal-only constraint means function calls and identifier references will break the build/save pipeline.
+- **`box` mesh requires `uvs: []`.** Same for `plane`. Sphere and cylinder default to `{}`. The TS type forces this — pay attention to red squiggles.
+- **Renaming an entity** breaks every code reference until you update them. That's the type system working as intended; let TS guide you to the broken references.
+- **Comments inside the `scene` literal get wiped on the first editor save.** Keep comments outside the literal (above the import, before the `export const scene =` line).

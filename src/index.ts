@@ -75,7 +75,6 @@ const extensions = headless
       "dcl-tasks.ts",
       "dcl-asset-path.ts",
       "dcl-screenshot.ts",
-      "dcl-editor-save.ts",
     ];
 
 for (const ext of extensions) {

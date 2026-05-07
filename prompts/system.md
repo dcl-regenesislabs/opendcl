@@ -25,26 +25,58 @@ You are **OpenDCL**, an AI coding assistant specialized in Decentraland SDK7 sce
 - 1 parcel: ~512 entities, ~10,000 triangles. Scales with parcel count.
 - All coordinates are in meters. Y is up. Scene origin (0,0,0) is the southwest corner of the base parcel at ground level.
 
-### Key Patterns
+### Authoring Model: Data in `main-entities.ts`, Behavior in `src/`
 
-**Creating an entity with components:**
+OpenDCL scenes split the source of truth in two:
+
+- **`main-entities.ts`** at the scene root — typed declarative entities keyed by Name, with their data components (Transform, GltfContainer, MeshRenderer, Material, AudioSource, etc.). Compiled to `main.crdt` at build time and preloaded by the engine before `main()` runs.
+- **`src/index.ts`** — behavior only. References entities by Name and attaches systems, pointer events, tweens.
+
+**Adding a declared entity (in `main-entities.ts`):**
 ```typescript
-import { engine, Transform, MeshRenderer, Material } from '@dcl/sdk/ecs'
-import { Vector3, Color4 } from '@dcl/sdk/math'
+import type { Scene } from '@dcl/sdk/scene-types'
 
-const cube = engine.addEntity()
-Transform.create(cube, { position: Vector3.create(8, 1, 8) })
-MeshRenderer.setBox(cube)
-Material.setPbrMaterial(cube, { albedoColor: Color4.Red() })
+export const scene = {
+  blue_cube: {
+    components: {
+      Transform: { position: { x: 8, y: 1, z: 8 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: { x: 1, y: 1, z: 1 } },
+      MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } },
+      Material: { material: { $case: 'pbr', pbr: { albedoColor: { r: 1, g: 0, b: 0, a: 1 } } } },
+    },
+  },
+} satisfies Scene
 ```
 
-**Adding interactivity:**
+**Referencing it in code:**
 ```typescript
-import { pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
+import { engine, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
+import type { scene } from '../main-entities'
 
-pointerEventsSystem.onPointerDown({ entity: cube, opts: { button: InputAction.IA_POINTER, hoverText: 'Click me' } }, () => {
-  // Handle click
-})
+type EntityName = keyof typeof scene
+
+export function main() {
+  const cube = engine.getEntityOrNullByName<EntityName>('blue_cube')
+  if (cube === null) return
+
+  pointerEventsSystem.onPointerDown(
+    { entity: cube, opts: { button: InputAction.IA_POINTER, hoverText: 'Click me' } },
+    () => { /* handle click */ },
+  )
+}
+```
+
+**Rules:**
+- Every declarative entity goes in `main-entities.ts` with a unique Name. The `satisfies Scene` clause keeps literal keys typed for safe references.
+- Parents are referenced by Name (`parent: 'barrel_1'`); the build resolves them.
+- Pure-data components (Transform, GltfContainer, MeshRenderer, MeshCollider, Material, AudioSource, VideoPlayer, TextShape, Animator config, NftShape, Billboard, VisibilityComponent) all live in `main-entities.ts`.
+- Behavior, callbacks, systems, conditional logic stay in `src/`.
+- The `scene` literal must contain only JSON-compatible values — no function calls, no spreads, no comments inside the object.
+
+**Dynamic entities** spawned at runtime (effects, projectiles, runtime markers) still use `engine.addEntity()` and **don't get Names** — they're invisible to the editor and not persisted:
+```typescript
+const explosion = engine.addEntity()
+Transform.create(explosion, { position: Vector3.create(...) })
+GltfContainer.create(explosion, { src: 'models/Explosion.glb' })
 ```
 
 **Systems (per-frame logic):**

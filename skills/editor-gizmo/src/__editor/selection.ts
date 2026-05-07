@@ -14,9 +14,8 @@ import {
   InputAction,
 } from '@dcl/sdk/ecs'
 import { Color4, Color3 } from '@dcl/sdk/math'
-import { state, selectableInfoMap, originalMaterials, isLockedByOther, gizmoClickConsumed } from './state'
+import { state, selectableInfoMap, originalMaterials, gizmoClickConsumed } from './state'
 import { createGizmo, destroyGizmo } from './gizmo'
-import { requestLock, requestUnlock } from './persistence'
 
 const HIGHLIGHT_EMISSIVE = 0.6
 const HIGHLIGHT_ALPHA = 0.35
@@ -117,12 +116,6 @@ export function selectEntity(entity: Entity) {
   const info = selectableInfoMap.get(entity)
   if (!info) return
 
-  // Check if entity is locked by another admin
-  if (isLockedByOther(info.name, state.myAddress)) {
-    console.log(`[editor] "${info.name}" is locked by another admin`)
-    return
-  }
-
   // Deselect previous
   if (state.selectedEntity !== undefined) {
     deselectEntity()
@@ -136,7 +129,6 @@ export function selectEntity(entity: Entity) {
   highlight(entity)
   disableCollider(entity)
   createGizmo()
-  requestLock(info.name)
   console.log(`[editor] selected: ${info.name}`)
 }
 
@@ -158,7 +150,6 @@ export function deselectEntity() {
         selectEntity(entity)
       }
     )
-    requestUnlock(info.name)
   }
 
   state.selectedEntity = undefined

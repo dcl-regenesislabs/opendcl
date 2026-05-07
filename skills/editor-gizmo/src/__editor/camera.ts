@@ -26,8 +26,9 @@ let sceneCenter = Vector3.create(8, 0, 8)
 let sceneBoundsMin = Vector3.create(0, 0, 0)
 let sceneBoundsMax = Vector3.create(16, 20, 16)
 
-void getSceneInformation({}).then((info) => {
+async function getSceneInformationAsync() {
   try {
+    const info = await getSceneInformation({})
     const metadata = JSON.parse(info.metadataJson)
     const parcels: string[] = metadata?.scene?.parcels ?? ['0,0']
     let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity
@@ -49,9 +50,10 @@ void getSceneInformation({}).then((info) => {
       (sceneBoundsMin.z + sceneBoundsMax.z) / 2,
     )
   } catch (e) {
-    console.warn('[editor] failed to parse scene bounds, using defaults', e)
+    console.log('[editor] failed to read scene bounds, using defaults', e)
   }
-}).catch(() => {})
+}
+void getSceneInformationAsync()
 
 // ============================================================
 // Editor Camera

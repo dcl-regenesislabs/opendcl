@@ -5,25 +5,25 @@
  *   import { enableEditor } from './__editor'
  *   enableEditor()
  *
- * Handles server/client branching internally.
- * On server: syncs entities, manages locks, persists overrides.
- * On client: waits for admin auth, then shows editor UI + gizmos.
+ * Pure client-side editor. On preview, lets the user toggle the editor on,
+ * select entities declared in main-entities.ts, drag them around, and persist
+ * changes to the preview server (which writes main-entities.ts on disk).
+ *
+ * Only available in preview — deployed scenes never show editor UI.
  */
 
 import {
   engine,
-  Entity,
-  Name,
   Transform,
   MeshCollider,
   pointerEventsSystem,
   InputAction,
   ColliderLayer,
+  RealmInfo,
+  executeTask,
 } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
-import { isServer, isStateSyncronized } from '@dcl/sdk/network'
-import { applyFlatTransform } from './math-utils'
-import { state, editorEntities, gizmoClickConsumed, selectableInfoMap, setLock, clearLock, setToggleHandler } from './state'
+import { state, editorEntities, gizmoClickConsumed, setToggleHandler } from './state'
 import { setupEditorUi } from './ui'
 import { createEditorCamera, createLockCamera, deactivateEditorCamera, editorCameraSystem } from './camera'
 import { SKIP_ENTITIES, discoverySystem, removeAllPointerEvents, restoreAllPointerEvents } from './discovery'
@@ -31,9 +31,7 @@ import { deselectEntity } from './selection'
 import { startDrag, startPlaneDrag, dragSystem } from './drag'
 import { gizmoFollowSystem, setStartDragHandler, setStartPlaneDragHandler } from './gizmo'
 import { modeToggleSystem, resetGizmoClickFlag } from './input'
-
-import { editorRoom } from './messages'
-import { startServer } from './server'
+import { initPersistence } from './persistence'
 
 let initialized = false
 
@@ -41,20 +39,28 @@ export function enableEditor() {
   if (initialized) return
   initialized = true
 
-  if (isServer()) {
-    startServer()
-    return
+  // Assume preview until RealmInfo says otherwise. RealmInfo isn't populated
+  // synchronously at scene start, so we'd lock ourselves out if we read it
+  // here and got null. Watch it instead and flip to false if deployed.
+  state.isPreview = true
+  const watchRealm = () => {
+    const realm = RealmInfo.getOrNull(engine.RootEntity)
+    if (!realm) return
+    state.isPreview = realm.isPreview || realm.realmName?.includes('Preview')
+    if (!state.isPreview) console.log('[editor] deployed scene — editor UI hidden')
+    engine.removeSystem(watchRealm)
   }
+  engine.addSystem(watchRealm)
 
   setupEditorUi()
-  setupMessageListeners()
-  engine.addSystem(pendingOverrideSystem)
-  waitForRoomAndRequestAccess()
+  setupClientEditor()
+
+  // Fire-and-forget: load the editable entity set from main-entities.ts.
+  executeTask(async () => { await initPersistence() })
 }
 
 function handleToggle() {
   if (state.editorActive) {
-    // Deactivate: deselect, disable editor camera, remove hover hints
     deselectEntity()
     if (state.editorCamActive) deactivateEditorCamera()
     removeAllPointerEvents()
@@ -67,126 +73,7 @@ function handleToggle() {
   }
 }
 
-// ── Room readiness ──────────────────────────────────────
-
-function waitForRoomAndRequestAccess() {
-  let wasConnected = false
-  let readySent = false
-  const system = () => {
-    const synced = isStateSyncronized()
-    if (synced && !readySent) {
-      readySent = true
-      wasConnected = true
-      console.log('[editor] room connected — requesting access')
-      editorRoom.send('editorReady', {})
-    } else if (synced && !wasConnected) {
-      // Reconnected
-      wasConnected = true
-      state.connectionState = 'connected'
-      console.log('[editor] reconnected')
-      editorRoom.send('editorReady', {})
-    } else if (!synced && wasConnected) {
-      // Lost connection
-      wasConnected = false
-      state.connectionState = 'disconnected'
-      console.log('[editor] disconnected')
-    }
-  }
-  engine.addSystem(system)
-}
-
-// ── Message listeners (client only) ─────────────────────
-
-function setupMessageListeners() {
-  editorRoom.onMessage('editorEnable', (data) => {
-    state.connectionState = 'connected'
-    state.snapshotEnabled = data.snapshotEnabled ?? true
-    state.snapshotCount = data.snapshotCount ?? 0
-    if (data.admin) {
-      state.myAddress = data.address
-      state.isAdmin = true
-      console.log(`[editor] admin access granted (${data.address.substring(0, 10)}...)`)
-      setupClientEditor()
-    } else {
-      console.log('[editor] connected as viewer (not admin)')
-    }
-  })
-
-  editorRoom.onMessage('editorSnapshotChanged', (data) => {
-    state.snapshotEnabled = data.enabled
-    state.snapshotCount = data.count
-    console.log(`[editor] snapshot ${data.enabled ? 'enabled' : 'disabled'} (${data.count} entities)`)
-  })
-
-  editorRoom.onMessage('editorLocked', (data) => setLock(data.entityName, data.lockedBy))
-  editorRoom.onMessage('editorUnlocked', (data) => clearLock(data.entityName))
-  editorRoom.onMessage('editorConfirm', (data) => applyConfirmedTransform(data))
-
-  editorRoom.onMessage('editorPreviousAvailable', (data) => {
-    state.previousAvailable = true
-    state.previousEntityCount = data.entityCount
-    console.log(`[editor] previous layout available (${data.entityCount} entities)`)
-  })
-
-  editorRoom.onMessage('editorPreviousCleared', () => {
-    state.previousAvailable = false
-    state.previousEntityCount = 0
-  })
-}
-
-interface PendingOverride {
-  entityName: string
-  px: number; py: number; pz: number
-  rx: number; ry: number; rz: number; rw: number
-  sx: number; sy: number; sz: number
-}
-
-/** Overrides received before entities exist — retried each frame. */
-const pendingOverrides = new Map<string, PendingOverride>()
-
-function applyConfirmedTransform(data: PendingOverride) {
-  const entity = findEntityByName(data.entityName)
-  if (!entity) {
-    // Entity doesn't exist yet — queue for retry
-    pendingOverrides.set(data.entityName, data)
-    return
-  }
-
-  const t = Transform.getMutable(entity)
-  applyFlatTransform(t, data)
-  pendingOverrides.delete(data.entityName)
-}
-
-/** Per-frame system: retries pending overrides for entities that didn't exist yet. */
-function pendingOverrideSystem() {
-  if (pendingOverrides.size === 0) return
-  for (const [name, data] of pendingOverrides) {
-    const entity = findEntityByName(name)
-    if (entity) {
-      const t = Transform.getMutable(entity)
-      applyFlatTransform(t, data)
-      pendingOverrides.delete(name)
-    }
-  }
-}
-
-function findEntityByName(name: string): Entity | undefined {
-  // Search all entities with Name, not just selectableInfoMap
-  // (editorConfirm must work even when editor is toggled OFF)
-  for (const [entity] of engine.getEntitiesWith(Name, Transform)) {
-    if (Name.get(entity).value === name) return entity
-  }
-  return undefined
-}
-
-// ── Client editor setup ─────────────────────────────────
-
-let editorStarted = false
-
 function setupClientEditor() {
-  if (editorStarted) return
-  editorStarted = true
-
   SKIP_ENTITIES.add(engine.RootEntity)
   SKIP_ENTITIES.add(engine.CameraEntity)
   SKIP_ENTITIES.add(engine.PlayerEntity)

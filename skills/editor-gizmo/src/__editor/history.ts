@@ -1,7 +1,7 @@
 /** Undo/redo history for transform changes. */
 
 import { Entity, Transform } from '@dcl/sdk/ecs'
-import { state, selectableInfoMap } from './state'
+import { selectableInfoMap } from './state'
 import { sendEntityUpdate } from './persistence'
 import { applyFlatTransform } from './math-utils'
 
@@ -49,13 +49,6 @@ export function pushHistory(entity: Entity, before: TransformSnapshot, after: Tr
 export function undo(): boolean {
   if (cursor < 0) return false
   const entry = stack[cursor]
-
-  // Only allow undo on the currently selected (locked) entity
-  if (entry.entity !== state.selectedEntity) {
-    console.log('[editor] undo skipped — entity not selected')
-    return false
-  }
-
   cursor--
   applySnapshot(entry.entity, entry.before)
   sendEntityUpdate(entry.entity)
@@ -67,13 +60,6 @@ export function undo(): boolean {
 export function redo(): boolean {
   if (cursor >= stack.length - 1) return false
   const next = stack[cursor + 1]
-
-  // Only allow redo on the currently selected (locked) entity
-  if (next.entity !== state.selectedEntity) {
-    console.log('[editor] redo skipped — entity not selected')
-    return false
-  }
-
   cursor++
   applySnapshot(next.entity, next.after)
   sendEntityUpdate(next.entity)
