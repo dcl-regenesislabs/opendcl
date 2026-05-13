@@ -106,6 +106,7 @@ Keep it to 1-2 screenshots per task. Each screenshot consumes significant tokens
 | Missing textures (pink/magenta) | Texture file not found or wrong path | Verify file exists in project and path matches code |
 | Objects appear wrong scale | Scale values off or model exported at wrong scale | Check Transform.scale values; 1,1,1 is original model size |
 | Lighting looks flat | No LightSource components in scene | Add point or spot lights — see **lighting-environment** skill |
+| Custom lights look too dim or invisible | Intensity value too low | Point/spot lights typically need `intensity: 8000–32000` candela. Values below ~1000 are usually invisible |
 
 ## What to Look For in Screenshots
 

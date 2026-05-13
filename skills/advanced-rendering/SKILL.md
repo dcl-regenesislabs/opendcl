@@ -246,20 +246,77 @@ engine.addSystem(lodSystem)
 
 ### Per-Node Modifiers (GltfNodeModifiers)
 
-Override material or shadow casting on specific nodes within a GLTF model:
+Override material or shadow casting on specific nodes within a GLTF model. Supported in `main-entities.ts`:
 
 ```typescript
-import { GltfNodeModifiers } from '@dcl/sdk/ecs'
-
-GltfNodeModifiers.create(entity, {
-  modifiers: [
-    {
-      path: 'RootNode/Armor',     // GLTF hierarchy path
-      castShadows: false           // Disable shadow casting for this node
+// main-entities.ts
+armored_knight: {
+  components: {
+    Transform: { position: { x: 8, y: 0, z: 8 } },
+    GltfContainer: { src: 'models/knight.glb' },
+    GltfNodeModifiers: {
+      modifiers: [
+        {
+          path: 'RootNode/Armor',     // GLTF hierarchy path
+          castShadows: false           // disable shadows for this node
+        }
+      ]
     }
-  ]
-})
+  }
+}
 ```
+
+**Whole-model override**: pass `path: ''` (empty string) to apply the modifier to every node in the model. Useful for re-skinning an entire model with a single material swap:
+
+```typescript
+red_team_unit: {
+  components: {
+    Transform: { position: { x: 4, y: 0, z: 8 } },
+    GltfContainer: { src: 'models/unit.glb' },
+    GltfNodeModifiers: {
+      modifiers: [
+        {
+          path: '',
+          material: {
+            material: {
+              $case: 'pbr',
+              pbr: { albedoColor: { r: 1, g: 0, b: 0, a: 1 } }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+### Texture Tweens (Animate Material Textures)
+
+Animate a material's texture offset/tiling over time — useful for water, lava, conveyor belts, scrolling backgrounds. Tween component is supported in `main-entities.ts`:
+
+```typescript
+// main-entities.ts — continuous texture scroll
+conveyor: {
+  components: {
+    Transform: { position: { x: 8, y: 1, z: 8 } },
+    MeshRenderer: { mesh: { $case: 'plane', plane: { uvs: [] } } },
+    Material: { material: { $case: 'pbr', pbr: { texture: { tex: { $case: 'texture', texture: { src: 'images/belt.png' } } } } } },
+    Tween: {
+      duration: 2000,
+      easingFunction: 0,  // EF_LINEAR
+      mode: {
+        $case: 'textureMoveContinuous',
+        textureMoveContinuous: { direction: { x: 1, y: 0 }, speed: 0.5 }
+        // movementType defaults to 0 = TMT_OFFSET; use 1 = TMT_TILING to scale instead
+      }
+    }
+  }
+}
+```
+
+For a finite from-to texture move, use `{ $case: 'textureMove', textureMove: { start: { x: 0, y: 0 }, end: { x: 1, y: 0 }, movementType: 0 } }` with a `duration`.
+
+Runtime helpers (in `src/index.ts`): `Tween.setTextureMove(entity, from, to, durationMs)` and `Tween.setTextureMoveContinuous(entity, direction, speed)`.
 
 ### Avatar Texture
 

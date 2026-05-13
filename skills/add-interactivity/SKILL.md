@@ -130,10 +130,10 @@ pointerEventsSystem.removeOnPointerUp(cube)
 ```
 
 ### Important: Colliders Required
-Pointer events only work on entities with a **collider**. Add one if your entity doesn't have a mesh:
+Pointer events only work on entities with a **collider on the `CL_POINTER` layer**. Add one if your entity doesn't have a mesh:
 ```typescript
 import { MeshCollider } from '@dcl/sdk/ecs'
-MeshCollider.setBox(entity) // Invisible box collider
+MeshCollider.setBox(entity) // Invisible box collider — defaults include CL_POINTER
 ```
 
 For GLTF models, set the collision mask:
@@ -143,6 +143,47 @@ GltfContainer.create(entity, {
   visibleMeshesCollisionMask: ColliderLayer.CL_POINTER
 })
 ```
+
+---
+
+## Proximity Events (Pointer-Free Triggers)
+
+Like `pointerEventsSystem.onPointerDown`, but fires based on **player distance** to the entity instead of a click. Useful for "press E when near" interactions and signposts that highlight on approach. No collider required — the system polls the player position vs the entity transform.
+
+```typescript
+import { engine, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
+
+const door = engine.getEntityOrNullByName('shop_door')
+if (door) {
+  pointerEventsSystem.onProximityDown(
+    {
+      entity: door,
+      opts: {
+        button: InputAction.IA_PRIMARY,
+        hoverText: 'Open shop',
+        maxPlayerDistance: 3   // metres
+      }
+    },
+    () => { /* run when the player presses the button within range */ }
+  )
+
+  pointerEventsSystem.onProximityEnter(
+    { entity: door, opts: { maxPlayerDistance: 5 } },
+    () => { /* fired once when the player enters the radius */ }
+  )
+
+  pointerEventsSystem.onProximityLeave(
+    { entity: door, opts: { maxPlayerDistance: 5 } },
+    () => { /* fired once when the player leaves the radius */ }
+  )
+}
+```
+
+- `maxPlayerDistance` is required and is measured from the **avatar root**, not the camera.
+- `priority` (number) — if multiple proximity events overlap, the higher value wins.
+- Remove with `pointerEventsSystem.removeOnProximityDown(entity)` etc.
+
+Prefer **proximity events** over `pointerEventsSystem.onPointerDown` when the entity has no visible collider or when the player shouldn't need to aim at it (signs, doors that just open when approached, etc.).
 
 ---
 

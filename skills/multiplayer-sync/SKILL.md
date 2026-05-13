@@ -32,7 +32,9 @@ export function main() {
 }
 ```
 
-Decentraland scenes are inherently multiplayer. All players in the same scene share the same space. SDK7 uses CRDT-based synchronization.
+Decentraland scenes are inherently multiplayer — every player in the same scene shares the same space. **By default, however, players interact with the environment independently — changes one player makes are NOT shared with others.** Opt in to sharing by wrapping mutable state in `syncEntity`, broadcasting events through `MessageBus`, or persisting through your own backend.
+
+`syncEntity` state persists only as long as **at least one player remains in the scene**. The state resets as soon as the scene is empty. For durable state across scene resets, persist to your own server.
 
 > **Runtime constraint:** Decentraland runs in a QuickJS sandbox. No Node.js APIs (`fs`, `http`, `path`, `process`). Use `fetch()` and `WebSocket` for network communication. See the **scene-runtime** skill for async patterns.
 
@@ -51,7 +53,7 @@ Choose the right networking approach based on what you need:
 **Decision flow:**
 1. Does every player need to see the same state, including late joiners? --> `syncEntity`
 2. Is it a fire-and-forget event only for players currently in the scene? --> `MessageBus`
-3. Do you need to talk to an external server? --> `fetch` or `signedFetch`
+3. Do you need state persisted after all players leave, or server-side validation? --> external server via `fetch` or `signedFetch`
 4. Do you need continuous real-time server communication? --> `WebSocket`
 5. Combine approaches freely: use `syncEntity` for world state, `MessageBus` for effects, and `fetch` for persistence.
 

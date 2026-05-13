@@ -90,10 +90,10 @@ describe("dcl-header", () => {
       expect(names).toEqual([]);
     });
 
-    it("reads real skills directory and finds all 21 skills", () => {
+    it("reads real skills directory and finds all 25 skills", () => {
       const realSkillsDir = join(import.meta.dirname, "../../skills");
       const names = getSkillNames(realSkillsDir);
-      expect(names.length).toBe(21);
+      expect(names.length).toBe(25);
       expect(names).toContain("create-scene");
       expect(names).toContain("add-3d-models");
       expect(names).toContain("deploy-worlds");
@@ -102,6 +102,10 @@ describe("dcl-header", () => {
       expect(names).toContain("player-avatar");
       expect(names).toContain("nft-blockchain");
       expect(names).toContain("advanced-rendering");
+      expect(names).toContain("audio-analysis");
+      expect(names).toContain("particle-system");
+      expect(names).toContain("player-physics");
+      expect(names).toContain("npcs");
       expect(names).toContain("advanced-input");
       expect(names).toContain("authoritative-server");
     });

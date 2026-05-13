@@ -21,7 +21,7 @@ export const scene = {
       LightSource: {
         type: { $case: 'point', point: {} },
         color: { r: 1, g: 1, b: 1 },
-        intensity: 300
+        intensity: 16000
       }
     }
   }
@@ -42,7 +42,7 @@ ambient_point: {
     LightSource: {
       type: { $case: 'point', point: {} },
       color: { r: 1, g: 1, b: 1 },
-      intensity: 300  // candela
+      intensity: 16000  // candela — point lights typically need 8000–32000 to be visible
     }
   }
 }
@@ -54,7 +54,7 @@ ambient_point: {
 LightSource.create(light, {
   type: LightSource.Type.Point({}),
   color: Color3.create(1, 0.5, 0),  // Warm orange
-  intensity: 200,
+  intensity: 12000,
   range: 15  // Maximum distance in meters
 })
 ```
@@ -75,7 +75,7 @@ stage_spot: {
     LightSource: {
       type: { $case: 'spot', spot: { innerAngle: 25, outerAngle: 45 } },
       color: { r: 1, g: 1, b: 1 },
-      intensity: 800
+      intensity: 16000
     }
   }
 }
@@ -93,9 +93,11 @@ Enable shadows on point or spot lights:
 LightSource.create(spotlight, {
   type: LightSource.Type.Spot({ innerAngle: 25, outerAngle: 45 }),
   shadow: true,
-  intensity: 800
+  intensity: 16000
 })
 ```
+
+> Shadows are only available on **spot lights**, not point lights.
 
 ### Shadow Mask Textures (Gobos)
 
@@ -118,10 +120,11 @@ lightData.active = !lightData.active
 
 ## Light Limits
 
-- Maximum **one active light per parcel** (16m x 16m)
-- The renderer auto-culls lights based on quality settings and proximity
-- Up to ~3 shadowed lights visible at once
-- Intensity is in candela — visible distance grows roughly with `sqrt(intensity)`
+- Maximum **one active light per parcel** (16m x 16m) — multi-parcel scenes can group lights close together when needed.
+- The renderer auto-culls lights based on quality settings and proximity. Quality range allows **4–10 lights visible simultaneously**.
+- Shadows are only available on spot lights; up to ~3 shadowed lights visible at once.
+- Intensity is in candela. Practical visible range: point lights ~8000–32000, spot lights ~10000–24000. Values below ~1000 are usually invisible.
+- Emissive materials **don't illuminate surrounding entities** — they only have a glow effect on themselves. Combine an emissive material with a `LightSource` for both.
 
 ## SkyboxTime (Day/Night Cycle)
 
@@ -242,7 +245,7 @@ bulb: {
     LightSource: {
       type: { $case: 'point', point: {} },
       color: { r: 1, g: 0.9, b: 0.7 },
-      intensity: 200,
+      intensity: 12000,
       range: 10
     }
   }
@@ -264,7 +267,7 @@ LightSource.create(spotEntity, {
     shadow: PBLightSource_ShadowType.ST_SOFT
   }),
   shadow: true,
-  intensity: 800
+  intensity: 16000
 })
 ```
 

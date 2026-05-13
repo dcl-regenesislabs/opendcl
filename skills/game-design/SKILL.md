@@ -17,7 +17,7 @@ Decentraland is a **continuous, shared 3D world**. Design around these constrain
 
 ## 2. Scene Limitation Formulas
 
-All limits scale with parcel count `n`. Know these formulas and design within them.
+All limits scale with parcel count `n`. **Except for hard MB file-size limits on deploy, all other limits CAN be exceeded** — scenes won't crash, but performance degrades and the scene may be unusable on low-end devices. Treat the table as guidelines, not enforcement.
 
 | Resource | Formula | 1 parcel | 2 parcels | 4 parcels | 9 parcels | 16 parcels |
 |---|---|---|---|---|---|---|
@@ -35,7 +35,6 @@ All limits scale with parcel count `n`. Know these formulas and design within th
 
 - **Dimensions must be power-of-two**: 256, 512, 1024, 2048
 - **Recommended sizes**: 1024x1024 for scene objects, 512x512 for wearables
-- **Avoid textures over 2048x2048** — they consume excessive memory and often exceed limits
 - **Use texture atlases** to combine multiple small textures into one, reducing draw calls and material count
 - Prefer compressed formats (WebP) over raw PNG where possible
 - Share texture references across materials — do not duplicate texture files

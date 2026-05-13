@@ -281,7 +281,22 @@ Tween.setScale(entity,
   Vector3.One(), Vector3.create(2, 2, 2),
   1000, EasingFunction.EF_LINEAR
 )
+
+// Combined Move + Rotate + Scale in one Tween
+Tween.setMoveRotateScale(entity, {
+  positionStart: Vector3.create(0, 0, 0), positionEnd: Vector3.create(0, 5, 0),
+  rotationStart: Quaternion.fromEulerDegrees(0, 0, 0), rotationEnd: Quaternion.fromEulerDegrees(0, 360, 0),
+  scaleStart: Vector3.One(), scaleEnd: Vector3.create(0.5, 0.5, 0.5)
+}, 2000, EasingFunction.EF_EASEINOUTCUBIC)
+
+// Continuous spin — applies a per-frame Quaternion delta. No end state.
+Tween.setRotateContinuous(entity, Quaternion.fromEulerDegrees(0, -1, 0), 700)
+
+// Continuous move — applies a per-frame Vector3 delta scaled by speed.
+Tween.setMoveContinuous(entity, Vector3.create(0, 0, 1), 0.5)
 ```
+
+`*Continuous` variants don't end — they apply a constant delta until the Tween is removed (`Tween.deleteFrom(entity)`).
 
 ### Yoyo Loop Mode
 
@@ -321,6 +336,20 @@ Animator.playSingleAnimation(entity, 'Attack', true) // resets to start
 const anim = Animator.getMutable(entity)
 anim.states[0].weight = 0.5  // blend walk at 50%
 anim.states[1].weight = 0.5  // blend idle at 50%
+```
+
+### Morph Targets (Blend Shapes)
+
+If a GLTF model exports morph targets (e.g., facial expressions, shape blends), drive them via the `weights` array on each `Animator.state`. Indices match the order morph targets were exported. Values range `0`–`1`.
+
+```typescript
+const anim = Animator.getMutable(entity)
+const state = anim.states.find(s => s.clip === 'Idle')
+if (state) {
+  state.weights = state.weights ?? []
+  state.weights[0] = 0.8   // morph target 0 at 80%
+  state.weights[1] = 0.3   // morph target 1 at 30%
+}
 ```
 
 ## Troubleshooting

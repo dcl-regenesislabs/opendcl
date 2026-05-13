@@ -252,12 +252,30 @@ engine.addSystem(followNpcCamera)
 
 > **Freezing player during cutscenes?** Combine VirtualCamera with `InputModifier` from the **advanced-input** skill to prevent player movement during cinematic sequences.
 
+## Camera vs Colliders (preventing camera-through-wall)
+
+In third-person mode the player's camera can slide through walls if the wall's collider mask doesn't include `CL_POINTER`. The camera uses the **pointer** collider mask for occlusion checks — not `CL_PHYSICS`. Set both masks on walls and architecture that the camera should bounce off:
+
+```typescript
+// main-entities.ts
+wall: {
+  components: {
+    Transform: { position: { x: 8, y: 1.5, z: 16 } },
+    GltfContainer: {
+      src: 'models/wall.glb',
+      visibleMeshesCollisionMask: 3   // CL_PHYSICS | CL_POINTER
+    }
+  }
+}
+```
+
+For GLBs that ship with invisible collider meshes (Creator Hub asset packs), set `invisibleMeshesCollisionMask: 3` instead. Default of `CL_PHYSICS` only would let the camera pass through.
+
 ## Best Practices
 
-- Only one VirtualCamera should be active at a time
-- Use `CameraModeArea` to force first-person in tight indoor spaces
-- Keep transition speeds between 0.5 and 3.0 for comfortable camera movement
-- Always provide a way for the player to exit forced camera modes (e.g., leave the area)
-- Read camera state via `engine.CameraEntity` — never try to write to it directly
-- For look-at detection, combine camera position with raycasting (see `add-interactivity` skill)
-- Camera control is read-only outside of VirtualCamera and CameraModeArea — you cannot directly move the player's camera
+- Only one VirtualCamera should be active at a time.
+- Use `CameraModeArea` to force first-person in tight indoor spaces.
+- Keep transition speeds between 0.5 and 3.0 for comfortable camera movement.
+- Read camera state via `engine.CameraEntity` — never try to write to it directly.
+- For look-at detection, combine camera position with raycasting (see `add-interactivity` skill).
+- Camera control is read-only outside of VirtualCamera and CameraModeArea — you cannot directly move the player's camera.

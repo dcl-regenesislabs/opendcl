@@ -52,6 +52,26 @@ export const scene = {
 - `.ogg`
 - `.wav`
 
+### Spatial vs Non-Spatial Audio
+
+`AudioSource` defaults to spatial (volume falls off with distance). For background music / radio / non-positional sound effects, set `global: true`:
+
+```typescript
+// main-entities.ts
+bg_music: {
+  components: {
+    Transform: { position: { x: 0, y: 0, z: 0 } },  // ignored when global
+    AudioSource: {
+      audioClipUrl: 'sounds/bg.mp3',
+      playing: true,
+      loop: true,
+      volume: 0.5,
+      global: true   // heard everywhere in the scene at constant volume
+    }
+  }
+}
+```
+
 ### File Organization
 ```
 project/
@@ -220,6 +240,48 @@ Material.setPbrMaterial(screen, {
   emissiveColor: Color3.White()
 })
 ```
+
+### Video on a GLTF Surface (Curved Screens, TVs, Monitors)
+
+When the "screen" is part of a model (a TV in a living room scene, a curved arena display), keep the GLTF and override its screen material with the video texture via `GltfNodeModifiers` at runtime:
+
+```typescript
+// main-entities.ts — declare the TV model
+tv: {
+  components: {
+    Transform: { position: { x: 8, y: 1.5, z: 8 } },
+    GltfContainer: { src: 'models/tv.glb' },
+    VideoPlayer: { src: 'https://example.com/show.mp4', playing: true, loop: true }
+  }
+}
+```
+
+```typescript
+// src/index.ts — bind the video texture to the screen sub-mesh by path
+import { engine, Material, GltfNodeModifiers } from '@dcl/sdk/ecs'
+
+export function main() {
+  const tv = engine.getEntityOrNullByName('tv')
+  if (!tv) return
+
+  const videoTexture = Material.Texture.Video({ videoPlayerEntity: tv })
+  GltfNodeModifiers.createOrReplace(tv, {
+    modifiers: [
+      {
+        path: 'TV/Screen',  // GLTF node path to the screen sub-mesh
+        material: {
+          material: {
+            $case: 'unlit',
+            unlit: { texture: videoTexture }
+          }
+        }
+      }
+    ]
+  })
+}
+```
+
+Use `path: ''` (empty) to apply the video material to every node of the model — useful when the whole model is the screen (e.g., a flat billboard mesh exported from Blender).
 
 ### Video Events
 

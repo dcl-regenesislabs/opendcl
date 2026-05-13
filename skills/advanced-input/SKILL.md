@@ -83,6 +83,8 @@ engine.addSystem(myInputSystem)
 
 ### Global Input Checks
 
+Fires regardless of whether the player's cursor was over an entity.
+
 ```typescript
 function globalInputSystem() {
   // Was the key just pressed this frame?
@@ -98,6 +100,31 @@ function globalInputSystem() {
 
 engine.addSystem(globalInputSystem)
 ```
+
+### Tag-Based Input Batching
+
+If you have many similar entities that all respond to the same input (e.g., every barrel responds to E to break), tag them via the `Tag` component and iterate the tag query each frame:
+
+```typescript
+import { engine, Tag, inputSystem, InputAction, PointerEventType } from '@dcl/sdk/ecs'
+
+// At setup: tag the entities (or declare Tag in main-entities.ts).
+for (const barrel of [b1, b2, b3]) {
+  Tag.createOrReplace(barrel, { value: 'breakable' })
+}
+
+engine.addSystem(() => {
+  for (const [entity] of engine.getEntitiesByTag('breakable')) {
+    const cmd = inputSystem.getInputCommand(InputAction.IA_PRIMARY, PointerEventType.PET_DOWN, entity)
+    if (cmd) {
+      // entity was the IA_PRIMARY target this frame
+      engine.removeEntity(entity)
+    }
+  }
+})
+```
+
+Cleaner than registering N individual `pointerEventsSystem.onPointerDown` handlers when the behavior is uniform.
 
 ## All InputAction Values
 
@@ -138,11 +165,15 @@ InputModifier.create(engine.PlayerEntity, {
   mode: InputModifier.Mode.Standard({ disableAll: true })
 })
 
-// Restrict specific movement
+// Restrict specific movement (every flag is optional and defaults to false)
 InputModifier.createOrReplace(engine.PlayerEntity, {
   mode: InputModifier.Mode.Standard({
+    disableWalk: false,
+    disableJog: false,
     disableRun: true,
     disableJump: true,
+    disableDoubleJump: true,
+    disableGliding: true,
     disableEmote: true
   })
 })
@@ -150,6 +181,8 @@ InputModifier.createOrReplace(engine.PlayerEntity, {
 // Restore normal movement
 InputModifier.deleteFrom(engine.PlayerEntity)
 ```
+
+While restricted: gravity still applies, the camera still rotates, and pointer / proximity events still fire. All restrictions auto-lift when the player leaves the scene.
 
 **Important:** InputModifier only works in the DCL 2.0 desktop client. It has no effect in the web browser explorer.
 
