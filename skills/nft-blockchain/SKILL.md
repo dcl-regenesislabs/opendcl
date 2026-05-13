@@ -7,24 +7,27 @@ description: NFT display and blockchain interaction in Decentraland. NftShape (f
 
 ## Display NFT Artwork
 
-Show an NFT from Ethereum in a decorative frame:
+`NftShape` is supported in `main-entities.ts` — declare the framed NFT directly. The user can drag it around in the visual editor.
 
 ```typescript
-import { engine, Transform, NftShape, NftFrameType } from '@dcl/sdk/ecs'
-import { Vector3, Quaternion, Color4 } from '@dcl/sdk/math'
+// main-entities.ts
+import type { Scene } from '@dcl/sdk/scene-types'
 
-const nftFrame = engine.addEntity()
-Transform.create(nftFrame, {
-  position: Vector3.create(8, 2, 8),
-  rotation: Quaternion.fromEulerDegrees(0, 0, 0)
-})
-
-NftShape.create(nftFrame, {
-  urn: 'urn:decentraland:ethereum:erc721:0x06012c8cf97bead5deae237070f9587f8e7a266d:558536',
-  color: Color4.White(),
-  style: NftFrameType.NFT_CLASSIC
-})
+export const scene = {
+  hero_nft: {
+    components: {
+      Transform: { position: { x: 8, y: 2, z: 8 } },
+      NftShape: {
+        urn: 'urn:decentraland:ethereum:erc721:0x06012c8cf97bead5deae237070f9587f8e7a266d:558536',
+        color: { r: 1, g: 1, b: 1, a: 1 },
+        style: 0  // NftFrameType.NFT_CLASSIC — enum values are integers in the literal
+      }
+    }
+  }
+} satisfies Scene
 ```
+
+The `style` field is a numeric enum — the literal cannot reference `NftFrameType.NFT_CLASSIC` directly because the AST walker only accepts JSON-compatible expressions. Use the integer value (table below) and leave a comment.
 
 ### NFT URN Format
 
@@ -37,31 +40,33 @@ urn:decentraland:ethereum:erc721:<contractAddress>:<tokenId>
 
 ### Available Frame Styles
 
-```typescript
-NftFrameType.NFT_CLASSIC            // Simple classic frame
-NftFrameType.NFT_BAROQUE_ORNAMENT   // Ornate baroque
-NftFrameType.NFT_DIAMOND_ORNAMENT   // Diamond pattern
-NftFrameType.NFT_MINIMAL_WIDE       // Minimal wide border
-NftFrameType.NFT_MINIMAL_GREY       // Minimal grey border
-NftFrameType.NFT_BLOCKY             // Pixelated/blocky
-NftFrameType.NFT_GOLD_EDGES         // Gold edge trim
-NftFrameType.NFT_GOLD_CARVED        // Carved gold
-NftFrameType.NFT_GOLD_WIDE          // Wide gold border
-NftFrameType.NFT_GOLD_ROUNDED       // Rounded gold
-NftFrameType.NFT_METAL_MEDIUM       // Medium metal
-NftFrameType.NFT_METAL_WIDE         // Wide metal
-NftFrameType.NFT_METAL_SLIM         // Slim metal
-NftFrameType.NFT_METAL_ROUNDED      // Rounded metal
-NftFrameType.NFT_PINS               // Pinned to wall
-NftFrameType.NFT_MINIMAL_BLACK      // Minimal black
-NftFrameType.NFT_MINIMAL_WHITE      // Minimal white
-NftFrameType.NFT_TAPE               // Taped to wall
-NftFrameType.NFT_WOOD_SLIM          // Slim wood
-NftFrameType.NFT_WOOD_WIDE          // Wide wood
-NftFrameType.NFT_WOOD_TWIGS         // Twig/branch wood
-NftFrameType.NFT_CANVAS             // Canvas style
-NftFrameType.NFT_NONE               // No frame
-```
+| value | enum name | description |
+|---|---|---|
+| 0  | NFT_CLASSIC          | Simple classic frame |
+| 1  | NFT_BAROQUE_ORNAMENT | Ornate baroque |
+| 2  | NFT_DIAMOND_ORNAMENT | Diamond pattern |
+| 3  | NFT_MINIMAL_WIDE     | Minimal wide border |
+| 4  | NFT_MINIMAL_GREY     | Minimal grey border |
+| 5  | NFT_BLOCKY           | Pixelated/blocky |
+| 6  | NFT_GOLD_EDGES       | Gold edge trim |
+| 7  | NFT_GOLD_CARVED      | Carved gold |
+| 8  | NFT_GOLD_WIDE        | Wide gold border |
+| 9  | NFT_GOLD_ROUNDED     | Rounded gold |
+| 10 | NFT_METAL_MEDIUM     | Medium metal |
+| 11 | NFT_METAL_WIDE       | Wide metal |
+| 12 | NFT_METAL_SLIM       | Slim metal |
+| 13 | NFT_METAL_ROUNDED    | Rounded metal |
+| 14 | NFT_PINS             | Pinned to wall |
+| 15 | NFT_MINIMAL_BLACK    | Minimal black |
+| 16 | NFT_MINIMAL_WHITE    | Minimal white |
+| 17 | NFT_TAPE             | Taped to wall |
+| 18 | NFT_WOOD_SLIM        | Slim wood |
+| 19 | NFT_WOOD_WIDE        | Wide wood |
+| 20 | NFT_WOOD_TWIGS       | Twig/branch wood |
+| 21 | NFT_CANVAS           | Canvas style |
+| 22 | NFT_NONE             | No frame |
+
+In `src/index.ts` where enum identifiers are allowed, use `NftFrameType.NFT_CLASSIC` etc. directly.
 
 ## Check Player Wallet
 

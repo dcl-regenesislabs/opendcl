@@ -5,6 +5,59 @@ description: Control camera behavior in Decentraland scenes. CameraMode detectio
 
 # Camera Control in Decentraland
 
+## Authoring split
+
+`CameraModeArea` and `VirtualCamera` are supported in `main-entities.ts` — both static-by-nature components belong there. `MainCamera` is NOT supported because it lives on the reserved `engine.CameraEntity`; activate a virtual camera at runtime in `src/index.ts`.
+
+`VirtualCamera.lookAtEntity` accepts an entity **name** in `main-entities.ts` (resolved to an Entity ID at build time, same as `Transform.parent`).
+
+```typescript
+// main-entities.ts
+cinematic_cam: {
+  components: {
+    Transform: {
+      position: { x: 12, y: 4, z: 8 },
+      rotation: { x: 0, y: 0.7071, z: 0, w: 0.7071 }
+    },
+    VirtualCamera: {
+      defaultTransition: { transitionMode: { $case: 'time', time: 2 } },
+      lookAtEntity: 'shopkeeper'  // name of another entity in this file
+    }
+  }
+},
+first_person_zone: {
+  components: {
+    Transform: { position: { x: 8, y: 1, z: 8 } },
+    CameraModeArea: {
+      area: { x: 16, y: 2, z: 16 },
+      mode: 0  // CameraType.CT_FIRST_PERSON
+    }
+  }
+}
+```
+
+Activate the cinematic camera at runtime:
+
+```typescript
+// src/index.ts
+import { engine, MainCamera } from '@dcl/sdk/ecs'
+
+export function main() {
+  const cam = engine.getEntityOrNullByName('cinematic_cam')
+  if (cam) MainCamera.createOrReplace(engine.CameraEntity, { virtualCameraEntity: cam })
+}
+```
+
+The reserved `engine.CameraEntity` and `engine.PlayerEntity` are engine-managed and have no representation in `main-entities.ts`.
+
+### CameraType values for `CameraModeArea.mode`
+
+| value | enum | meaning |
+|---|---|---|
+| 0 | CT_FIRST_PERSON | Force first-person inside the zone |
+| 1 | CT_THIRD_PERSON | Force third-person inside the zone |
+| 2 | CT_CINEMATIC    | Force cinematic camera inside the zone |
+
 ## Reading Camera State
 
 Access the camera's current position and rotation via the reserved `engine.CameraEntity`:

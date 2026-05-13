@@ -5,6 +5,12 @@ description: Optimize Decentraland scene performance. Scene limit formulas (tria
 
 # Optimizing Decentraland Scenes
 
+## Authoring split
+
+The patterns in this skill — object pools, LOD, asset preloading, system throttling — are all **runtime mechanics** and live in `src/index.ts`. The static layout (chairs, walls, lamps, the props that get LOD'd) should still be declared in `main-entities.ts`; the optimization code reads those entities by name (`engine.getEntityOrNullByName`) or by component query (`engine.getEntitiesWith(Transform)`).
+
+The parenting optimization (a static container with many children) is best expressed in `main-entities.ts` using `Transform.parent: 'parent_name'` — that way the editor can move the entire group as a unit.
+
 ## Scene Limits (Per Parcel Count)
 
 All limits scale with parcel count `n`. Triangles, entities, and bodies scale linearly. Materials, textures, and height scale logarithmically.

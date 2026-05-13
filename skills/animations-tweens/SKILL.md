@@ -5,6 +5,10 @@ description: Animate objects in Decentraland scenes. Play GLTF model animations 
 
 # Animations and Tweens in Decentraland
 
+## Authoring split
+
+`Animator`, `Tween`, and `TweenSequence` are all supported in `main-entities.ts` — declare the entity, its visual components, and its initial animation state in the literal. Switch clips or replace tweens at runtime in `src/index.ts` via `getMutable`.
+
 ## When to Use Which Animation Approach
 
 | Need | Approach | When |
@@ -21,142 +25,214 @@ description: Animate objects in Decentraland scenes. Play GLTF model animations 
 
 ## GLTF Animations (Animator)
 
-Play animations embedded in .glb models:
+Declare the character and its animation states in `main-entities.ts`. The `states` array is part of the `Animator` shape and is JSON-compatible.
 
 ```typescript
-import { engine, Transform, GltfContainer, Animator } from '@dcl/sdk/ecs'
-import { Vector3 } from '@dcl/sdk/math'
+// main-entities.ts
+import type { Scene } from '@dcl/sdk/scene-types'
 
-const character = engine.addEntity()
-Transform.create(character, { position: Vector3.create(8, 0, 8) })
-GltfContainer.create(character, { src: 'models/character.glb' })
+export const scene = {
+  character: {
+    components: {
+      Transform: { position: { x: 8, y: 0, z: 8 } },
+      GltfContainer: { src: 'models/character.glb' },
+      Animator: {
+        states: [
+          { clip: 'idle', playing: true, loop: true, speed: 1 },
+          { clip: 'walk', playing: false, loop: true, speed: 1 },
+          { clip: 'attack', playing: false, loop: false, speed: 1.5 }
+        ]
+      }
+    }
+  }
+} satisfies Scene
+```
 
-// Set up animation states
-Animator.create(character, {
-  states: [
-    { clip: 'idle', playing: true, loop: true, speed: 1 },
-    { clip: 'walk', playing: false, loop: true, speed: 1 },
-    { clip: 'attack', playing: false, loop: false, speed: 1.5 }
-  ]
-})
+Trigger and switch animations at runtime in `src/index.ts`:
 
-// Play a specific animation
-Animator.playSingleAnimation(character, 'walk')
+```typescript
+import { engine, Animator } from '@dcl/sdk/ecs'
 
-// Stop all animations
-Animator.stopAllAnimations(character)
+export function main() {
+  const character = engine.getEntityOrNullByName('character')
+  if (!character) return
+
+  // Play a specific animation
+  Animator.playSingleAnimation(character, 'walk')
+
+  // Stop all animations
+  // Animator.stopAllAnimations(character)
+}
 ```
 
 ### Switching Animations
 ```typescript
+import { Entity, Animator } from '@dcl/sdk/ecs'
+
 function playAnimation(entity: Entity, clipName: string) {
   const animator = Animator.getMutable(entity)
-  // Stop all
-  for (const state of animator.states) {
-    state.playing = false
-  }
-  // Play the desired one
+  for (const state of animator.states) state.playing = false
   const state = animator.states.find(s => s.clip === clipName)
-  if (state) {
-    state.playing = true
+  if (state) state.playing = true
+}
+```
+
+## Tweens
+
+`Tween` and `TweenSequence` are JSON-compatible. The `mode` is a `$case`-tagged union; positions/quaternions are plain object literals; easing is a numeric enum.
+
+### Move
+```typescript
+// main-entities.ts
+sliding_box: {
+  components: {
+    Transform: { position: { x: 2, y: 1, z: 8 } },
+    MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } },
+    Tween: {
+      duration: 2000,  // milliseconds
+      easingFunction: 6,  // EasingFunction.EF_EASESINE
+      mode: {
+        $case: 'move',
+        move: { start: { x: 2, y: 1, z: 8 }, end: { x: 14, y: 1, z: 8 } }
+      }
+    }
   }
 }
 ```
 
-## Tweens (Code-Based Animation)
-
-Animate entity properties smoothly over time:
-
-### Move
-```typescript
-import { engine, Transform, Tween, EasingFunction } from '@dcl/sdk/ecs'
-import { Vector3 } from '@dcl/sdk/math'
-
-const box = engine.addEntity()
-Transform.create(box, { position: Vector3.create(2, 1, 8) })
-
-Tween.create(box, {
-  mode: Tween.Mode.Move({
-    start: Vector3.create(2, 1, 8),
-    end: Vector3.create(14, 1, 8)
-  }),
-  duration: 2000,  // milliseconds
-  easingFunction: EasingFunction.EF_EASESINE
-})
-```
+Common easing values: `0 = EF_LINEAR`, `1 = EF_EASEINQUAD`, `2 = EF_EASEOUTQUAD`, `3 = EF_EASEQUAD`, `6 = EF_EASESINE`. To replace or stop a tween at runtime, use `Tween.createOrReplace` / `Tween.deleteFrom` on the named entity in `src/index.ts`.
 
 ### Rotate
+
 ```typescript
-Tween.create(box, {
-  mode: Tween.Mode.Rotate({
-    start: Quaternion.fromEulerDegrees(0, 0, 0),
-    end: Quaternion.fromEulerDegrees(0, 360, 0)
-  }),
-  duration: 3000,
-  easingFunction: EasingFunction.EF_LINEAR
-})
+// main-entities.ts — quaternions are { x, y, z, w } literals.
+// 360° around Y end-state is { x: 0, y: 1, z: 0, w: 0 }
+spinning_obj: {
+  components: {
+    Transform: { position: { x: 8, y: 1, z: 8 } },
+    MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } },
+    Tween: {
+      duration: 3000,
+      easingFunction: 0,  // EF_LINEAR
+      mode: {
+        $case: 'rotate',
+        rotate: {
+          start: { x: 0, y: 0, z: 0, w: 1 },
+          end: { x: 0, y: 1, z: 0, w: 0 }
+        }
+      }
+    }
+  }
+}
+```
+
+For exact-degree rotations without hand-computing quaternions, leave the tween out of `main-entities.ts` and create it at runtime in `src/index.ts` where `Quaternion.fromEulerDegrees()` is available:
+
+```typescript
+// src/index.ts — runtime tween authoring (helpers allowed)
+import { engine, Tween, EasingFunction } from '@dcl/sdk/ecs'
+import { Quaternion } from '@dcl/sdk/math'
+
+export function main() {
+  const box = engine.getEntityOrNullByName('spinning_obj')
+  if (!box) return
+  Tween.createOrReplace(box, {
+    mode: Tween.Mode.Rotate({
+      start: Quaternion.fromEulerDegrees(0, 0, 0),
+      end: Quaternion.fromEulerDegrees(0, 360, 0)
+    }),
+    duration: 3000,
+    easingFunction: EasingFunction.EF_LINEAR
+  })
+}
 ```
 
 ### Scale
+
 ```typescript
-Tween.create(box, {
-  mode: Tween.Mode.Scale({
-    start: Vector3.create(1, 1, 1),
-    end: Vector3.create(2, 2, 2)
-  }),
-  duration: 1000,
-  easingFunction: EasingFunction.EF_EASEOUTBOUNCE
-})
+// main-entities.ts
+grow_box: {
+  components: {
+    Transform: { position: { x: 8, y: 1, z: 8 } },
+    MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } },
+    Tween: {
+      duration: 1000,
+      easingFunction: 14,  // EF_EASEOUTBOUNCE
+      mode: {
+        $case: 'scale',
+        scale: { start: { x: 1, y: 1, z: 1 }, end: { x: 2, y: 2, z: 2 } }
+      }
+    }
+  }
+}
 ```
 
 ## Tween Sequences (Chained Animations)
 
-Chain multiple tweens to play one after another:
+Chain multiple tweens to play one after another. `TweenSequence` is supported in `main-entities.ts`:
 
 ```typescript
-import { TweenSequence, TweenLoop } from '@dcl/sdk/ecs'
-
-// First tween
-Tween.create(box, {
-  mode: Tween.Mode.Move({
-    start: Vector3.create(2, 1, 8),
-    end: Vector3.create(14, 1, 8)
-  }),
-  duration: 2000,
-  easingFunction: EasingFunction.EF_EASESINE
-})
-
-// Chain sequence
-TweenSequence.create(box, {
-  sequence: [
-    // Second: move back
-    {
-      mode: Tween.Mode.Move({
-        start: Vector3.create(14, 1, 8),
-        end: Vector3.create(2, 1, 8)
-      }),
+// main-entities.ts
+patrol_box: {
+  components: {
+    Transform: { position: { x: 2, y: 1, z: 8 } },
+    MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } },
+    Tween: {
       duration: 2000,
-      easingFunction: EasingFunction.EF_EASESINE
+      easingFunction: 6,  // EF_EASESINE
+      mode: { $case: 'move', move: { start: { x: 2, y: 1, z: 8 }, end: { x: 14, y: 1, z: 8 } } }
+    },
+    TweenSequence: {
+      loop: 0,  // TweenLoop.TL_RESTART (1 = TL_YOYO)
+      sequence: [
+        {
+          duration: 2000,
+          easingFunction: 6,
+          mode: { $case: 'move', move: { start: { x: 14, y: 1, z: 8 }, end: { x: 2, y: 1, z: 8 } } }
+        }
+      ]
     }
-  ],
-  loop: TweenLoop.TL_RESTART // Loop the entire sequence
-})
+  }
+}
 ```
 
 ## Easing Functions
 
-Available easing functions from `EasingFunction`:
-- `EF_LINEAR` — Constant speed
-- `EF_EASEINQUAD` / `EF_EASEOUTQUAD` / `EF_EASEQUAD` — Quadratic
-- `EF_EASEINSINE` / `EF_EASEOUTSINE` / `EF_EASESINE` — Sinusoidal (smooth)
-- `EF_EASEINEXPO` / `EF_EASEOUTEXPO` / `EF_EASEEXPO` — Exponential
-- `EF_EASEINELASTIC` / `EF_EASEOUTELASTIC` / `EF_EASEELASTIC` — Elastic bounce
-- `EF_EASEOUTBOUNCE` / `EF_EASEINBOUNCE` / `EF_EASEBOUNCE` — Bounce effect
-- `EF_EASEINBACK` / `EF_EASEOUTBACK` / `EF_EASEBACK` — Overshoot
-- `EF_EASEINCUBIC` / `EF_EASEOUTCUBIC` / `EF_EASECUBIC` — Cubic
-- `EF_EASEINQUART` / `EF_EASEOUTQUART` / `EF_EASEQUART` — Quartic
-- `EF_EASEINQUINT` / `EF_EASEOUTQUINT` / `EF_EASEQUINT` — Quintic
-- `EF_EASEINCIRC` / `EF_EASEOUTCIRC` / `EF_EASECIRC` — Circular
+Inside `main-entities.ts` use the integer values (left). In `src/index.ts` you can reference `EasingFunction.<NAME>` directly.
+
+| value | enum | shape |
+|---|---|---|
+| 0  | EF_LINEAR          | Constant speed |
+| 1  | EF_EASEINQUAD      | Quadratic in |
+| 2  | EF_EASEOUTQUAD     | Quadratic out |
+| 3  | EF_EASEQUAD        | Quadratic in-out |
+| 4  | EF_EASEINSINE      | Sinusoidal in |
+| 5  | EF_EASEOUTSINE     | Sinusoidal out |
+| 6  | EF_EASESINE        | Sinusoidal in-out (smooth) |
+| 7  | EF_EASEINEXPO      | Exponential in |
+| 8  | EF_EASEOUTEXPO     | Exponential out |
+| 9  | EF_EASEEXPO        | Exponential in-out |
+| 10 | EF_EASEINELASTIC   | Elastic in |
+| 11 | EF_EASEOUTELASTIC  | Elastic out |
+| 12 | EF_EASEELASTIC     | Elastic in-out |
+| 13 | EF_EASEINBOUNCE    | Bounce in |
+| 14 | EF_EASEOUTBOUNCE   | Bounce out |
+| 15 | EF_EASEBOUNCE      | Bounce in-out |
+| 16 | EF_EASEINCUBIC     | Cubic in |
+| 17 | EF_EASEOUTCUBIC    | Cubic out |
+| 18 | EF_EASECUBIC       | Cubic in-out |
+| 19 | EF_EASEINQUART     | Quartic in |
+| 20 | EF_EASEOUTQUART    | Quartic out |
+| 21 | EF_EASEQUART       | Quartic in-out |
+| 22 | EF_EASEINQUINT     | Quintic in |
+| 23 | EF_EASEOUTQUINT    | Quintic out |
+| 24 | EF_EASEQUINT       | Quintic in-out |
+| 25 | EF_EASEINCIRC      | Circular in |
+| 26 | EF_EASEOUTCIRC     | Circular out |
+| 27 | EF_EASECIRC        | Circular in-out |
+| 28 | EF_EASEINBACK      | Overshoot in |
+| 29 | EF_EASEOUTBACK     | Overshoot out |
+| 30 | EF_EASEBACK        | Overshoot in-out |
 
 ## Custom Animation Systems
 

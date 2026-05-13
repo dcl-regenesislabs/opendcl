@@ -5,27 +5,30 @@ description: Add 3D models (.glb/.gltf) to a Decentraland scene using GltfContai
 
 # Adding 3D Models to Decentraland Scenes
 
-## Loading a 3D Model
+## Where models go: `main-entities.ts`
 
-Use `GltfContainer` to load `.glb` or `.gltf` files:
+A 3D model placed at author time is a static visible entity. **Declare it in `main-entities.ts`**, not via `engine.addEntity()` in `src/index.ts`. The build compiles `main-entities.ts` into `main.crdt`, the engine preloads it before `main()` runs, and the editor can drag/rotate the model interactively.
 
 ```typescript
-import { engine, Transform, GltfContainer, ColliderLayer } from '@dcl/sdk/ecs'
-import { Vector3, Quaternion } from '@dcl/sdk/math'
+// main-entities.ts
+import type { Scene } from '@dcl/sdk/scene-types'
 
-const model = engine.addEntity()
-Transform.create(model, {
-  position: Vector3.create(8, 0, 8),
-  rotation: Quaternion.fromEulerDegrees(0, 0, 0),
-  scale: Vector3.create(1, 1, 1)
-})
-GltfContainer.create(model, {
-  src: 'models/myModel.glb',
-  visibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS | ColliderLayer.CL_POINTER
-})
+export const scene = {
+  my_model: {
+    components: {
+      Transform: { position: { x: 8, y: 0, z: 8 } },
+      GltfContainer: {
+        src: 'models/myModel.glb',
+        visibleMeshesCollisionMask: 3 // CL_PHYSICS | CL_POINTER
+      }
+    }
+  }
+} satisfies Scene
 ```
 
-> **Always set `visibleMeshesCollisionMask`** when loading models. Catalog models don't include separate collider meshes — using the visible mesh as the collider ensures the model is solid and clickable.
+> **Always set `visibleMeshesCollisionMask`** on `GltfContainer`. Catalog models don't include separate collider meshes — using the visible mesh as the collider ensures the model is solid and clickable. Use the integer value (`ColliderLayer.CL_PHYSICS = 1`, `CL_POINTER = 2`, both = `3`) inside `main-entities.ts` since enums aren't allowed in the literal.
+
+**When to use `engine.addEntity()` in `src/index.ts` instead**: only when the model is spawned dynamically (procedurally placed in a loop, dropped on an event, gated by NFT ownership, etc.). For static props, always use `main-entities.ts`.
 
 ## File Organization
 
@@ -46,68 +49,80 @@ project/
 ## Colliders
 
 ### Using Model's Built-in Colliders
-Models exported with collision meshes work automatically. Set the collision mask:
+
 ```typescript
-GltfContainer.create(model, {
-  src: 'models/building.glb',
-  visibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS | ColliderLayer.CL_POINTER,
-  invisibleMeshesCollisionMask: ColliderLayer.CL_PHYSICS
-})
+// main-entities.ts — declared inline with GltfContainer
+building: {
+  components: {
+    Transform: { position: { x: 8, y: 0, z: 8 } },
+    GltfContainer: {
+      src: 'models/building.glb',
+      visibleMeshesCollisionMask: 3,    // CL_PHYSICS | CL_POINTER
+      invisibleMeshesCollisionMask: 1   // CL_PHYSICS
+    }
+  }
+}
 ```
 
 ### Adding Simple Colliders
-For basic shapes, add `MeshCollider`:
+
+For basic shapes (no GLTF), add `MeshCollider`:
+
 ```typescript
-import { MeshCollider } from '@dcl/sdk/ecs'
-MeshCollider.setBox(model) // Box collider
-MeshCollider.setSphere(model) // Sphere collider
+// main-entities.ts
+invisible_wall: {
+  components: {
+    Transform: { position: { x: 0, y: 1, z: 8 }, scale: { x: 0.1, y: 2, z: 16 } },
+    MeshCollider: { mesh: { $case: 'box', box: { uvs: [] } } }
+  }
+}
 ```
+
+Other shapes: `{ $case: 'sphere', sphere: {} }`, `{ $case: 'plane', plane: { uvs: [] } }`, `{ $case: 'cylinder', cylinder: {} }`.
 
 ## ⚠️ Important: Never Pass `undefined` in Transform Fields
 
-The SDK serializer crashes if any Transform field (`position`, `rotation`, `scale`) is present but `undefined`. When writing helper functions with optional parameters, **omit the key entirely** instead of passing `undefined`:
-
-```typescript
-// ❌ BAD — if rotation is undefined, SDK crashes reading .x on undefined
-function addModel(pos: Vector3, rot?: Quaternion) {
-  Transform.create(e, { position: pos, rotation: rot })
-}
-
-// ✅ GOOD — only include rotation when it has a value
-function addModel(pos: Vector3, rot?: Quaternion) {
-  Transform.create(e, rot ? { position: pos, rotation: rot } : { position: pos })
-}
-```
+The SDK serializer crashes if any Transform field (`position`, `rotation`, `scale`) is present but `undefined`. **Omit the key entirely** instead — both in `main-entities.ts` literals and in any runtime helpers. In `main-entities.ts` this is natural (you just don't write the field).
 
 ## Common Model Operations
 
 ### Scaling
+
 ```typescript
-Transform.create(model, {
-  position: Vector3.create(8, 0, 8),
-  scale: Vector3.create(2, 2, 2) // 2x size
-})
+// main-entities.ts
+big_statue: {
+  components: {
+    Transform: { position: { x: 8, y: 0, z: 8 }, scale: { x: 2, y: 2, z: 2 } },
+    GltfContainer: { src: 'models/statue.glb' }
+  }
+}
 ```
 
-### Rotation
-```typescript
-Transform.create(model, {
-  position: Vector3.create(8, 0, 8),
-  rotation: Quaternion.fromEulerDegrees(0, 90, 0) // Rotate 90° on Y axis
-})
-```
+### Rotation (Euler angles converted to a quaternion at author time)
 
-### Parenting (Attach to Another Entity)
-```typescript
-const parent = engine.addEntity()
-Transform.create(parent, { position: Vector3.create(8, 0, 8) })
+Quaternions are `{ x, y, z, w }`. For `Quaternion.fromEulerDegrees(0, 90, 0)` the equivalent literal is `{ x: 0, y: 0.7071, z: 0, w: 0.7071 }`. If you need exact-degree rotations and don't want to compute by hand, set `rotation` to identity in `main-entities.ts` and rotate at runtime in `src/index.ts` using `Transform.getMutable(entity).rotation = Quaternion.fromEulerDegrees(0, 90, 0)`.
 
-const child = engine.addEntity()
-Transform.create(child, {
-  position: Vector3.create(0, 2, 0), // 2m above parent
-  parent: parent
-})
-GltfContainer.create(child, { src: 'models/hat.glb' })
+### Parenting
+
+Reference the parent by **name** (a string key from the same `scene` object). The build resolves names to entity IDs in a second pass.
+
+```typescript
+// main-entities.ts
+character: {
+  components: {
+    Transform: { position: { x: 8, y: 0, z: 8 } },
+    GltfContainer: { src: 'models/character.glb' }
+  }
+},
+hat: {
+  components: {
+    Transform: {
+      position: { x: 0, y: 2, z: 0 },  // 2m above parent's origin
+      parent: 'character'
+    },
+    GltfContainer: { src: 'models/hat.glb' }
+  }
+}
 ```
 
 ## Free 3D Models — OpenDCL Catalog (5,700+ models)
@@ -162,19 +177,34 @@ curl -o models/zombie-purple.glb "https://models.dclregenesislabs.xyz/blobs/bafy
 ```
 
 ```typescript
-// Use in code with animations
-import { engine, Transform, GltfContainer, Animator } from '@dcl/sdk/ecs'
-import { Vector3 } from '@dcl/sdk/math'
+// main-entities.ts — declare the entity with all its initial state
+import type { Scene } from '@dcl/sdk/scene-types'
 
-const zombie = engine.addEntity()
-Transform.create(zombie, { position: Vector3.create(8, 0, 8) })
-GltfContainer.create(zombie, { src: 'models/zombie-purple.glb' })
-Animator.create(zombie, {
-  states: [
-    { clip: 'ZombieWalk', playing: true, loop: true },
-    { clip: 'ZombieAttack', playing: false, loop: false }
-  ]
-})
+export const scene = {
+  zombie: {
+    components: {
+      Transform: { position: { x: 8, y: 0, z: 8 } },
+      GltfContainer: { src: 'models/zombie-purple.glb' },
+      Animator: {
+        states: [
+          { clip: 'ZombieWalk', playing: true, loop: true },
+          { clip: 'ZombieAttack', playing: false, loop: false }
+        ]
+      }
+    }
+  }
+} satisfies Scene
+```
+
+To switch animations at runtime (e.g., trigger attack on click), use `src/index.ts`:
+
+```typescript
+import { engine, Animator } from '@dcl/sdk/ecs'
+
+export function main() {
+  const zombie = engine.getEntityOrNullByName('zombie')
+  if (zombie) Animator.playSingleAnimation(zombie, 'ZombieAttack')
+}
 ```
 
 > **Important**: `GltfContainer` only works with **local files**. Never use external URLs for the model `src` field. Always download models into `models/` first.
@@ -182,19 +212,23 @@ Animator.create(zombie, {
 
 ### Checking Model Load State
 
-Use `GltfContainerLoadingState` to check if a model has finished loading:
+Load-state polling is runtime behavior — put it in `src/index.ts` and reference the entity by name:
 
 ```typescript
-import { GltfContainer, GltfContainerLoadingState, LoadingState } from '@dcl/sdk/ecs'
+import { engine, GltfContainerLoadingState, LoadingState } from '@dcl/sdk/ecs'
 
-engine.addSystem(() => {
-  const state = GltfContainerLoadingState.getOrNull(modelEntity)
-  if (state && state.currentState === LoadingState.FINISHED) {
-    console.log('Model loaded successfully')
-  } else if (state && state.currentState === LoadingState.FINISHED_WITH_ERROR) {
-    console.log('Model failed to load')
-  }
-})
+export function main() {
+  engine.addSystem(() => {
+    const model = engine.getEntityOrNullByName('zombie')
+    if (!model) return
+    const state = GltfContainerLoadingState.getOrNull(model)
+    if (state?.currentState === LoadingState.FINISHED) {
+      console.log('Model loaded successfully')
+    } else if (state?.currentState === LoadingState.FINISHED_WITH_ERROR) {
+      console.log('Model failed to load')
+    }
+  })
+}
 ```
 
 ## Troubleshooting

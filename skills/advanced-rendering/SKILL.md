@@ -5,6 +5,22 @@ description: Advanced rendering in Decentraland scenes. Billboard (face camera),
 
 # Advanced Rendering in Decentraland
 
+## Authoring split
+
+`Billboard`, `TextShape`, `Material`, `MeshRenderer`, `GltfContainer`, `VisibilityComponent`, and `GltfNodeModifiers` are **all supported in `main-entities.ts`** — declare the visual entity (sign, label, billboard, glowing prop, model with per-node overrides) fully there with its visual components. Examples below that show `engine.addEntity()` followed by `Transform.create` + `MeshRenderer` / `Billboard` / `TextShape` are pre-`main-entities.ts` patterns — translate them by moving the entity declaration into `main-entities.ts` and keeping only runtime modifications (e.g., `VisibilityComponent.getMutable(entity).visible = false`) in `src/index.ts`.
+
+```typescript
+// Example: floating label
+// main-entities.ts
+shop_label: {
+  components: {
+    Transform: { position: { x: 8, y: 3, z: 8 } },
+    TextShape: { text: 'OPEN', fontSize: 4, textColor: { r: 1, g: 1, b: 1, a: 1 } },
+    Billboard: { billboardMode: 7 }  // BM_ALL
+  }
+}
+```
+
 ## When to Use Which Rendering Feature
 
 | Need | Component | When |

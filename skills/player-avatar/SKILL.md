@@ -5,6 +5,30 @@ description: Player and avatar system in Decentraland. Read player position/prof
 
 # Player and Avatar System in Decentraland
 
+## Authoring split
+
+`AvatarShape` (the component used for NPCs and pre-placed avatars) is supported in `main-entities.ts` — declare the NPC fully there with id, name, wearables, etc.:
+
+```typescript
+// main-entities.ts
+shopkeeper: {
+  components: {
+    Transform: { position: { x: 8, y: 0, z: 8 } },
+    AvatarShape: {
+      id: 'shopkeeper-1',
+      name: 'Shopkeeper',
+      bodyShape: 'urn:decentraland:off-chain:base-avatars:BaseMale',
+      wearables: [],
+      emotes: []
+    }
+  }
+}
+```
+
+`AvatarAttach`, `AvatarModifierArea`, `AvatarBase`, `AvatarEquippedData` are **not** in the supported list — they're runtime by design (they bind to the live player, or apply to entities you create on-the-fly). Add them in `src/index.ts` and attach to entities looked up via `getEntityOrNullByName` (for static placement) or runtime-created entities (for player-bound effects).
+
+The reserved `engine.PlayerEntity` is engine-managed and has no representation in `main-entities.ts`.
+
 ## Player Position and Movement
 
 Access the player's position via the reserved `engine.PlayerEntity`:

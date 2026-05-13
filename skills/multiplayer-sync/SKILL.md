@@ -5,6 +5,33 @@ description: Synchronize state between players in Decentraland using CRDT networ
 
 # Multiplayer Synchronization in Decentraland
 
+## Authoring split
+
+`syncEntity()` adds a `NetworkEntity` component at runtime — and `NetworkEntity` is **not** in `main-entities.ts`'s supported component list. The pattern is:
+
+- **Predefined synced entities** (a door, a switch, a scoreboard — known at author time): declare them in `main-entities.ts` with their visual components. Look them up in `src/index.ts` and call `syncEntity(entity, [...componentIds], SyncIds.NAME)` there.
+- **Dynamically-spawned synced entities** (projectiles, drops, runtime-created game objects): create with `engine.addEntity()` in `src/index.ts` and `syncEntity` immediately.
+
+```typescript
+// main-entities.ts
+door: {
+  components: {
+    Transform: { position: { x: 8, y: 1, z: 8 } },
+    MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } }
+  }
+}
+```
+
+```typescript
+// src/index.ts
+import { engine, Transform, syncEntity } from '@dcl/sdk/network'
+
+export function main() {
+  const door = engine.getEntityOrNullByName('door')
+  if (door) syncEntity(door, [Transform.componentId], SyncIds.DOOR)
+}
+```
+
 Decentraland scenes are inherently multiplayer. All players in the same scene share the same space. SDK7 uses CRDT-based synchronization.
 
 > **Runtime constraint:** Decentraland runs in a QuickJS sandbox. No Node.js APIs (`fs`, `http`, `path`, `process`). Use `fetch()` and `WebSocket` for network communication. See the **scene-runtime** skill for async patterns.
