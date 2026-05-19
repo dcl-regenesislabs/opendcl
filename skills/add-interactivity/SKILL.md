@@ -7,25 +7,20 @@ description: Add click handlers, hover effects, pointer events, trigger areas, r
 
 ## Authoring split
 
-`PointerEvents` is supported in `main-entities.ts` — the *click configuration* (event types, hover text, button bindings, max distance) is pure declarative data. The handler **callback** is registered separately at runtime via `pointerEventsSystem.onPointerDown(...)`.
+The clickable entity (cube, button, model) is static — declare it in `main-entities.ts` with its Transform / Mesh / Material. The clickability itself is **always** added at runtime in `src/index.ts` via `pointerEventsSystem.onPointerDown(...)` (or the related helpers). The helper writes the `PointerEvents` component AND registers the callback in a single call — do NOT also declare `PointerEvents` in `main-entities.ts`; the helper would just overwrite it and the duplication invites drift.
 
 ```typescript
-// main-entities.ts — declare the entity AND its clickability
+// main-entities.ts — entity only, no PointerEvents
 clickable_cube: {
   components: {
     Transform: { position: { x: 8, y: 1, z: 8 } },
-    MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } },
-    PointerEvents: {
-      pointerEvents: [
-        { eventType: 1, eventInfo: { button: 0, hoverText: 'Open' } }  // PET_DOWN, IA_POINTER
-      ]
-    }
+    MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } }
   }
 }
 ```
 
 ```typescript
-// src/index.ts — register the actual handler
+// src/index.ts — register clickability via the helper system
 import { engine, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
 
 export function main() {
@@ -39,12 +34,7 @@ export function main() {
 }
 ```
 
-The `eventType` and `button` fields use numeric enum values inside `main-entities.ts` (the literal can't reference identifier values like `PointerEventType.PET_DOWN`). Common values:
-
-- `eventType`: `0 = PET_UP`, `1 = PET_DOWN`, `2 = PET_HOVER_ENTER`, `3 = PET_HOVER_LEAVE`
-- `button`: `0 = IA_POINTER`, `1 = IA_PRIMARY`, `2 = IA_SECONDARY`, `3 = IA_ANY`
-
-`TriggerArea` and `Raycast` are still runtime — they live in `src/index.ts`. Code examples below that create entities inline with `engine.addEntity()` are for runtime/technical entities (raycast probes, trigger volumes generated from data); for static clickable props, prefer the declarative split above.
+`TriggerArea` and `Raycast` are also runtime — they live in `src/index.ts`. Code examples below that create entities inline with `engine.addEntity()` are for runtime/technical entities (raycast probes, trigger volumes generated from data); for static clickable props, declare the prop in `main-entities.ts` and attach handlers in `src/index.ts` as above.
 
 ## Decision Tree
 
