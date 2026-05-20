@@ -15,7 +15,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
       - uses: decentraland/oddish-action@master
         with:
           deterministic-snapshot: true
@@ -29,5 +30,3 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           access: public
           provenance: false
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
