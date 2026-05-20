@@ -30,17 +30,28 @@ interface ChangePayload {
 
 type ChangesMap = Record<string, ChangePayload>
 
-let baseUrl: string | null = null
-
-/** Resolve the preview server's baseUrl. Safe to call multiple times. */
+// Resolve baseUrl lazily at each send. RealmInfo is populated by the
+// runtime AFTER scene-module-load completes, so caching it once at
+// init time was racing with module init and pinning `null` forever —
+// the gizmo would work but every drag-end silently dropped the request.
 export function initPersistence(): void {
-  baseUrl = RealmInfo.getOrNull(engine.RootEntity)?.baseUrl ?? null
-  if (!baseUrl) console.log('[editor] no realm baseUrl — persistence disabled')
+  // Kept for symmetry with the editor's bootstrap call; no longer
+  // resolves baseUrl up front (see comment above).
+  const baseUrl = RealmInfo.getOrNull(engine.RootEntity)?.baseUrl
+  console.log(`[editor] persistence ready (baseUrl=${baseUrl ?? 'unresolved'})`)
+}
+
+function resolveBaseUrl(): string | null {
+  return RealmInfo.getOrNull(engine.RootEntity)?.baseUrl ?? null
 }
 
 /** Send the current transform of an entity to the server for persistence. */
 export function sendEntityUpdate(entity: Entity) {
-  if (!baseUrl) return
+  const baseUrl = resolveBaseUrl()
+  if (!baseUrl) {
+    console.log('[editor] sendEntityUpdate: no realm baseUrl yet')
+    return
+  }
   if (!Transform.has(entity)) return
   const info = selectableInfoMap.get(entity)
   if (!info) return
@@ -70,5 +81,13 @@ export function sendEntityUpdate(entity: Entity) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     },
-  }).catch((e) => console.log(`[editor] save failed: ${e}`))
+  })
+    .then((res) => {
+      // signedFetch does NOT reject on non-2xx — log status so silent
+      // 401 (signer ≠ scene owner) or 400 (validation) is visible.
+      if (res.status !== undefined && (res.status < 200 || res.status >= 300)) {
+        console.log(`[editor] save returned ${res.status}: ${res.body ?? ''}`)
+      }
+    })
+    .catch((e) => console.log(`[editor] save failed: ${e}`))
 }
