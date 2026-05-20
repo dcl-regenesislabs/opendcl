@@ -5,9 +5,16 @@
  *
  * The server (sdk-commands in preview, opendcl-studio in web) is responsible
  * for writing main-entities.ts on disk and triggering main.crdt regeneration.
+ *
+ * Uses `signedFetch` instead of plain `fetch` because opendcl-studio
+ * auth-gates this endpoint (signer address must match the scene owner).
+ * In the CLI preview server the endpoint is unauthenticated; the extra
+ * AuthChain headers signedFetch sends are simply ignored there. So the
+ * same call shape works in both contexts.
  */
 
 import { Entity, Transform, engine, RealmInfo } from '@dcl/sdk/ecs'
+import { signedFetch } from '~system/SignedFetch'
 import { selectableInfoMap } from './state'
 import { round } from './math-utils'
 
@@ -56,9 +63,12 @@ export function sendEntityUpdate(entity: Entity) {
     },
   }
 
-  fetch(`${baseUrl}/editor/changes`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+  signedFetch({
+    url: `${baseUrl}/editor/changes`,
+    init: {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
   }).catch((e) => console.log(`[editor] save failed: ${e}`))
 }
