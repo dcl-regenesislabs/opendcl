@@ -653,6 +653,13 @@ function EditorToggle() {
 // ── Main UI ─────────────────────────────────────────────
 
 function EditorUI() {
+  // Deployed scenes (not preview, not studio) never see any editor UI —
+  // not even the toggle button. Decided async by realmDetectSystem in
+  // index.ts once RealmInfo is published.
+  if (!state.isPreview) {
+    return <UiEntity uiTransform={{ width: 0, height: 0, display: 'none' }} />
+  }
+
   // Editor off — just the pencil button.
   if (!state.editorActive) {
     return (

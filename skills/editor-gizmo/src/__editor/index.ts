@@ -19,6 +19,7 @@ import {
   pointerEventsSystem,
   InputAction,
   ColliderLayer,
+  RealmInfo,
 } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 import { state, editorEntities, gizmoClickConsumed, setToggleHandler } from './state'
@@ -37,15 +38,48 @@ export function enableEditor() {
   if (initialized) return
   initialized = true
 
-  // TODO: gate by RealmInfo.isPreview (or equivalent) once studio exposes
-  // a reliable signal. For now the editor is always visible — opendcl-studio
-  // realms don't report isPreview=true even though they should be treated
-  // as editable.
-  state.isPreview = true
-
+  // UI + systems wire up immediately; visibility is gated on `state.isPreview`
+  // which starts false. A one-shot polling system flips it true once
+  // RealmInfo is published and the realm looks editable.
   setupEditorUi()
   setupClientEditor()
   initPersistence()
+  engine.addSystem(realmDetectSystem)
+}
+
+/**
+ * RealmInfo isn't populated synchronously at scene-module-load — the runtime
+ * publishes it a few ticks in. Poll until it's available, then decide:
+ *
+ *   - deployed world (baseUrl on worlds-content-server) → never editable,
+ *     even if some future SDK build flips `isPreview` true there.
+ *   - `isPreview === true` → CLI `sdk-commands start` preview → editable.
+ *   - studio realm (`/scenes/<id>/snapshots/<id>` in baseUrl) → editable.
+ *     opendcl-studio doesn't set isPreview=true even though scenes there are
+ *     editable; the path pattern is unique to studio's realm handler.
+ *   - anything else (Genesis City, custom catalysts, etc.) → leave isPreview
+ *     false so the toolbar/toggle never renders.
+ *
+ * Removes itself after the first decision — no need to keep polling.
+ */
+function realmDetectSystem(_dt: number) {
+  const info = RealmInfo.getOrNull(engine.RootEntity)
+  if (!info) return
+  engine.removeSystem(realmDetectSystem)
+  const baseUrl = info.baseUrl ?? ''
+  if (baseUrl.startsWith('https://worlds-content-server.decentraland.org/')) {
+    console.log('[editor] disabled: deployed world')
+    return
+  }
+  if (info.isPreview) {
+    state.isPreview = true
+    return
+  }
+  if (/\/scenes\/[^/]+\/snapshots\/[^/]+/.test(baseUrl)) {
+    state.isPreview = true
+    return
+  }
+  console.log('[editor] disabled: not a preview/studio realm')
 }
 
 function handleToggle() {
