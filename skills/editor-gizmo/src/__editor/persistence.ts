@@ -74,12 +74,32 @@ export function sendEntityUpdate(entity: Entity) {
     },
   }
 
+  const url = `${baseUrl}/editor/changes`
+  const body = JSON.stringify(payload)
+
+  // signedFetch refuses non-https URLs by design. In local dev the studio
+  // serves http://localhost:3001 — fall back to plain fetch there. The
+  // server-side auth gate is correspondingly relaxed when DEV=true: in
+  // prod the editor-changes endpoint requires signedFetch + ownership.
+  if (url.startsWith('http://')) {
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    })
+      .then((res) => {
+        if (!res.ok) console.log(`[editor] save returned ${res.status}`)
+      })
+      .catch((e) => console.log(`[editor] save failed: ${e}`))
+    return
+  }
+
   signedFetch({
-    url: `${baseUrl}/editor/changes`,
+    url,
     init: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body,
     },
   })
     .then((res) => {
