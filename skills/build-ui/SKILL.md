@@ -38,7 +38,11 @@ const MyUI = () => (
 )
 
 export function setupUi() {
-  ReactEcsRenderer.setUiRenderer(MyUI)
+  // ALWAYS pass virtualWidth + virtualHeight — the renderer scales the layout
+  // to fit the player's window using these as the reference. Without them,
+  // sizes are interpreted in raw pixels and won't behave consistently across
+  // resolutions and aspect ratios.
+  ReactEcsRenderer.setUiRenderer(MyUI, { virtualWidth: 1920, virtualHeight: 1080 })
 }
 ```
 
@@ -304,6 +308,25 @@ The `Dropdown` component supports additional props:
 />
 ```
 
+### Multiple UI Modules (`addUiRenderer` / `removeUiRenderer`)
+
+If you have several independent UI modules — e.g., a HUD, a dialog system, a debug overlay — combine them under a single root *or* use `addUiRenderer` to mount each module against an **owner entity**. When the owner entity is deleted, the UI renderer is removed automatically.
+
+```tsx
+import { engine, ReactEcsRenderer } from '@dcl/sdk/react-ecs'
+
+const hudOwner = engine.addEntity()
+ReactEcsRenderer.addUiRenderer(hudOwner, () => <HudOverlay />)
+
+// later, when the HUD should disappear:
+engine.removeEntity(hudOwner)  // also removes the UI renderer
+
+// or explicitly:
+ReactEcsRenderer.removeUiRenderer(hudOwner)
+```
+
+Each `addUiRenderer` mount renders independently. Useful for dynamic UIs that should appear/disappear based on game state without manually conditioning every sub-tree of one giant root component.
+
 ## Troubleshooting
 
 | Problem | Cause | Solution |
@@ -312,7 +335,7 @@ The `Dropdown` component supports additional props:
 | UI elements overlapping | Missing `flexDirection` or wrong layout | Set `flexDirection: 'column'` on the parent container |
 | Button clicks not registering | Missing `onMouseDown` handler | Add `onMouseDown={() => { ... }}` to the Button or UiEntity |
 | JSX errors at compile time | File extension is `.ts` instead of `.tsx` | Rename the file to `.tsx` |
-| Multiple UIs fighting | More than one `setUiRenderer` call | Only call `setUiRenderer` once — combine all UI into a single root component |
+| Multiple UIs fighting | More than one `setUiRenderer` call | Use ONE `setUiRenderer` for the main UI; for independent modules use `addUiRenderer(ownerEntity, ...)` instead |
 | Text not visible | Text color matches background | Set contrasting `color` on Label or `uiText` |
 
 > **World interactions instead of screen UI?** See the **add-interactivity** skill for click handlers and pointer events on 3D objects.

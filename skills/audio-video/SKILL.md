@@ -5,6 +5,11 @@ description: Add sound effects, music, audio streaming, and video players to Dec
 
 # Audio and Video in Decentraland
 
+## Authoring split
+
+- **`AudioSource`** (local audio files), **`AudioStream`** (streaming URLs), and **`VideoPlayer`** are all supported in `main-entities.ts` — declare the speaker / radio / screen entity fully there with the streaming/playback config.
+- Volume / play / pause toggles at runtime happen in `src/index.ts` via `getMutable`.
+
 ## When to Use Which Media Component
 
 | Need | Component | Key Difference |
@@ -20,28 +25,52 @@ description: Add sound effects, music, audio streaming, and video players to Dec
 
 ## Audio Source (Sound Effects & Music)
 
-Play audio clips from files:
+Declare the speaker in `main-entities.ts`:
 
 ```typescript
-import { engine, Transform, AudioSource } from '@dcl/sdk/ecs'
-import { Vector3 } from '@dcl/sdk/math'
+// main-entities.ts
+import type { Scene } from '@dcl/sdk/scene-types'
 
-const speaker = engine.addEntity()
-Transform.create(speaker, { position: Vector3.create(8, 1, 8) })
-
-AudioSource.create(speaker, {
-  audioClipUrl: 'sounds/music.mp3',
-  playing: true,
-  loop: true,
-  volume: 0.5,   // 0 to 1
-  pitch: 1.0     // Playback speed (0.5 = half speed, 2.0 = double)
-})
+export const scene = {
+  speaker: {
+    components: {
+      Transform: { position: { x: 8, y: 1, z: 8 } },
+      AudioSource: {
+        audioClipUrl: 'sounds/music.mp3',
+        playing: true,
+        loop: true,
+        volume: 0.5,   // 0 to 1
+        pitch: 1.0     // Playback speed (0.5 = half speed, 2.0 = double)
+      }
+    }
+  }
+} satisfies Scene
 ```
 
 ### Supported Formats
 - `.mp3` (recommended)
 - `.ogg`
 - `.wav`
+
+### Spatial vs Non-Spatial Audio
+
+`AudioSource` defaults to spatial (volume falls off with distance). For background music / radio / non-positional sound effects, set `global: true`:
+
+```typescript
+// main-entities.ts
+bg_music: {
+  components: {
+    Transform: { position: { x: 0, y: 0, z: 0 } },  // ignored when global
+    AudioSource: {
+      audioClipUrl: 'sounds/bg.mp3',
+      playing: true,
+      loop: true,
+      volume: 0.5,
+      global: true   // heard everywhere in the scene at constant volume
+    }
+  }
+}
+```
 
 ### File Organization
 ```
@@ -55,97 +84,127 @@ project/
 └── scene.json
 ```
 
-### Play/Stop/Toggle
+### Play/Stop/Toggle (runtime, in `src/index.ts`)
 ```typescript
-// Play
-AudioSource.getMutable(speaker).playing = true
+import { engine, AudioSource } from '@dcl/sdk/ecs'
 
-// Stop
-AudioSource.getMutable(speaker).playing = false
+export function main() {
+  const speaker = engine.getEntityOrNullByName('speaker')
+  if (!speaker) return
 
-// Toggle
-const audio = AudioSource.getMutable(speaker)
-audio.playing = !audio.playing
+  AudioSource.getMutable(speaker).playing = true   // play
+  AudioSource.getMutable(speaker).playing = false  // stop
+
+  // toggle
+  const audio = AudioSource.getMutable(speaker)
+  audio.playing = !audio.playing
+}
 ```
 
 ### Play on Click
+
+Static entities (the button mesh and the click-sfx speaker) go in `main-entities.ts`. `PointerEvents` and the click handler are runtime — they live in `src/index.ts`.
+
 ```typescript
-import { pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
-
-const button = engine.addEntity()
-// ... set up transform and mesh ...
-
-const audioEntity = engine.addEntity()
-Transform.create(audioEntity, { position: Vector3.create(8, 1, 8) })
-AudioSource.create(audioEntity, {
-  audioClipUrl: 'sounds/click.mp3',
-  playing: false,
-  loop: false,
-  volume: 0.8
-})
-
-pointerEventsSystem.onPointerDown(
-  { entity: button, opts: { button: InputAction.IA_POINTER, hoverText: 'Play sound' } },
-  () => {
-    // Reset and play
-    const audio = AudioSource.getMutable(audioEntity)
-    audio.playing = false
-    audio.playing = true
+// main-entities.ts
+sfx_button: {
+  components: {
+    Transform: { position: { x: 8, y: 1, z: 8 } },
+    MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } }
   }
-)
+},
+click_sfx: {
+  components: {
+    Transform: { position: { x: 8, y: 1, z: 8 } },
+    AudioSource: {
+      audioClipUrl: 'sounds/click.mp3',
+      playing: false,
+      loop: false,
+      volume: 0.8
+    }
+  }
+}
+```
+
+```typescript
+// src/index.ts
+import { engine, AudioSource, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
+
+export function main() {
+  const button = engine.getEntityOrNullByName('sfx_button')
+  const sfx = engine.getEntityOrNullByName('click_sfx')
+  if (!button || !sfx) return
+
+  pointerEventsSystem.onPointerDown(
+    { entity: button, opts: { button: InputAction.IA_POINTER, hoverText: 'Play sound' } },
+    () => {
+      // Reset and play
+      const audio = AudioSource.getMutable(sfx)
+      audio.playing = false
+      audio.playing = true
+    }
+  )
+}
 ```
 
 ## Audio Streaming
 
-Stream audio from a URL (radio, live streams):
+`AudioStream` is supported in `main-entities.ts` — declare the radio entity with its streaming config in one place:
 
 ```typescript
-import { engine, Transform, AudioStream } from '@dcl/sdk/ecs'
-import { Vector3 } from '@dcl/sdk/math'
-
-const radio = engine.addEntity()
-Transform.create(radio, { position: Vector3.create(8, 1, 8) })
-
-AudioStream.create(radio, {
-  url: 'https://example.com/stream.mp3',
-  playing: true,
-  volume: 0.3
-})
+// main-entities.ts
+radio: {
+  components: {
+    Transform: { position: { x: 8, y: 1, z: 8 } },
+    GltfContainer: { src: 'models/radio.glb' },
+    AudioStream: {
+      url: 'https://example.com/stream.mp3',
+      playing: true,
+      volume: 0.3
+    }
+  }
+}
 ```
+
+Toggling play / volume at runtime is the same `getMutable` pattern as `AudioSource`.
 
 ## Video Player
 
-Play video on a surface:
+`VideoPlayer`, `MeshRenderer`, and the screen Transform all go in `main-entities.ts`. The video **texture binding** in `Material` needs a runtime Entity ID, not a name — the build only resolves `Transform.parent` by name. So `Material` is set at runtime in `src/index.ts`:
 
 ```typescript
-import { engine, Transform, VideoPlayer, Material, MeshRenderer } from '@dcl/sdk/ecs'
-import { Vector3 } from '@dcl/sdk/math'
+// main-entities.ts
+video_screen: {
+  components: {
+    Transform: {
+      position: { x: 8, y: 3, z: 15.9 },
+      scale: { x: 8, y: 4.5, z: 1 }    // 16:9 ratio
+    },
+    MeshRenderer: { mesh: { $case: 'plane', plane: { uvs: [] } } },
+    VideoPlayer: {
+      src: 'https://example.com/video.mp4',
+      playing: true,
+      loop: true,
+      volume: 0.5,
+      playbackRate: 1.0,
+      position: 0   // start time in seconds
+    }
+  }
+}
+```
 
-// Create a screen
-const screen = engine.addEntity()
-Transform.create(screen, {
-  position: Vector3.create(8, 3, 15.9),
-  scale: Vector3.create(8, 4.5, 1)  // 16:9 ratio
-})
-MeshRenderer.setPlane(screen)
+```typescript
+// src/index.ts
+import { engine, Material } from '@dcl/sdk/ecs'
 
-// Add video player
-VideoPlayer.create(screen, {
-  src: 'https://example.com/video.mp4',
-  playing: true,
-  loop: true,
-  volume: 0.5,
-  playbackRate: 1.0,
-  position: 0  // Start time in seconds
-})
+export function main() {
+  const screen = engine.getEntityOrNullByName('video_screen')
+  if (!screen) return
 
-// Create video texture
-const videoTexture = Material.Texture.Video({ videoPlayerEntity: screen })
-
-// Basic material (recommended — better performance)
-Material.setBasicMaterial(screen, {
-  texture: videoTexture
-})
+  const videoTexture = Material.Texture.Video({ videoPlayerEntity: screen })
+  // Basic material — better performance than PBR for video surfaces
+  Material.setBasicMaterial(screen, { texture: videoTexture })
+}
 ```
 
 ### Video Controls
@@ -181,6 +240,48 @@ Material.setPbrMaterial(screen, {
   emissiveColor: Color3.White()
 })
 ```
+
+### Video on a GLTF Surface (Curved Screens, TVs, Monitors)
+
+When the "screen" is part of a model (a TV in a living room scene, a curved arena display), keep the GLTF and override its screen material with the video texture via `GltfNodeModifiers` at runtime:
+
+```typescript
+// main-entities.ts — declare the TV model
+tv: {
+  components: {
+    Transform: { position: { x: 8, y: 1.5, z: 8 } },
+    GltfContainer: { src: 'models/tv.glb' },
+    VideoPlayer: { src: 'https://example.com/show.mp4', playing: true, loop: true }
+  }
+}
+```
+
+```typescript
+// src/index.ts — bind the video texture to the screen sub-mesh by path
+import { engine, Material, GltfNodeModifiers } from '@dcl/sdk/ecs'
+
+export function main() {
+  const tv = engine.getEntityOrNullByName('tv')
+  if (!tv) return
+
+  const videoTexture = Material.Texture.Video({ videoPlayerEntity: tv })
+  GltfNodeModifiers.createOrReplace(tv, {
+    modifiers: [
+      {
+        path: 'TV/Screen',  // GLTF node path to the screen sub-mesh
+        material: {
+          material: {
+            $case: 'unlit',
+            unlit: { texture: videoTexture }
+          }
+        }
+      }
+    ]
+  })
+}
+```
+
+Use `path: ''` (empty) to apply the video material to every node of the model — useful when the whole model is the screen (e.g., a flat billboard mesh exported from Blender).
 
 ### Video Events
 

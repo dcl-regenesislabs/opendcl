@@ -153,12 +153,16 @@ changeRealm({ realm: 'other-realm.dcl.eth', message: 'Join this realm?' })
 
 ## Timers
 
-**setTimeout / setInterval** are supported via the QuickJS runtime polyfill:
+**Use the `timers` API from `@dcl/sdk/ecs`**, not the global `setTimeout`/`setInterval`. The globals are not reliable in the QuickJS runtime.
 
 ```typescript
-setTimeout(() => console.log('delayed'), 2000)
-const id = setInterval(() => console.log('tick'), 1000)
-clearInterval(id)
+import { timers } from '@dcl/sdk/ecs'
+
+const t = timers.setTimeout(() => console.log('delayed'), 2000)
+timers.clearTimeout(t)
+
+const id = timers.setInterval(() => console.log('tick'), 1000)
+timers.clearInterval(id)
 ```
 
 **System-based timers** (recommended for game logic — synchronized with the frame loop):
@@ -251,7 +255,7 @@ npx @dcl/sdk-commands test
 
 - Always wrap async code in `executeTask()` — bare promises will be silently dropped
 - Use `signedFetch` (not plain `fetch`) when your backend needs to verify the player's identity
-- Prefer system-based timers over `setTimeout`/`setInterval` for game logic — they stay in sync with the frame loop
+- Prefer system-based timers over `timers.setTimeout`/`timers.setInterval` for game logic — they stay in sync with the frame loop. Use `timers.*` for one-shot scheduled actions (auto-close door, delayed sound, etc.).
 - Check `realm.realmInfo?.isPreview` to detect preview mode and enable debug features
 - Use `readFile()` for data files (JSON configs, level data) deployed alongside the scene
 - `removeEntityWithChildren()` is essential when cleaning up complex entity hierarchies

@@ -5,7 +5,36 @@ description: Synchronize state between players in Decentraland using CRDT networ
 
 # Multiplayer Synchronization in Decentraland
 
-Decentraland scenes are inherently multiplayer. All players in the same scene share the same space. SDK7 uses CRDT-based synchronization.
+## Authoring split
+
+`syncEntity()` adds a `NetworkEntity` component at runtime — and `NetworkEntity` is **not** in `main-entities.ts`'s supported component list. The pattern is:
+
+- **Predefined synced entities** (a door, a switch, a scoreboard — known at author time): declare them in `main-entities.ts` with their visual components. Look them up in `src/index.ts` and call `syncEntity(entity, [...componentIds], SyncIds.NAME)` there.
+- **Dynamically-spawned synced entities** (projectiles, drops, runtime-created game objects): create with `engine.addEntity()` in `src/index.ts` and `syncEntity` immediately.
+
+```typescript
+// main-entities.ts
+door: {
+  components: {
+    Transform: { position: { x: 8, y: 1, z: 8 } },
+    MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } }
+  }
+}
+```
+
+```typescript
+// src/index.ts
+import { engine, Transform, syncEntity } from '@dcl/sdk/network'
+
+export function main() {
+  const door = engine.getEntityOrNullByName('door')
+  if (door) syncEntity(door, [Transform.componentId], SyncIds.DOOR)
+}
+```
+
+Decentraland scenes are inherently multiplayer — every player in the same scene shares the same space. **By default, however, players interact with the environment independently — changes one player makes are NOT shared with others.** Opt in to sharing by wrapping mutable state in `syncEntity`, broadcasting events through `MessageBus`, or persisting through your own backend.
+
+`syncEntity` state persists only as long as **at least one player remains in the scene**. The state resets as soon as the scene is empty. For durable state across scene resets, persist to your own server.
 
 > **Runtime constraint:** Decentraland runs in a QuickJS sandbox. No Node.js APIs (`fs`, `http`, `path`, `process`). Use `fetch()` and `WebSocket` for network communication. See the **scene-runtime** skill for async patterns.
 
@@ -24,7 +53,7 @@ Choose the right networking approach based on what you need:
 **Decision flow:**
 1. Does every player need to see the same state, including late joiners? --> `syncEntity`
 2. Is it a fire-and-forget event only for players currently in the scene? --> `MessageBus`
-3. Do you need to talk to an external server? --> `fetch` or `signedFetch`
+3. Do you need state persisted after all players leave, or server-side validation? --> external server via `fetch` or `signedFetch`
 4. Do you need continuous real-time server communication? --> `WebSocket`
 5. Combine approaches freely: use `syncEntity` for world state, `MessageBus` for effects, and `fetch` for persistence.
 

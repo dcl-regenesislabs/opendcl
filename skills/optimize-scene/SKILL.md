@@ -5,9 +5,15 @@ description: Optimize Decentraland scene performance. Scene limit formulas (tria
 
 # Optimizing Decentraland Scenes
 
+## Authoring split
+
+The patterns in this skill — object pools, LOD, asset preloading, system throttling — are all **runtime mechanics** and live in `src/index.ts`. The static layout (chairs, walls, lamps, the props that get LOD'd) should still be declared in `main-entities.ts`; the optimization code reads those entities by name (`engine.getEntityOrNullByName`) or by component query (`engine.getEntitiesWith(Transform)`).
+
+The parenting optimization (a static container with many children) is best expressed in `main-entities.ts` using `Transform.parent: 'parent_name'` — that way the editor can move the entire group as a unit.
+
 ## Scene Limits (Per Parcel Count)
 
-All limits scale with parcel count `n`. Triangles, entities, and bodies scale linearly. Materials, textures, and height scale logarithmically.
+All limits scale with parcel count `n`. Triangles, entities, and bodies scale linearly. Materials, textures, and height scale logarithmically. **Except for hard MB size limits on deploy, all other limits CAN be exceeded** — scenes won't crash, but performance degrades and the scene may become unusable on lower-end devices. Treat the numbers as guidelines, not enforcement.
 
 | Resource | Formula | 1 parcel | 2 parcels | 4 parcels | 9 parcels | 16 parcels |
 |---|---|---|---|---|---|---|
@@ -100,7 +106,6 @@ MeshRenderer.setPlane(entity)  // Very cheap
 
 - **Dimensions must be power-of-two**: 256, 512, 1024, 2048
 - **Recommended sizes**: 512x512 for most objects, 1024x1024 max for hero pieces
-- **Avoid textures over 2048x2048** — they consume excessive memory and often exceed limits
 - Use `.png` for UI/sprites with transparency
 - Use `.jpg` for photos and textures without transparency
 - Prefer compressed formats (WebP) over raw PNG where possible

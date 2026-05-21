@@ -5,6 +5,37 @@ description: Add click handlers, hover effects, pointer events, trigger areas, r
 
 # Adding Interactivity to Decentraland Scenes
 
+## Authoring split
+
+The clickable entity (cube, button, model) is static — declare it in `main-entities.ts` with its Transform / Mesh / Material. The clickability itself is **always** added at runtime in `src/index.ts` via `pointerEventsSystem.onPointerDown(...)` (or the related helpers). The helper writes the `PointerEvents` component AND registers the callback in a single call — do NOT also declare `PointerEvents` in `main-entities.ts`; the helper would just overwrite it and the duplication invites drift.
+
+```typescript
+// main-entities.ts — entity only, no PointerEvents
+clickable_cube: {
+  components: {
+    Transform: { position: { x: 8, y: 1, z: 8 } },
+    MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } }
+  }
+}
+```
+
+```typescript
+// src/index.ts — register clickability via the helper system
+import { engine, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
+
+export function main() {
+  const cube = engine.getEntityOrNullByName('clickable_cube')
+  if (cube) {
+    pointerEventsSystem.onPointerDown(
+      { entity: cube, opts: { button: InputAction.IA_POINTER, hoverText: 'Open' } },
+      () => { /* what happens on click */ }
+    )
+  }
+}
+```
+
+`TriggerArea` and `Raycast` are also runtime — they live in `src/index.ts`. Code examples below that create entities inline with `engine.addEntity()` are for runtime/technical entities (raycast probes, trigger volumes generated from data); for static clickable props, declare the prop in `main-entities.ts` and attach handlers in `src/index.ts` as above.
+
 ## Decision Tree
 
 | Need | Approach | API |
@@ -89,10 +120,10 @@ pointerEventsSystem.removeOnPointerUp(cube)
 ```
 
 ### Important: Colliders Required
-Pointer events only work on entities with a **collider**. Add one if your entity doesn't have a mesh:
+Pointer events only work on entities with a **collider on the `CL_POINTER` layer**. Add one if your entity doesn't have a mesh:
 ```typescript
 import { MeshCollider } from '@dcl/sdk/ecs'
-MeshCollider.setBox(entity) // Invisible box collider
+MeshCollider.setBox(entity) // Invisible box collider — defaults include CL_POINTER
 ```
 
 For GLTF models, set the collision mask:
@@ -102,6 +133,47 @@ GltfContainer.create(entity, {
   visibleMeshesCollisionMask: ColliderLayer.CL_POINTER
 })
 ```
+
+---
+
+## Proximity Events (Pointer-Free Triggers)
+
+Like `pointerEventsSystem.onPointerDown`, but fires based on **player distance** to the entity instead of a click. Useful for "press E when near" interactions and signposts that highlight on approach. No collider required — the system polls the player position vs the entity transform.
+
+```typescript
+import { engine, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
+
+const door = engine.getEntityOrNullByName('shop_door')
+if (door) {
+  pointerEventsSystem.onProximityDown(
+    {
+      entity: door,
+      opts: {
+        button: InputAction.IA_PRIMARY,
+        hoverText: 'Open shop',
+        maxPlayerDistance: 3   // metres
+      }
+    },
+    () => { /* run when the player presses the button within range */ }
+  )
+
+  pointerEventsSystem.onProximityEnter(
+    { entity: door, opts: { maxPlayerDistance: 5 } },
+    () => { /* fired once when the player enters the radius */ }
+  )
+
+  pointerEventsSystem.onProximityLeave(
+    { entity: door, opts: { maxPlayerDistance: 5 } },
+    () => { /* fired once when the player leaves the radius */ }
+  )
+}
+```
+
+- `maxPlayerDistance` is required and is measured from the **avatar root**, not the camera.
+- `priority` (number) — if multiple proximity events overlap, the higher value wins.
+- Remove with `pointerEventsSystem.removeOnProximityDown(entity)` etc.
+
+Prefer **proximity events** over `pointerEventsSystem.onPointerDown` when the entity has no visible collider or when the player shouldn't need to aim at it (signs, doors that just open when approached, etc.).
 
 ---
 

@@ -1,0 +1,11 @@
+# Only track the skill doc and editor module.
+# All test-scene scaffolds (scene.json, package.json, src/index.ts, main.json,
+# models/, .vscode/, etc.) are auto-ignored by the *-then-allowlist below.
+*
+!.gitignore
+!SKILL.md
+!src/
+!src/__editor/
+!src/__editor/**
+node_modules/
+bin/

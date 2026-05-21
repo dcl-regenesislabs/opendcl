@@ -52,25 +52,67 @@ Update the `display` fields and parcels:
 - `scene.parcels` — for multi-parcel scenes, list all parcels (e.g., `["0,0", "0,1", "1,0", "1,1"]` for 2x2)
 - `scene.base` — set to the southwest corner parcel
 
-### src/index.ts
-Replace the generated code with the user's scene. Example:
+### `main-entities.ts` + `src/index.ts`
+
+OpenDCL scenes use a **two-file authoring model**:
+
+- `main-entities.ts` (scene root) — typed declarative entities + their data components, keyed by Name. Compiled to `main.crdt` at build time and preloaded by the engine before `main()` runs.
+- `src/index.ts` — behavior only. References entities by `Name` via `engine.getEntityOrNullByName<EntityName>(name)` and attaches systems, pointer events, tweens, etc.
+
+**Example `main-entities.ts`:**
 
 ```typescript
-import { engine, Transform, MeshRenderer, Material } from '@dcl/sdk/ecs'
-import { Vector3, Color4 } from '@dcl/sdk/math'
+import type { Scene } from '@dcl/sdk/scene-types'
+
+export const scene = {
+  blue_cube: {
+    components: {
+      Transform: { position: { x: 8, y: 1, z: 8 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: { x: 1, y: 1, z: 1 } },
+      MeshRenderer: { mesh: { $case: 'box', box: { uvs: [] } } },
+      Material: {
+        material: { $case: 'pbr', pbr: { albedoColor: { r: 0.2, g: 0.5, b: 1, a: 1 } } },
+      },
+    },
+  },
+} satisfies Scene
+```
+
+The `satisfies Scene` clause keeps the literal keys typed (so `keyof typeof scene` gives the typed entity-name union), while still validating the shape against the `Scene` schema.
+
+**Example `src/index.ts`:**
+
+```typescript
+import { engine, pointerEventsSystem, InputAction } from '@dcl/sdk/ecs'
+import type { scene } from '../main-entities'
+
+type EntityName = keyof typeof scene
 
 export function main() {
-  // Create a cube at the center of the scene
-  const cube = engine.addEntity()
-  Transform.create(cube, {
-    position: Vector3.create(8, 1, 8)
-  })
-  MeshRenderer.setBox(cube)
-  Material.setPbrMaterial(cube, {
-    albedoColor: Color4.create(0.2, 0.5, 1, 1)
-  })
+  const cube = engine.getEntityOrNullByName<EntityName>('blue_cube')
+  if (cube === null) return
+
+  pointerEventsSystem.onPointerDown(
+    { entity: cube, opts: { button: InputAction.IA_POINTER, hoverText: 'Click me' } },
+    () => console.log('clicked'),
+  )
 }
 ```
+
+`tsconfig.json` should include `main-entities.ts` so it gets type-checked:
+```json
+{
+  "extends": "@dcl/sdk/types/tsconfig.ecs7.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "main-entities.ts"]
+}
+```
+
+**Rules:**
+
+- Every editable / declared entity must have a unique Name in `main-entities.ts`.
+- Dynamic entities created at runtime (effects, projectiles, dynamic UI markers) use `engine.addEntity()` directly. **Don't give dynamic entities a Name** — they don't go in `main-entities.ts`.
+- Anything that's pure data (Transform, GltfContainer, MeshRenderer, MeshCollider, Material, AudioSource, VideoPlayer, TextShape, Animator config, NftShape, Billboard, VisibilityComponent) goes in `main-entities.ts`.
+- Anything that's behavior (pointer callbacks, systems, tween triggers, conditional logic) goes in `src/`.
+- The `scene` literal must be JSON-compatible — no function calls, no spreads, no comments inside the object.
 
 ### scene.json Reference
 
@@ -147,3 +189,4 @@ After customizing the files:
 - Y axis is up, minimum Y=0 (ground)
 - The `main` field in scene.json MUST be `"bin/index.js"` — this is the compiled output path
 - The `jsx` and `jsxImportSource` tsconfig settings are already included by `/init` — do not modify them
+- **Never pass `undefined` values in Transform fields** (position, rotation, scale) — the SDK serializer crashes. If a field is optional, omit the key entirely instead of including it with an `undefined` value.

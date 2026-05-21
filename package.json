@@ -48,7 +48,7 @@
     "url": "git+https://github.com/dcl-regenesislabs/opendcl.git"
   },
   "dependencies": {
-    "@mariozechner/pi-coding-agent": "^0.54.0",
+    "@mariozechner/pi-coding-agent": "^0.62.0",
     "playwright-core": "^1.58.2"
   },
   "devDependencies": {

@@ -5,6 +5,30 @@ description: Player and avatar system in Decentraland. Read player position/prof
 
 # Player and Avatar System in Decentraland
 
+## Authoring split
+
+`AvatarShape` (the component used for NPCs and pre-placed avatars) is supported in `main-entities.ts` — declare the NPC fully there with id, name, wearables, etc.:
+
+```typescript
+// main-entities.ts
+shopkeeper: {
+  components: {
+    Transform: { position: { x: 8, y: 0, z: 8 } },
+    AvatarShape: {
+      id: 'shopkeeper-1',
+      name: 'Shopkeeper',
+      bodyShape: 'urn:decentraland:off-chain:base-avatars:BaseMale',
+      wearables: [],
+      emotes: []
+    }
+  }
+}
+```
+
+`AvatarAttach`, `AvatarModifierArea`, `AvatarBase`, `AvatarEquippedData` are **not** in the supported list — they're runtime by design (they bind to the live player, or apply to entities you create on-the-fly). Add them in `src/index.ts` and attach to entities looked up via `getEntityOrNullByName` (for static placement) or runtime-created entities (for player-bound effects).
+
+The reserved `engine.PlayerEntity` is engine-managed and has no representation in `main-entities.ts`.
+
 ## Player Position and Movement
 
 Access the player's position via the reserved `engine.PlayerEntity`:
@@ -61,6 +85,36 @@ function main() {
 - `userId` — the player's Ethereum wallet address (or guest ID)
 - `isGuest` — `true` if the player hasn't connected a wallet
 
+### Fetch Full Avatar Profile from the Catalyst
+
+`getPlayer()` returns the local view of the player. For full avatar data (wearables list, body shape, skin/hair/eye colors), fetch from the Catalyst:
+
+```typescript
+import { executeTask, signedFetch } from '@dcl/sdk/network'
+import { getPlayer } from '@dcl/sdk/players'
+
+executeTask(async () => {
+  const player = getPlayer()
+  if (!player || player.isGuest) return
+
+  const res = await fetch(`https://peer.decentraland.org/lambdas/profiles/${player.userId}`)
+  const body = await res.json()
+
+  // Response is an array of profiles; the first entry holds the active avatar.
+  const profile = body?.avatars?.[0]
+  if (!profile) return
+
+  console.log('name:', profile.name)
+  console.log('wearables:', profile.avatar.wearables)
+  console.log('skin color:', profile.avatar.skin.color)  // { r, g, b } — already unwrapped, NOT { color: { r,g,b } }
+})
+```
+
+**Gotchas:**
+- The response is `{ avatars: [...] }`, not a flat profile object. Always read `body.avatars[0]`.
+- Color fields (`skin.color`, `hair.color`, `eyes.color`) are already `{ r, g, b }` objects — don't unwrap one more level.
+- The fetch is unauthenticated; for endpoints that need the player's signed identity, use `signedFetch` from `@dcl/sdk/network` instead of plain `fetch`.
+
 ## Avatar Attachments
 
 Attach 3D objects to a player's avatar:
@@ -79,12 +133,36 @@ AvatarAttach.create(hat, {
 
 ### Anchor Points
 
-```typescript
-AvatarAnchorPointType.AAPT_NAME_TAG      // Above the head
-AvatarAnchorPointType.AAPT_RIGHT_HAND    // Right hand
-AvatarAnchorPointType.AAPT_LEFT_HAND     // Left hand
-AvatarAnchorPointType.AAPT_POSITION      // Avatar root position
-```
+Full enum of bones / positions an attachment can track. Inside `main-entities.ts` use the integer value (left). In `src/index.ts` use `AvatarAnchorPointType.<NAME>`.
+
+| value | enum | location |
+|---|---|---|
+| 0  | AAPT_POSITION       | avatar feet (deprecated — prefer `parent: engine.PlayerEntity`) |
+| 1  | AAPT_NAME_TAG       | above the name tag |
+| 2  | AAPT_LEFT_HAND      | left hand |
+| 3  | AAPT_RIGHT_HAND     | right hand |
+| 4  | AAPT_HEAD           | head bone |
+| 5  | AAPT_NECK           | neck |
+| 6  | AAPT_SPINE          | spine root |
+| 7  | AAPT_SPINE1         | spine mid |
+| 8  | AAPT_SPINE2         | spine top |
+| 9  | AAPT_HIP            | hip |
+| 10 | AAPT_LEFT_SHOULDER  | left shoulder |
+| 11 | AAPT_LEFT_ARM       | left upper arm |
+| 12 | AAPT_LEFT_FOREARM   | left forearm |
+| 13 | AAPT_LEFT_HAND_INDEX | left index finger |
+| 14 | AAPT_RIGHT_SHOULDER | right shoulder |
+| 15 | AAPT_RIGHT_ARM      | right upper arm |
+| 16 | AAPT_RIGHT_FOREARM  | right forearm |
+| 17 | AAPT_RIGHT_HAND_INDEX | right index finger |
+| 18 | AAPT_LEFT_UP_LEG    | left thigh |
+| 19 | AAPT_LEFT_LEG       | left calf |
+| 20 | AAPT_LEFT_FOOT      | left foot |
+| 21 | AAPT_LEFT_TOE_BASE  | left toes |
+| 22 | AAPT_RIGHT_UP_LEG   | right thigh |
+| 23 | AAPT_RIGHT_LEG      | right calf |
+| 24 | AAPT_RIGHT_FOOT     | right foot |
+| 25 | AAPT_RIGHT_TOE_BASE | right toes |
 
 ### Attach to a Specific Player
 
@@ -230,9 +308,46 @@ AvatarLocomotionSettings.createOrReplace(engine.PlayerEntity, {
 })
 ```
 
+## InputModifier — Restrict Player Movement
+
+Disable specific movement modes for the local player. Useful for cutscenes, dialogue freezes, traversal puzzles. Applies to `engine.PlayerEntity`.
+
+```typescript
+import { engine, InputModifier } from '@dcl/sdk/ecs'
+
+InputModifier.createOrReplace(engine.PlayerEntity, {
+  mode: InputModifier.Mode.Standard({
+    disableWalk: false,
+    disableJog: false,
+    disableRun: false,
+    disableJump: false,
+    disableDoubleJump: false,
+    disableGliding: false
+  })
+})
+```
+
+Set any field to `true` to disable that mode. While disabled:
+- Gravity still applies (the player still falls).
+- The camera can still rotate freely.
+- The player can still trigger pointer / proximity events.
+- All restrictions are auto-lifted when the player leaves the scene.
+
+### Freeze All Movement
+
+```typescript
+InputModifier.createOrReplace(engine.PlayerEntity, {
+  mode: InputModifier.Mode.Standard({ disableAll: true })
+})
+```
+
+To release: `InputModifier.deleteFrom(engine.PlayerEntity)` — or `createOrReplace` with all flags `false`.
+
 ## Teleporting the Player
 
-**You MUST use `movePlayerTo` from `~system/RestrictedActions` to move or teleport the player.** Setting `Transform.getMutable(engine.PlayerEntity).position` does NOT work — the runtime ignores direct writes to the player transform.
+**You MUST use `movePlayerTo` from `~system/RestrictedActions` to move or teleport the player.** Setting `Transform.getMutable(engine.PlayerEntity).position` does NOT work — the runtime ignores direct writes to the player transform. `Transform` on `engine.PlayerEntity` is **read-only**; the same applies to `engine.CameraEntity`.
+
+`movePlayerTo` only teleports the player **within the same scene**. Cross-scene teleports require explicit player consent and a different API.
 
 ```typescript
 import { movePlayerTo } from '~system/RestrictedActions'
@@ -246,6 +361,17 @@ void movePlayerTo({
 void movePlayerTo({
   newRelativePosition: Vector3.create(8, 0, 8),
   cameraTarget: Vector3.create(8, 1, 12)
+})
+```
+
+`movePlayerTo` returns a Promise — `await` it if you need to chain actions:
+
+```typescript
+import { executeTask } from '@dcl/sdk/ecs'
+
+executeTask(async () => {
+  await movePlayerTo({ newRelativePosition: Vector3.create(8, 0, 8) })
+  console.log('teleported, continuing flow')
 })
 ```
 

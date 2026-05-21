@@ -59,6 +59,13 @@ describe("extension registration", () => {
       mod.default(pi);
       expect(records.tools.some((t: any) => t.name === "init")).toBe(true);
     });
+
+    it("subscribes to before_agent_start for editor prompt", async () => {
+      const { pi, records } = createMockPi();
+      const mod = await import(`${EXTENSIONS_DIR}/dcl-init.js`);
+      mod.default(pi);
+      expect(records.events.some((e) => e.event === "before_agent_start")).toBe(true);
+    });
   });
 
   describe("dcl-deploy", () => {
@@ -142,24 +149,6 @@ describe("extension registration", () => {
       const mod = await import(`${EXTENSIONS_DIR}/dcl-setup.js`);
       mod.default(pi);
       expect(records.events).toHaveLength(0);
-    });
-  });
-
-  describe("dcl-setup-ollama", () => {
-    it("registers /setup-ollama command with description", async () => {
-      const { pi, records } = createMockPi();
-      const mod = await import(`${EXTENSIONS_DIR}/dcl-setup-ollama.js`);
-      mod.default(pi);
-      const cmd = records.commands.find((c) => c.name === "setup-ollama");
-      expect(cmd).toBeDefined();
-      expect(cmd!.description.length).toBeGreaterThan(0);
-    });
-
-    it("subscribes to session_start", async () => {
-      const { pi, records } = createMockPi();
-      const mod = await import(`${EXTENSIONS_DIR}/dcl-setup-ollama.js`);
-      mod.default(pi);
-      expect(records.events.some((e) => e.event === "session_start")).toBe(true);
     });
   });
 
@@ -292,7 +281,6 @@ describe("extension registration", () => {
       "dcl-header",
       "dcl-update-check",
       "dcl-status",
-      "dcl-setup-ollama",
       "dcl-tasks",
       "plan-mode/index",
       "permissions/index",
@@ -312,7 +300,7 @@ describe("extension registration", () => {
     it("register exactly the expected set of commands", async () => {
       const allCommands = await collectFromAllExtensions((r) => r.commands.map((c) => c.name));
       allCommands.sort();
-      expect(allCommands).toEqual(["deploy", "init", "plan", "preview", "setup", "setup-ollama", "tasks", "todos"]);
+      expect(allCommands).toEqual(["deploy", "init", "plan", "preview", "setup", "tasks", "todos"]);
     });
 
     it("register exactly the expected set of tools", async () => {

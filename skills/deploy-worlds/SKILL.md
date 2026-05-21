@@ -44,6 +44,41 @@ All Worlds are automatically listed on the [Places page](https://places.decentra
 }
 ```
 
+### Skybox + Minimap configuration
+
+`worldConfiguration` accepts extra fields that aren't available for Genesis City scenes:
+
+```json
+{
+  "worldConfiguration": {
+    "name": "my-name.dcl.eth",
+    "skyboxConfig": {
+      "fixedTime": 36000,
+      "textures": ["textures/skybox.png"]
+    },
+    "miniMapConfig": {
+      "visible": true,
+      "dataImage": "images/minimap.png",
+      "estateImage": "images/estate.png"
+    }
+  }
+}
+```
+
+`skyboxConfig.fixedTime`:
+
+| Value | Time of day |
+|---|---|
+| `0` | Midnight |
+| `18000` | 6 AM (sunrise) |
+| `36000` | Noon |
+| `45000` | 6 PM (sunset) |
+| `50400` | Maximum |
+
+Omit `fixedTime` for a dynamic day/night cycle. `textures` is an array of cubemap face textures (top/bottom/front/back/left/right) when you want a fully custom sky.
+
+`miniMapConfig`: set `visible: true` to show the minimap inside the World; `dataImage` is the base tile, `estateImage` overlays estate boundaries.
+
 ## 2. Deploy
 
 **Use the `/deploy` command** — it auto-detects the `worldConfiguration` in scene.json and deploys to the Worlds content server automatically.
