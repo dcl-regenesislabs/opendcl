@@ -1,4 +1,4 @@
-import { Entity, Transform, VisibilityComponent } from '@dcl/sdk/ecs'
+import { Entity, Transform, VisibilityComponent, engine } from '@dcl/sdk/ecs'
 import { Color4, Quaternion } from '@dcl/sdk/math'
 import { isWeb } from '@dcl/sdk/platform'
 import ReactEcs, { ReactEcsRenderer, UiEntity, Label } from '@dcl/sdk/react-ecs'
@@ -7,7 +7,7 @@ import { toggleEditorCamera, focusSelectedEntity } from './camera'
 import { createGizmo } from './gizmo'
 import { undoCount, redoCount, undo, redo } from './history'
 import { selectEntity, deselectEntity } from './selection'
-import { state, selectableInfoMap, toggleEditorActive } from './state'
+import { state, selectableInfoMap, toggleEditorActive, editorEntities } from './state'
 
 // ── Platform detection ──────────────────────────────────
 
@@ -693,5 +693,7 @@ function EditorUI() {
 }
 
 export function setupEditorUi() {
-  ReactEcsRenderer.setUiRenderer(EditorUI, { virtualWidth: 1280, virtualHeight: 720 })
+  const uiEntity = engine.addEntity()
+  editorEntities.add(uiEntity)
+  ReactEcsRenderer.addUiRenderer(uiEntity, EditorUI, { virtualWidth: 1280, virtualHeight: 720 })
 }
