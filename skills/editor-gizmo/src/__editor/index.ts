@@ -25,7 +25,7 @@ import { Vector3 } from '@dcl/sdk/math'
 import { state, editorEntities, gizmoClickConsumed, setToggleHandler } from './state'
 import { setupEditorUi } from './ui'
 import { createEditorCamera, createLockCamera, deactivateEditorCamera, editorCameraSystem } from './camera'
-import { SKIP_ENTITIES, discoverySystem, removeAllPointerEvents, restoreAllPointerEvents } from './discovery'
+import { SKIP_ENTITIES, discoverySystem, editorClickSystem, removeAllPointerEvents, restoreAllPointerEvents } from './discovery'
 import { deselectEntity } from './selection'
 import { startDrag, startPlaneDrag, dragSystem } from './drag'
 import { gizmoFollowSystem, setStartDragHandler, setStartPlaneDragHandler } from './gizmo'
@@ -110,6 +110,7 @@ function setupClientEditor() {
 
   engine.addSystem(editorCameraSystem, 102)
   engine.addSystem(discoverySystem, 100)
+  engine.addSystem(editorClickSystem, 99)
   engine.addSystem(dragSystem)
   engine.addSystem(gizmoFollowSystem)
   engine.addSystem(modeToggleSystem)
