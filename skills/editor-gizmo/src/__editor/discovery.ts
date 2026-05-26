@@ -9,7 +9,9 @@ import {
   Material,
   GltfContainer,
   Name,
-  pointerEventsSystem,
+  PointerEvents,
+  PointerEventType,
+  inputSystem,
   InputAction,
   ColliderLayer,
 } from '@dcl/sdk/ecs'
@@ -30,6 +32,22 @@ export const SKIP_ENTITIES = new Set<Entity>()
 
 /** Entity names to skip (case-insensitive). Add names here to prevent selection. */
 const SKIP_NAMES = new Set(['ground', 'floor'])
+
+type PointerEventsValue = ReturnType<typeof PointerEvents.get>
+const originalPointerEvents = new Map<Entity, PointerEventsValue | null>()
+
+function addEditorHover(entity: Entity, name: string) {
+  const existing = PointerEvents.getMutableOrNull(entity)
+  const entry = {
+    eventType: PointerEventType.PET_DOWN,
+    eventInfo: { button: InputAction.IA_POINTER, hoverText: `Select ${name}`, maxDistance: 100 },
+  }
+  if (existing) {
+    existing.pointerEvents.push(entry)
+  } else {
+    PointerEvents.create(entity, { pointerEvents: [entry] })
+  }
+}
 
 function getEntityName(entity: Entity): string {
   if (Name.has(entity)) {
@@ -142,16 +160,9 @@ export function registerEntity(entity: Entity) {
 
   selectableInfoMap.set(entity, info)
 
-  pointerEventsSystem.onPointerDown(
-    {
-      entity,
-      opts: { button: InputAction.IA_POINTER, hoverText: `Select ${name}`, maxDistance: 100 },
-    },
-    () => {
-      if (!state.editorActive || state.isDragging || gizmoClickConsumed) return
-      selectEntity(entity)
-    }
-  )
+  const snapshot = PointerEvents.getOrNull(entity)
+  originalPointerEvents.set(entity, snapshot ? structuredClone(snapshot) : null)
+  addEditorHover(entity, name)
 }
 
 export function discoverySystem() {
@@ -165,22 +176,35 @@ export function discoverySystem() {
   }
 }
 
-/** Remove pointer events from all discovered entities (hides hover text). */
-export function removeAllPointerEvents() {
+/** Polls pointer-down input per selectable entity. Runs only while editor is
+ *  active so scene click handlers behave normally otherwise. */
+export function editorClickSystem() {
+  if (!state.editorActive || state.isDragging || gizmoClickConsumed) return
   for (const [entity] of selectableInfoMap) {
-    pointerEventsSystem.removeOnPointerDown(entity)
+    if (inputSystem.isTriggered(InputAction.IA_POINTER, PointerEventType.PET_DOWN, entity)) {
+      selectEntity(entity)
+      return
+    }
   }
 }
 
-/** Re-add pointer events on all discovered entities. */
+/** Restore each discovered entity's PointerEvents to the snapshot taken at
+ *  registration time. Called on editor-off so the scene's own click handlers
+ *  see their unmodified component again. */
+export function removeAllPointerEvents() {
+  for (const [entity, original] of originalPointerEvents) {
+    if (original === null) {
+      PointerEvents.deleteFrom(entity)
+    } else {
+      PointerEvents.createOrReplace(entity, original)
+    }
+  }
+}
+
+/** Re-add the editor's hover affordance to each registered entity, leaving
+ *  any user-added entries intact. Inverse of removeAllPointerEvents. */
 export function restoreAllPointerEvents() {
   for (const [entity, info] of selectableInfoMap) {
-    pointerEventsSystem.onPointerDown(
-      { entity, opts: { button: InputAction.IA_POINTER, hoverText: `Select ${info.name}`, maxDistance: 100 } },
-      () => {
-        if (!state.editorActive || state.isDragging || gizmoClickConsumed) return
-        selectEntity(entity)
-      }
-    )
+    addEditorHover(entity, info.name)
   }
 }
